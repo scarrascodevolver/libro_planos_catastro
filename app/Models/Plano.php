@@ -10,10 +10,11 @@ class Plano extends Model
     use HasFactory;
 
     protected $fillable = [
-        'numero_plano', 'comuna', 'responsable', 'proyecto',
-        'total_hectareas', 'total_m2', 'cantidad_folios',
-        'observaciones', 'archivo', 'tubo', 'tela', 'archivo_digital',
-        'created_by'
+        'numero_plano', 'codigo_region', 'codigo_comuna', 'numero_correlativo',
+        'tipo_saneamiento', 'provincia', 'comuna', 'mes', 'ano',
+        'responsable', 'proyecto', 'providencia', 'total_hectareas', 'total_m2',
+        'cantidad_folios', 'observaciones', 'archivo', 'tubo', 'tela',
+        'archivo_digital', 'created_by'
     ];
 
     protected $casts = [
@@ -50,6 +51,23 @@ class Plano extends Model
             return $this->folios->pluck('folio')->join(', ');
         }
         $first_two = $this->folios->take(2)->pluck('folio')->join(', ');
-        return $first_two . " +{$count-2} más";
+        $remaining = $count - 2;
+        return $first_two . " +{$remaining} más";
+    }
+
+    // Recalcular totales basados en folios relacionados
+    public function getTotalHectareasCalculadaAttribute(): ?float
+    {
+        return $this->folios->sum('hectareas') ?: null;
+    }
+
+    public function getTotalM2CalculadoAttribute(): int
+    {
+        return $this->folios->sum('m2') ?: 0;
+    }
+
+    public function getCantidadFoliosCalculadaAttribute(): int
+    {
+        return $this->folios->count();
     }
 }

@@ -219,23 +219,6 @@
     </div>
 </div>
 
-<!-- Modal Progreso -->
-<div class="modal fade" id="progress-modal" tabindex="-1" role="dialog" aria-hidden="true" data-backdrop="static">
-    <div class="modal-dialog modal-sm" role="document">
-        <div class="modal-content">
-            <div class="modal-body text-center">
-                <div class="spinner-border text-primary mb-3" role="status">
-                    <span class="sr-only">Procesando...</span>
-                </div>
-                <h5 id="progress-title">Procesando archivo...</h5>
-                <p class="text-muted" id="progress-message">Por favor espere</p>
-                <div class="progress mb-3" style="display: none;" id="progress-bar-container">
-                    <div class="progress-bar" role="progressbar" style="width: 0%"></div>
-                </div>
-            </div>
-        </div>
-    </div>
-</div>
 
 @endsection
 
@@ -261,7 +244,17 @@ function initImportForms() {
 
         formData.append('archivo', archivo);
 
-        showProgressModal('Analizando archivo Matrix...', 'Verificando estructura y contenido');
+        // Mostrar loading con SweetAlert
+        Swal.fire({
+            title: 'Analizando archivo...',
+            text: 'Verificando estructura y contenido',
+            allowOutsideClick: false,
+            allowEscapeKey: false,
+            showConfirmButton: false,
+            didOpen: () => {
+                Swal.showLoading();
+            }
+        });
 
         $.ajax({
             url: "{{ route('planos.importacion.preview-matrix') }}",
@@ -273,7 +266,7 @@ function initImportForms() {
                 'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content')
             },
             success: function(response) {
-                hideProgressModal();
+                Swal.close();
 
                 if (response.success) {
                     showPreview(response, 'matrix');
@@ -297,7 +290,7 @@ function initImportForms() {
                 }
             },
             error: function() {
-                hideProgressModal();
+                Swal.close();
                 Swal.fire('Error', 'No se pudo procesar el archivo', 'error');
             }
         });
@@ -315,7 +308,16 @@ function initImportForms() {
 
         formData.append('archivo', archivo);
 
-        showProgressModal('Analizando archivo históricos...', 'Verificando estructura de 21 columnas');
+        Swal.fire({
+            title: 'Analizando archivo históricos...',
+            text: 'Verificando estructura de 21 columnas',
+            allowOutsideClick: false,
+            allowEscapeKey: false,
+            showConfirmButton: false,
+            didOpen: () => {
+                Swal.showLoading();
+            }
+        });
 
         $.ajax({
             url: "{{ route('planos.importacion.preview-historicos') }}",
@@ -327,7 +329,7 @@ function initImportForms() {
                 'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content')
             },
             success: function(response) {
-                hideProgressModal();
+                Swal.close();
 
                 if (response.success) {
                     showPreview(response, 'historicos');
@@ -337,7 +339,7 @@ function initImportForms() {
                 }
             },
             error: function() {
-                hideProgressModal();
+                Swal.close();
                 Swal.fire('Error', 'No se pudo procesar el archivo', 'error');
             }
         });
@@ -418,7 +420,16 @@ function showPreview(data, type) {
 function executeMatrixImport() {
     const formData = new FormData($('#form-matrix-import')[0]);
 
-    showProgressModal('Importando datos Matrix...', 'Procesando registros, por favor espere');
+    Swal.fire({
+        title: 'Importando datos Matrix...',
+        text: 'Procesando registros, por favor espere',
+        allowOutsideClick: false,
+        allowEscapeKey: false,
+        showConfirmButton: false,
+        didOpen: () => {
+            Swal.showLoading();
+        }
+    });
 
     $.ajax({
         url: "{{ route('planos.importacion.import-matrix') }}",
@@ -427,7 +438,7 @@ function executeMatrixImport() {
         processData: false,
         contentType: false,
         success: function(response) {
-            hideProgressModal();
+            Swal.close();
 
             if (response.success) {
                 // Mostrar estadísticas
@@ -472,7 +483,7 @@ function executeMatrixImport() {
             }
         },
         error: function() {
-            hideProgressModal();
+            Swal.close();
             Swal.fire('Error', 'No se pudo completar la importación', 'error');
         }
     });
@@ -483,16 +494,6 @@ function loadEstadisticas() {
         .done(function(data) {
             $('#total-matrix').text(data.total.toLocaleString());
         });
-}
-
-function showProgressModal(title, message) {
-    $('#progress-title').text(title);
-    $('#progress-message').text(message);
-    $('#progress-modal').modal('show');
-}
-
-function hideProgressModal() {
-    $('#progress-modal').modal('hide');
 }
 
 // Confirm import from preview

@@ -54,7 +54,8 @@ class PlanoImportacionController extends Controller
             $highestColumnIndex = \PhpOffice\PhpSpreadsheet\Cell\Coordinate::columnIndexFromString($highestColumn);
 
             for ($col = 1; $col <= $highestColumnIndex; $col++) {
-                $headers[] = $worksheet->getCellByColumnAndRow($col, 1)->getValue();
+                $coordinate = \PhpOffice\PhpSpreadsheet\Cell\Coordinate::stringFromColumnIndex($col) . '1';
+                $headers[] = $worksheet->getCell($coordinate)->getValue();
             }
 
             // Validar headers requeridos para Matrix
@@ -93,18 +94,21 @@ class PlanoImportacionController extends Controller
             for ($row = 2; $row <= $maxPreview; $row++) {
                 $rowData = [];
                 for ($col = 1; $col <= $highestColumnIndex; $col++) {
-                    $rowData[] = $worksheet->getCellByColumnAndRow($col, $row)->getValue();
+                    $coordinate = \PhpOffice\PhpSpreadsheet\Cell\Coordinate::stringFromColumnIndex($col) . $row;
+                    $rowData[] = $worksheet->getCell($coordinate)->getValue();
                 }
                 $preview[] = $rowData;
             }
+
+            $totalFilas = $highestRow - 1; // -1 porque no contamos headers
 
             return response()->json([
                 'success' => true,
                 'headers' => $headers,
                 'headersEncontrados' => $headersEncontrados,
                 'preview' => $preview,
-                'totalFilas' => $highestRow - 1, // -1 porque no contamos headers
-                'mensaje' => "Archivo válido. {$highestRow-1} registros listos para importar."
+                'totalFilas' => $totalFilas,
+                'mensaje' => "Archivo válido. {$totalFilas} registros listos para importar."
             ]);
 
         } catch (ReaderException $e) {
@@ -142,7 +146,8 @@ class PlanoImportacionController extends Controller
 
             $headers = [];
             for ($col = 1; $col <= $highestColumnIndex; $col++) {
-                $headers[] = $worksheet->getCellByColumnAndRow($col, 1)->getValue();
+                $coordinate = \PhpOffice\PhpSpreadsheet\Cell\Coordinate::stringFromColumnIndex($col) . '1';
+                $headers[] = $worksheet->getCell($coordinate)->getValue();
             }
 
             // Mapear columnas
@@ -166,7 +171,8 @@ class PlanoImportacionController extends Controller
                 try {
                     $datos = [];
                     foreach ($columnMap as $campo => $colIndex) {
-                        $datos[$campo] = $worksheet->getCellByColumnAndRow($colIndex, $row)->getValue();
+                        $coordinate = \PhpOffice\PhpSpreadsheet\Cell\Coordinate::stringFromColumnIndex($colIndex) . $row;
+                        $datos[$campo] = $worksheet->getCell($coordinate)->getValue();
                     }
 
                     // Limpiar y validar datos
@@ -245,7 +251,8 @@ class PlanoImportacionController extends Controller
             $highestColumnIndex = \PhpOffice\PhpSpreadsheet\Cell\Coordinate::columnIndexFromString($highestColumn);
 
             for ($col = 1; $col <= $highestColumnIndex; $col++) {
-                $headers[] = $worksheet->getCellByColumnAndRow($col, 1)->getValue();
+                $coordinate = \PhpOffice\PhpSpreadsheet\Cell\Coordinate::stringFromColumnIndex($col) . '1';
+                $headers[] = $worksheet->getCell($coordinate)->getValue();
             }
 
             // Preview de 5 filas
@@ -255,17 +262,20 @@ class PlanoImportacionController extends Controller
             for ($row = 2; $row <= $maxPreview; $row++) {
                 $rowData = [];
                 for ($col = 1; $col <= $highestColumnIndex; $col++) {
-                    $rowData[] = $worksheet->getCellByColumnAndRow($col, $row)->getValue();
+                    $coordinate = \PhpOffice\PhpSpreadsheet\Cell\Coordinate::stringFromColumnIndex($col) . $row;
+                    $rowData[] = $worksheet->getCell($coordinate)->getValue();
                 }
                 $preview[] = $rowData;
             }
+
+            $totalFilas = $highestRow - 1;
 
             return response()->json([
                 'success' => true,
                 'headers' => $headers,
                 'preview' => $preview,
-                'totalFilas' => $highestRow - 1,
-                'mensaje' => "Archivo históricos detectado. {$highestRow-1} registros para procesar."
+                'totalFilas' => $totalFilas,
+                'mensaje' => "Archivo históricos detectado. {$totalFilas} registros para procesar."
             ]);
 
         } catch (\Exception $e) {

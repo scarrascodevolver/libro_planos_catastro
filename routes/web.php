@@ -4,6 +4,7 @@ use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\Admin\PlanoController;
 use App\Http\Controllers\Admin\PlanoCreacionController;
 use App\Http\Controllers\Admin\PlanoImportacionController;
+use App\Http\Controllers\Admin\PlanoHistoricoController;
 use App\Http\Controllers\Admin\SessionControlController;
 
 // Autenticación
@@ -40,6 +41,11 @@ Route::middleware('auth')->group(function () {
     Route::post('/planos/crear/buscar-folios-masivos', [PlanoCreacionController::class, 'buscarFoliosMasivos'])->name('planos.crear.buscar-folios-masivos');
     Route::post('/planos/crear/validar-folios', [PlanoCreacionController::class, 'validarFolios'])->name('planos.crear.validar-folios');
     Route::post('/planos/crear/store', [PlanoCreacionController::class, 'store'])->name('planos.crear.store');
+
+    // Importación Histórica - PlanoHistoricoController
+    Route::get('/planos/historico', [PlanoHistoricoController::class, 'showImportForm'])->name('admin.planos.historico');
+    Route::post('/planos/historico/preview', [PlanoHistoricoController::class, 'previewExcel'])->name('admin.planos.historico.preview');
+    Route::post('/planos/historico/import', [PlanoHistoricoController::class, 'importHistorico'])->name('admin.planos.historico.import');
 
     // Control de Sesiones - SessionControlController
     Route::get('/session-control/status', [SessionControlController::class, 'getStatus'])->name('session-control.status');

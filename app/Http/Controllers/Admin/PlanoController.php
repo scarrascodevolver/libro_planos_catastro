@@ -35,40 +35,30 @@ class PlanoController extends Controller
 
     private function getDataTableData(Request $request)
     {
-        $query = Plano::select([
-            'planos.*',
-            DB::raw('COUNT(planos_folios.id) as cantidad_folios_calc'),
-            DB::raw('SUM(planos_folios.hectareas) as total_hectareas_calc'),
-            DB::raw('SUM(planos_folios.m2) as total_m2_calc'),
-            DB::raw('GROUP_CONCAT(DISTINCT planos_folios.solicitante ORDER BY planos_folios.id SEPARATOR ", ") as solicitantes'),
-            DB::raw('GROUP_CONCAT(DISTINCT planos_folios.apellido_paterno ORDER BY planos_folios.id SEPARATOR ", ") as apellidos_paternos'),
-            DB::raw('GROUP_CONCAT(DISTINCT planos_folios.apellido_materno ORDER BY planos_folios.id SEPARATOR ", ") as apellidos_maternos'),
-        ])
-        ->leftJoin('planos_folios', 'planos.id', '=', 'planos_folios.plano_id')
-        ->with(['folios' => function($query) {
-            $query->orderBy('id')->take(2);
-        }])
-        ->groupBy('planos.id');
+        // Consulta simplificada sin GROUP BY problemático
+        $query = Plano::with(['folios' => function($query) {
+            $query->orderBy('id');
+        }]);
 
         // Filtros
         if ($request->filled('comuna')) {
-            $query->where('planos.comuna', $request->comuna);
+            $query->where('comuna', $request->comuna);
         }
 
         if ($request->filled('ano')) {
-            $query->whereYear('planos.created_at', $request->ano);
+            $query->whereYear('created_at', $request->ano);
         }
 
         if ($request->filled('mes')) {
-            $query->whereMonth('planos.created_at', $request->mes);
+            $query->whereMonth('created_at', $request->mes);
         }
 
         if ($request->filled('responsable')) {
-            $query->where('planos.responsable', $request->responsable);
+            $query->where('responsable', $request->responsable);
         }
 
         if ($request->filled('proyecto')) {
-            $query->where('planos.proyecto', $request->proyecto);
+            $query->where('proyecto', $request->proyecto);
         }
 
         if ($request->filled('folio')) {
@@ -120,10 +110,10 @@ class PlanoController extends Controller
                 return $apellidos->first() ?: '-';
             })
             ->addColumn('hectareas_display', function ($plano) {
-                return $plano->total_hectareas ? number_format($plano->total_hectareas, 2) : '-';
+                return $plano->total_hectareas_calculada ? number_format($plano->total_hectareas_calculada, 2) : '-';
             })
             ->addColumn('m2_display', function ($plano) {
-                return number_format($plano->total_m2 ?: 0);
+                return number_format($plano->total_m2_calculado);
             })
             ->addColumn('mes_display', function ($plano) {
                 return $plano->mes;
