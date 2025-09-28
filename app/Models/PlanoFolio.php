@@ -9,6 +9,8 @@ class PlanoFolio extends Model
 {
     use HasFactory;
 
+    protected $table = 'planos_folios';
+
     protected $fillable = [
         'plano_id', 'folio', 'solicitante', 'apellido_paterno', 'apellido_materno',
         'tipo_inmueble', 'numero_inmueble', 'hectareas', 'm2',

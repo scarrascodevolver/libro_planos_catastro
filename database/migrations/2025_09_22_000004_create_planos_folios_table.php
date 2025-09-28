@@ -14,7 +14,7 @@ return new class extends Migration
         Schema::create('planos_folios', function (Blueprint $table) {
             $table->id();
             $table->unsignedBigInteger('plano_id')->notNull();
-            $table->string('folio', 50); // NO unique, puede repetirse en diferentes planos
+            $table->string('folio', 50)->nullable(); // NO unique, puede repetirse en diferentes planos, NULL para fiscales
             $table->string('solicitante', 255);
             $table->string('apellido_paterno', 255)->nullable();
             $table->string('apellido_materno', 255)->nullable();

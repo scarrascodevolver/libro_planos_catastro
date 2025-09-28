@@ -30,8 +30,6 @@ Route::middleware('auth')->group(function () {
     Route::get('/planos/importacion/index', [PlanoImportacionController::class, 'index'])->name('planos.importacion.index');
     Route::post('/planos/importacion/preview-matrix', [PlanoImportacionController::class, 'previewMatrix'])->name('planos.importacion.preview-matrix');
     Route::post('/planos/importacion/import-matrix', [PlanoImportacionController::class, 'importMatrix'])->name('planos.importacion.import-matrix');
-    Route::post('/planos/importacion/preview-historicos', [PlanoImportacionController::class, 'previewHistoricos'])->name('planos.importacion.preview-historicos');
-    Route::post('/planos/importacion/import-historicos', [PlanoImportacionController::class, 'importHistoricos'])->name('planos.importacion.import-historicos');
     Route::get('/planos/importacion/estadisticas-matrix', [PlanoImportacionController::class, 'getEstadisticasMatrix'])->name('planos.importacion.estadisticas-matrix');
     Route::delete('/planos/importacion/limpiar-matrix', [PlanoImportacionController::class, 'limpiarMatrix'])->name('planos.importacion.limpiar-matrix');
 

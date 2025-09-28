@@ -156,7 +156,7 @@
                             <i class="fas fa-eye"></i> Vista Previa
                         </button>
                         <button type="button" class="btn btn-warning" id="import-historicos" disabled>
-                            <i class="fas fa-file-import"></i> Importar (No Implementado)
+                            <i class="fas fa-file-import"></i> Importar
                         </button>
                     </div>
                 </form>
@@ -306,7 +306,7 @@ function initImportForms() {
             return;
         }
 
-        formData.append('archivo', archivo);
+        formData.append('archivo_excel', archivo);
 
         Swal.fire({
             title: 'Analizando archivo históricos...',
@@ -320,7 +320,7 @@ function initImportForms() {
         });
 
         $.ajax({
-            url: "{{ route('planos.importacion.preview-historicos') }}",
+            url: "{{ route('admin.planos.historico.preview') }}",
             method: 'POST',
             data: formData,
             processData: false,
@@ -489,6 +489,110 @@ function executeMatrixImport() {
     });
 }
 
+function executeHistoricosImport() {
+    const formData = new FormData();
+    const archivo = $('#archivo_historicos')[0].files[0];
+
+    if (!archivo) {
+        Swal.fire('Error', 'Debe seleccionar un archivo', 'error');
+        return;
+    }
+
+    formData.append('archivo_excel', archivo);
+    formData.append('_token', $('meta[name="csrf-token"]').attr('content'));
+
+    Swal.fire({
+        title: 'Importando planos históricos...',
+        text: 'Procesando grupos de planos, por favor espere',
+        allowOutsideClick: false,
+        allowEscapeKey: false,
+        showConfirmButton: false,
+        didOpen: () => {
+            Swal.showLoading();
+        }
+    });
+
+    $.ajax({
+        url: "{{ route('admin.planos.historico.import') }}",
+        method: 'POST',
+        data: formData,
+        processData: false,
+        contentType: false,
+        headers: {
+            'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content')
+        },
+        success: function(response) {
+            Swal.close();
+
+            if (response.success) {
+                // Mostrar resultados
+                let html = '<div class="alert alert-success">';
+                html += '<h6><i class="fas fa-check-circle"></i> Importación histórica completada</h6>';
+                html += '<p>' + response.message + '</p>';
+                html += '<ul>';
+                html += '<li>Planos creados: <strong>' + response.resultado.planos_creados + '</strong></li>';
+                html += '<li>Folios creados: <strong>' + response.resultado.folios_creados + '</strong></li>';
+                html += '<li>Errores críticos: <strong>' + response.resultado.errores_criticos + '</strong></li>';
+                html += '</ul></div>';
+
+                if (response.resultado.errores && Object.keys(response.resultado.errores).length > 0) {
+                    html += '<div class="alert alert-warning">';
+                    html += '<h6>Errores encontrados:</h6>';
+                    html += '<div style="max-height: 200px; overflow-y: auto;">';
+                    Object.keys(response.resultado.errores).forEach(function(grupo) {
+                        html += '<h6 class="mt-2">' + grupo + ':</h6>';
+                        html += '<ul>';
+                        response.resultado.errores[grupo].forEach(function(error) {
+                            html += '<li>' + error + '</li>';
+                        });
+                        html += '</ul>';
+                    });
+                    html += '</div></div>';
+                }
+
+                Swal.fire({
+                    title: '¡Importación Completada!',
+                    html: html,
+                    icon: 'success',
+                    width: 700,
+                    confirmButtonText: 'Cerrar'
+                });
+
+                // Reset form
+                $('#form-historicos-import')[0].reset();
+                $('.custom-file-label').eq(1).html('Seleccionar archivo PLANOS-HISTORICOS.xlsx');
+                $('#import-historicos').prop('disabled', true);
+
+            } else {
+                let errorHtml = '<p>' + response.message + '</p>';
+                if (response.resultado && response.resultado.errores) {
+                    errorHtml += '<div class="alert alert-danger mt-2">';
+                    errorHtml += '<h6>Errores críticos:</h6>';
+                    errorHtml += '<div style="max-height: 150px; overflow-y: auto;">';
+                    Object.keys(response.resultado.errores).forEach(function(grupo) {
+                        errorHtml += '<strong>' + grupo + ':</strong><br>';
+                        response.resultado.errores[grupo].forEach(function(error) {
+                            errorHtml += '• ' + error + '<br>';
+                        });
+                    });
+                    errorHtml += '</div></div>';
+                }
+
+                Swal.fire({
+                    title: 'Error en importación',
+                    html: errorHtml,
+                    icon: 'error',
+                    width: 600
+                });
+            }
+        },
+        error: function() {
+            Swal.close();
+            Swal.fire('Error', 'No se pudo completar la importación histórica', 'error');
+        }
+    });
+}
+
 function loadEstadisticas() {
     $.get("{{ route('planos.importacion.estadisticas-matrix') }}")
         .done(function(data) {
@@ -503,7 +607,7 @@ $('#confirm-import').on('click', function() {
     if (currentPreviewType === 'matrix') {
         $('#form-matrix-import').submit();
     } else if (currentPreviewType === 'historicos') {
-        Swal.fire('Info', 'Importación de históricos no implementada aún', 'info');
+        executeHistoricosImport();
     }
 });
 </script>

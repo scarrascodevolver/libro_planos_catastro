@@ -36,20 +36,47 @@ class PlanoHistoricoController extends Controller
                 array_shift($datos);
             }
 
+            // Crear headers para la vista previa (24 columnas)
+            $headers = [
+                'CODIGO_REGIONAL', 'CODIGO_COMUNAL', 'N°_PLANO', 'URBANO/RURAL',
+                'FOLIO', 'SOLICITANTE', 'PATERNO', 'MATERNO', 'COMUNA',
+                'HIJ', 'HA', 'M²_HIJ', 'SITIO', 'M²_SITIO', 'FECHA', 'AÑO',
+                'Responsable', 'PROYECTO', 'PROVIDENCIA', 'ARCHIVO',
+                'OBSERVACION', 'TUBO', 'TELA', 'ARCHIVO_DIGITAL'
+            ];
+
             // Agrupar datos por clave única
             $grupos = $this->agruparDatos($datos);
 
             // Validar datos agrupados
             $validacion = $this->validarGrupos($grupos);
 
+            // Convertir primeros grupos a formato para preview (filas individuales)
+            $previewFilas = [];
+            $gruposParaPreview = array_slice($grupos, 0, 3); // Primeros 3 grupos
+            foreach ($gruposParaPreview as $grupo) {
+                foreach ($grupo as $fila) {
+                    $previewFilas[] = [
+                        $fila['CODIGO_REGIONAL'], $fila['CODIGO_COMUNAL'], $fila['N°_PLANO'], $fila['URBANO/RURAL'],
+                        $fila['FOLIO'], $fila['SOLICITANTE'], $fila['PATERNO'], $fila['MATERNO'], $fila['COMUNA'],
+                        $fila['HIJ'], $fila['HA'], $fila['M²_HIJ'], $fila['SITIO'], $fila['M²_SITIO'], $fila['FECHA'], $fila['AÑO'],
+                        $fila['Responsable'], $fila['PROYECTO'], $fila['PROVIDENCIA'], $fila['ARCHIVO'],
+                        $fila['OBSERVACION'], $fila['TUBO'], $fila['TELA'], $fila['ARCHIVO_DIGITAL']
+                    ];
+                }
+                if (count($previewFilas) >= 10) break; // Máximo 10 filas para preview
+            }
+
             return response()->json([
                 'success' => true,
+                'mensaje' => "Archivo procesado: {$validacion['validos']} grupos válidos de " . count($grupos) . " total",
+                'headers' => $headers,
+                'preview' => $previewFilas,
                 'total_filas' => count($datos),
                 'total_grupos' => count($grupos),
                 'grupos_validos' => $validacion['validos'],
                 'grupos_invalidos' => $validacion['invalidos'],
-                'errores' => $validacion['errores'],
-                'preview' => array_slice($grupos, 0, 5) // Primeros 5 grupos para preview
+                'errores' => $validacion['errores']
             ]);
 
         } catch (\Exception $e) {
@@ -152,7 +179,7 @@ class PlanoHistoricoController extends Controller
         return [
             'NUMERO_FILA' => $numeroFila + 1,
             'CODIGO_REGIONAL' => $fila[0] ?? '',
-            'CODIGO_COMUNAL' => $fila[1] ?? '',
+            'CODIGO_COMUNAL' => $this->normalizarCodigoComuna($fila[1] ?? ''),
             'N°_PLANO' => $fila[2] ?? '',
             'URBANO/RURAL' => $fila[3] ?? '',
             'FOLIO' => $fila[4] ?? '',
@@ -183,9 +210,15 @@ class PlanoHistoricoController extends Controller
         $validos = 0;
         $invalidos = 0;
         $errores = [];
+        $numerosProcessados = []; // Para validación de preview
 
         foreach ($grupos as $clave => $grupo) {
-            $erroresGrupo = $this->validarGrupo($grupo);
+            $erroresGrupo = $this->validarGrupo($grupo, $numerosProcessados);
+
+            // Si es válido, marcar número como procesado para siguientes validaciones
+            if (empty($erroresGrupo)) {
+                $numerosProcessados[] = $grupo[0]['N°_PLANO'];
+            }
 
             if (empty($erroresGrupo)) {
                 $validos++;
@@ -202,20 +235,30 @@ class PlanoHistoricoController extends Controller
         ];
     }
 
-    private function validarGrupo($grupo)
+    private function validarGrupo($grupo, &$numerosProcessados = [])
     {
         $errores = [];
         $primerFila = $grupo[0];
+        $numeroPlano = $primerFila['N°_PLANO'];
 
-        // Validar número plano único
-        if (Plano::where('numero_plano', $primerFila['N°_PLANO'])->exists()) {
-            $errores[] = "Número de plano {$primerFila['N°_PLANO']} ya existe";
+        // Validar número plano único en BD
+        $existeEnBD = Plano::where('numero_plano', $numeroPlano)->exists();
+        Log::info("Validando plano {$numeroPlano}: existe en BD = " . ($existeEnBD ? 'SÍ' : 'NO'));
+        if ($existeEnBD) {
+            $errores[] = "Número de plano {$numeroPlano} ya existe en BD";
         }
 
-        // Validar comuna existe
-        $comuna = ComunaBiobio::where('nombre', $primerFila['COMUNA'])->first();
+        // Validar número plano único en este lote de importación
+        if (in_array($numeroPlano, $numerosProcessados)) {
+            $errores[] = "Número de plano {$numeroPlano} duplicado en este archivo";
+        }
+
+        // Validar comuna existe (búsqueda inteligente)
+        $nombreComuna = trim($primerFila['COMUNA']);
+        $codigoComuna = $primerFila['CODIGO_COMUNAL']; // Código ya normalizado
+        $comuna = $this->buscarComuna($nombreComuna, $codigoComuna);
         if (!$comuna) {
-            $errores[] = "Comuna '{$primerFila['COMUNA']}' no encontrada";
+            $errores[] = "CRÍTICO: Comuna '{$nombreComuna}' no encontrada en BD";
         }
 
         // Validar cada folio del grupo
@@ -233,23 +276,20 @@ class PlanoHistoricoController extends Controller
     {
         $errores = [];
 
-        // Validar que tenga HIJ o SITIO
-        if ($fila['HIJ'] <= 0 && $fila['SITIO'] <= 0) {
-            $errores[] = "Fila {$fila['NUMERO_FILA']}: Debe tener HIJ o SITIO > 0";
+        // Validar tipo de inmueble y datos coherentes
+        $tipoResult = $this->determinarTipoInmueble($fila);
+        if (isset($tipoResult['error'])) {
+            $errores[] = "Fila {$fila['NUMERO_FILA']}: {$tipoResult['error']}";
         }
 
-        // Validar M² coherente
-        $m2 = ($fila['HIJ'] > 0) ? $fila['M²_HIJ'] : $fila['M²_SITIO'];
-        if ($m2 <= 0) {
-            $errores[] = "Fila {$fila['NUMERO_FILA']}: M² debe ser > 0";
+        // Validar FOLIO según tipo de plano (fiscal vs saneamiento)
+        $errorFolio = $this->validarFolioSegunTipo($fila);
+        if ($errorFolio) {
+            $errores[] = $errorFolio;
         }
 
-        // Validar campos obligatorios
-        if (empty($fila['FOLIO'])) {
-            $errores[] = "Fila {$fila['NUMERO_FILA']}: FOLIO requerido";
-        }
-
-        if (empty($fila['SOLICITANTE'])) {
+        // Validar SOLICITANTE (requerido pero puede ser genérico)
+        if (empty(trim($fila['SOLICITANTE']))) {
             $errores[] = "Fila {$fila['NUMERO_FILA']}: SOLICITANTE requerido";
         }
 
@@ -262,20 +302,25 @@ class PlanoHistoricoController extends Controller
         $foliosCreados = 0;
         $errores = [];
         $erroresCriticos = 0;
+        $numerosProcessados = []; // Track números ya procesados en este lote
 
         foreach ($grupos as $clave => $grupo) {
             try {
                 // Validar grupo antes de procesar
-                $erroresGrupo = $this->validarGrupo($grupo);
+                $erroresGrupo = $this->validarGrupo($grupo, $numerosProcessados);
                 if (!empty($erroresGrupo)) {
                     $errores[$clave] = $erroresGrupo;
                     $erroresCriticos++;
+                    Log::warning("Grupo $clave rechazado por errores:", $erroresGrupo);
                     continue;
                 }
 
                 // Crear plano
                 $plano = $this->crearPlanoDesdeGrupo($grupo);
                 $planosCreados++;
+
+                // Marcar número como procesado
+                $numerosProcessados[] = $grupo[0]['N°_PLANO'];
 
                 // Crear folios
                 foreach ($grupo as $fila) {
@@ -308,21 +353,26 @@ class PlanoHistoricoController extends Controller
             return ($fila['HIJ'] > 0) ? $fila['M²_HIJ'] : $fila['M²_SITIO'];
         });
 
-        // Lookup provincia
-        $comuna = ComunaBiobio::where('nombre', $primerFila['COMUNA'])->first();
+        // Lookup provincia (búsqueda inteligente)
+        $nombreComuna = trim($primerFila['COMUNA']);
+        $codigoComuna = $primerFila['CODIGO_COMUNAL']; // Código ya normalizado
+        $comuna = $this->buscarComuna($nombreComuna, $codigoComuna);
         $provincia = $comuna ? $comuna->provincia : 'DESCONOCIDA';
 
         // Extraer mes de fecha
         $mes = $this->extraerMes($primerFila['FECHA']);
+
+        // Limpiar tipo_saneamiento quitando puntos
+        $tipoSaneamiento = str_replace('.', '', $primerFila['URBANO/RURAL']);
 
         return Plano::create([
             'numero_plano' => $primerFila['N°_PLANO'],
             'codigo_region' => $primerFila['CODIGO_REGIONAL'],
             'codigo_comuna' => $primerFila['CODIGO_COMUNAL'],
             'numero_correlativo' => $primerFila['N°_PLANO'], // Por ahora el mismo valor
-            'tipo_saneamiento' => $primerFila['URBANO/RURAL'],
+            'tipo_saneamiento' => $tipoSaneamiento,
             'provincia' => $provincia,
-            'comuna' => $primerFila['COMUNA'],
+            'comuna' => $nombreComuna,
             'mes' => $mes,
             'ano' => $primerFila['AÑO'],
             'responsable' => $primerFila['Responsable'],
@@ -342,29 +392,24 @@ class PlanoHistoricoController extends Controller
 
     private function crearFolioDesdeFila($planoId, $fila)
     {
-        // Determinar tipo de inmueble y valores
-        if ($fila['HIJ'] > 0) {
-            $tipoInmueble = 'HIJUELA';
-            $numeroInmueble = $fila['HIJ'];
-            $hectareas = $fila['HA'];
-            $m2 = $fila['M²_HIJ'];
-        } else {
-            $tipoInmueble = 'SITIO';
-            $numeroInmueble = $fila['SITIO'];
-            $hectareas = null;
-            $m2 = $fila['M²_SITIO'];
+        // Determinar tipo de inmueble usando nueva lógica
+        $tipoResult = $this->determinarTipoInmueble($fila);
+
+        // Si hay error en determinación de tipo, no crear el folio
+        if (isset($tipoResult['error'])) {
+            throw new \Exception("Fila {$fila['NUMERO_FILA']}: {$tipoResult['error']}");
         }
 
         return PlanoFolio::create([
             'plano_id' => $planoId,
-            'folio' => $fila['FOLIO'],
-            'solicitante' => $fila['SOLICITANTE'],
-            'apellido_paterno' => $fila['PATERNO'] ?: null,
-            'apellido_materno' => $fila['MATERNO'] ?: null,
-            'tipo_inmueble' => $tipoInmueble,
-            'numero_inmueble' => $numeroInmueble,
-            'hectareas' => $hectareas,
-            'm2' => $m2,
+            'folio' => !empty(trim($fila['FOLIO'])) ? trim($fila['FOLIO']) : null,
+            'solicitante' => trim($fila['SOLICITANTE']) ?: 'SIN ESPECIFICAR',
+            'apellido_paterno' => !empty(trim($fila['PATERNO'])) ? trim($fila['PATERNO']) : null,
+            'apellido_materno' => !empty(trim($fila['MATERNO'])) ? trim($fila['MATERNO']) : null,
+            'tipo_inmueble' => $tipoResult['tipo'],
+            'numero_inmueble' => $tipoResult['numero'],
+            'hectareas' => $tipoResult['hectareas'],
+            'm2' => $tipoResult['m2'],
             'is_from_matrix' => false,
             'matrix_folio' => null
         ]);
@@ -380,5 +425,93 @@ class PlanoHistoricoController extends Controller
         } catch (\Exception $e) {
             return 'DESCONOCIDO';
         }
+    }
+
+    private function validarFolioSegunTipo($fila)
+    {
+        $tipoSaneamiento = str_replace('.', '', $fila['URBANO/RURAL']);
+        $esFiscal = in_array($tipoSaneamiento, ['CR', 'CU']);
+
+        // Solo saneamiento requiere FOLIO obligatorio
+        if (!$esFiscal && empty(trim($fila['FOLIO']))) {
+            return "WARNING: Plano saneamiento sin FOLIO en fila {$fila['NUMERO_FILA']}";
+        }
+
+        return null; // Fiscales OK sin folio
+    }
+
+    private function determinarTipoInmueble($fila)
+    {
+        $hectareas = floatval($fila['HA'] ?? 0);
+        $m2Hij = intval($fila['M²_HIJ'] ?? 0);
+        $m2Sitio = intval($fila['M²_SITIO'] ?? 0);
+
+        if ($hectareas > 0 || $m2Hij > 0) {
+            // Es HIJUELA
+            return [
+                'tipo' => 'HIJUELA',
+                'numero' => !empty($fila['HIJ']) ? intval($fila['HIJ']) : 1,
+                'hectareas' => $hectareas,
+                'm2' => $m2Hij
+            ];
+        } elseif ($m2Sitio > 0) {
+            // Es SITIO
+            return [
+                'tipo' => 'SITIO',
+                'numero' => !empty($fila['SITIO']) ? intval($fila['SITIO']) : 1,
+                'hectareas' => null,
+                'm2' => $m2Sitio
+            ];
+        }
+
+        // Caso sin datos de superficie - asignar valores por defecto como SITIO
+        Log::info("Fila {$fila['NUMERO_FILA']}: Sin superficie, asignando como SITIO con 0 m²");
+        return [
+            'tipo' => 'SITIO',
+            'numero' => 1,
+            'hectareas' => null,
+            'm2' => 0
+        ];
+    }
+
+    private function buscarComuna($nombreComuna, $codigoComuna = null)
+    {
+        $nombre = trim($nombreComuna);
+
+        // 1. Búsqueda por código si está disponible (más confiable)
+        if (!empty($codigoComuna)) {
+            $codigo = trim($codigoComuna);
+            $comuna = ComunaBiobio::where('codigo', $codigo)->first();
+            if ($comuna) {
+                Log::info("Comuna encontrada por código: $codigo -> {$comuna->nombre}");
+                return $comuna;
+            }
+        }
+
+        // 2. Búsqueda exacta por nombre
+        $comuna = ComunaBiobio::whereRaw('UPPER(nombre) = UPPER(?)', [$nombre])->first();
+        if ($comuna) return $comuna;
+
+        // 3. Búsqueda sin considerar acentos y espacios
+        $comuna = ComunaBiobio::whereRaw(
+            'UPPER(REPLACE(REPLACE(REPLACE(nombre, "Á", "A"), "É", "E"), "Ñ", "N")) LIKE UPPER(?)',
+            ["%$nombre%"]
+        )->first();
+
+        return $comuna;
+    }
+
+    private function normalizarCodigoComuna($codigoOriginal)
+    {
+        $codigo = trim($codigoOriginal);
+
+        // Si el código tiene más de 3 dígitos y empieza con 8, quitar el 8 inicial
+        if (strlen($codigo) > 3 && str_starts_with($codigo, '8')) {
+            $codigoNormalizado = substr($codigo, 1); // Quitar primer carácter (8)
+            Log::info("Código comuna normalizado: $codigo -> $codigoNormalizado");
+            return $codigoNormalizado;
+        }
+
+        return $codigo;
     }
 }
