@@ -25,32 +25,112 @@ class PlanoController extends Controller
             return $this->getDataTableData($request);
         }
 
-        $comunas = ComunaBiobio::getParaSelect();
-        $responsables = Plano::select('responsable')->distinct()->orderBy('responsable')->pluck('responsable');
-        $proyectos = Plano::select('proyecto')->distinct()->orderBy('proyecto')->pluck('proyecto');
-        $anos = Plano::selectRaw('YEAR(created_at) as ano')->distinct()->orderBy('ano', 'desc')->pluck('ano');
+        $comunas = ComunaBiobio::orderBy('nombre')->pluck('nombre', 'codigo');
+        $responsables = Plano::select('responsable')->distinct()->whereNotNull('responsable')->orderBy('responsable')->pluck('responsable');
+        $proyectos = Plano::select('proyecto')->distinct()->whereNotNull('proyecto')->orderBy('proyecto')->pluck('proyecto');
+        $anos = Plano::selectRaw('DISTINCT ano')->whereNotNull('ano')->orderBy('ano', 'desc')->pluck('ano');
 
         return view('admin.planos.index', compact('comunas', 'responsables', 'proyectos', 'anos'));
     }
 
     private function getDataTableData(Request $request)
     {
-        // Consulta simplificada sin GROUP BY problemático
         $query = Plano::with(['folios' => function($query) {
             $query->orderBy('id');
         }]);
 
-        // Filtros
+        // Aplicar filtros
+        $this->applyFilters($query, $request);
+
+        return DataTables::of($query)
+            ->addColumn('acciones', function ($plano) {
+                $acciones = '';
+                if (Auth::user()->isRegistro()) {
+                    $acciones .= '<div class="btn-group">';
+                    $acciones .= '<button class="btn btn-sm btn-primary editar-plano" data-id="'.$plano->id.'" title="Editar"><i class="fas fa-edit"></i></button>';
+                    $acciones .= '<button class="btn btn-sm btn-warning reasignar-plano" data-id="'.$plano->id.'" title="Reasignar N°"><i class="fas fa-exchange-alt"></i></button>';
+                    $acciones .= '</div>';
+                }
+                return $acciones;
+            })
+            ->addColumn('folios_display', function ($plano) {
+                return $this->getDisplayFolios($plano);
+            })
+            ->addColumn('solicitante_display', function ($plano) {
+                return $this->getSolicitanteDisplay($plano);
+            })
+            ->addColumn('apellido_paterno_display', function ($plano) {
+                return $this->getApellidoPaternoDisplay($plano);
+            })
+            ->addColumn('apellido_materno_display', function ($plano) {
+                return $this->getApellidoMaternoDisplay($plano);
+            })
+            ->addColumn('hectareas_display', function ($plano) {
+                return $plano->total_hectareas ? number_format($plano->total_hectareas, 2) : '-';
+            })
+            ->addColumn('m2_display', function ($plano) {
+                return number_format($plano->total_m2 ?: 0);
+            })
+            ->addColumn('mes_display', function ($plano) {
+                return $plano->mes ?: 'DESCONOCIDO';
+            })
+            ->addColumn('ano_display', function ($plano) {
+                return $plano->ano ?: date('Y');
+            })
+            ->addColumn('numero_plano_completo', function ($plano) {
+                return $this->formatNumeroPlanoCompleto($plano);
+            })
+            ->addColumn('expandir', function ($plano) {
+                return '<button class="btn btn-sm btn-info expandir-folios" data-id="'.$plano->id.'"><i class="fas fa-plus"></i></button>';
+            })
+            // Configurar búsqueda global personalizada
+            ->filter(function ($query) use ($request) {
+                if ($request->has('search') && !empty($request->search['value'])) {
+                    $searchValue = $request->search['value'];
+                    $query->where(function($q) use ($searchValue) {
+                        // Búsqueda en campos principales
+                        $q->where('numero_plano', 'LIKE', "%{$searchValue}%")
+                          ->orWhere('numero_correlativo', 'LIKE', "%{$searchValue}%")
+                          ->orWhere('comuna', 'LIKE', "%{$searchValue}%")
+                          ->orWhere('responsable', 'LIKE', "%{$searchValue}%")
+                          ->orWhere('proyecto', 'LIKE', "%{$searchValue}%")
+                          ->orWhere('mes', 'LIKE', "%{$searchValue}%")
+                          ->orWhere('ano', 'LIKE', "%{$searchValue}%")
+                          // Búsqueda en número completo concatenado
+                          ->orWhereRaw("CONCAT(
+                              LPAD(COALESCE(codigo_region, '08'), 2, '0'),
+                              LPAD(COALESCE(codigo_comuna, ''), 3, '0'),
+                              COALESCE(numero_correlativo, numero_plano),
+                              COALESCE(tipo_saneamiento, '')
+                          ) LIKE ?", ["%{$searchValue}%"])
+                          // Búsqueda en folios relacionados
+                          ->orWhereHas('folios', function($folioQuery) use ($searchValue) {
+                              $folioQuery->where('folio', 'LIKE', "%{$searchValue}%")
+                                        ->orWhere('solicitante', 'LIKE', "%{$searchValue}%")
+                                        ->orWhere('apellido_paterno', 'LIKE', "%{$searchValue}%")
+                                        ->orWhere('apellido_materno', 'LIKE', "%{$searchValue}%");
+                          });
+                    });
+                }
+            })
+            ->rawColumns(['acciones', 'expandir'])
+            ->make(true);
+    }
+
+    private function applyFilters($query, Request $request)
+    {
+        // Solo aplicar filtros específicos (no la búsqueda global - eso lo maneja Yajra automáticamente)
+
         if ($request->filled('comuna')) {
             $query->where('comuna', $request->comuna);
         }
 
         if ($request->filled('ano')) {
-            $query->whereYear('created_at', $request->ano);
+            $query->where('ano', $request->ano);
         }
 
         if ($request->filled('mes')) {
-            $query->whereMonth('created_at', $request->mes);
+            $query->where('mes', $request->mes);
         }
 
         if ($request->filled('responsable')) {
@@ -67,65 +147,88 @@ class PlanoController extends Controller
             });
         }
 
-        return DataTables::of($query)
-            ->addColumn('acciones', function ($plano) {
-                $acciones = '';
-                if (Auth::user()->isRegistro()) {
-                    $acciones .= '<button class="btn btn-sm btn-primary editar-plano" data-id="'.$plano->id.'"><i class="fas fa-edit"></i></button> ';
-                    $acciones .= '<button class="btn btn-sm btn-warning reasignar-plano" data-id="'.$plano->id.'"><i class="fas fa-exchange-alt"></i></button>';
-                }
-                return $acciones;
-            })
-            ->addColumn('folios_display', function ($plano) {
-                return $plano->display_folios;
-            })
-            ->addColumn('solicitante_display', function ($plano) {
-                $folios = $plano->folios;
-                if ($folios->isEmpty()) return '-';
+        if ($request->filled('solicitante')) {
+            $query->whereHas('folios', function($q) use ($request) {
+                $q->where('solicitante', 'LIKE', '%' . $request->solicitante . '%');
+            });
+        }
 
-                $solicitantes = $folios->pluck('solicitante')->unique()->filter();
-                if ($solicitantes->count() > 1) {
-                    return 'MÚLTIPLES';
-                }
-                return $solicitantes->first() ?: '-';
-            })
-            ->addColumn('apellido_paterno_display', function ($plano) {
-                $folios = $plano->folios;
-                if ($folios->isEmpty()) return '-';
+        if ($request->filled('apellido_paterno')) {
+            $query->whereHas('folios', function($q) use ($request) {
+                $q->where('apellido_paterno', 'LIKE', '%' . $request->apellido_paterno . '%');
+            });
+        }
 
-                $apellidos = $folios->pluck('apellido_paterno')->unique()->filter();
-                if ($apellidos->count() > 1) {
-                    return '-';
-                }
-                return $apellidos->first() ?: '-';
-            })
-            ->addColumn('apellido_materno_display', function ($plano) {
-                $folios = $plano->folios;
-                if ($folios->isEmpty()) return '-';
+        if ($request->filled('apellido_materno')) {
+            $query->whereHas('folios', function($q) use ($request) {
+                $q->where('apellido_materno', 'LIKE', '%' . $request->apellido_materno . '%');
+            });
+        }
 
-                $apellidos = $folios->pluck('apellido_materno')->unique()->filter();
-                if ($apellidos->count() > 1) {
-                    return '-';
-                }
-                return $apellidos->first() ?: '-';
-            })
-            ->addColumn('hectareas_display', function ($plano) {
-                return $plano->total_hectareas_calculada ? number_format($plano->total_hectareas_calculada, 2) : '-';
-            })
-            ->addColumn('m2_display', function ($plano) {
-                return number_format($plano->total_m2_calculado);
-            })
-            ->addColumn('mes_display', function ($plano) {
-                return $plano->mes;
-            })
-            ->addColumn('ano_display', function ($plano) {
-                return $plano->ano;
-            })
-            ->addColumn('expandir', function ($plano) {
-                return '<button class="btn btn-sm btn-info expandir-folios" data-id="'.$plano->id.'"><i class="fas fa-plus"></i></button>';
-            })
-            ->rawColumns(['acciones', 'expandir'])
-            ->make(true);
+        if ($request->filled('hectareas_min')) {
+            $query->where('total_hectareas', '>=', $request->hectareas_min);
+        }
+
+        if ($request->filled('hectareas_max')) {
+            $query->where('total_hectareas', '<=', $request->hectareas_max);
+        }
+
+        if ($request->filled('m2_min')) {
+            $query->where('total_m2', '>=', $request->m2_min);
+        }
+
+        if ($request->filled('m2_max')) {
+            $query->where('total_m2', '<=', $request->m2_max);
+        }
+    }
+
+    private function getSolicitanteDisplay($plano)
+    {
+        $folios = $plano->folios;
+        if ($folios->isEmpty()) return '-';
+
+        $solicitantes = $folios->pluck('solicitante')->unique()->filter();
+        if ($solicitantes->count() > 1) {
+            return 'MÚLTIPLES';
+        }
+        return $solicitantes->first() ?: '-';
+    }
+
+    private function getApellidoPaternoDisplay($plano)
+    {
+        $folios = $plano->folios;
+        if ($folios->isEmpty()) return '-';
+
+        $apellidos = $folios->pluck('apellido_paterno')->unique()->filter();
+        if ($apellidos->count() > 1) {
+            return '-';
+        }
+        return $apellidos->first() ?: '-';
+    }
+
+    private function getApellidoMaternoDisplay($plano)
+    {
+        $folios = $plano->folios;
+        if ($folios->isEmpty()) return '-';
+
+        $apellidos = $folios->pluck('apellido_materno')->unique()->filter();
+        if ($apellidos->count() > 1) {
+            return '-';
+        }
+        return $apellidos->first() ?: '-';
+    }
+
+    private function formatNumeroPlanoCompleto($plano)
+    {
+        // Formato: codigo_region + codigo_comuna + numero_correlativo + tipo_saneamiento
+        // Ejemplo: 08 + 301 + 29800 + SU = 0830129800SU
+
+        $codigoRegion = str_pad($plano->codigo_region ?: '08', 2, '0', STR_PAD_LEFT);
+        $codigoComuna = str_pad($plano->codigo_comuna ?: '', 3, '0', STR_PAD_LEFT);
+        $numeroCorrelativo = $plano->numero_correlativo ?: $plano->numero_plano;
+        $tipoSaneamiento = $plano->tipo_saneamiento ?: '';
+
+        return $codigoRegion . $codigoComuna . $numeroCorrelativo . $tipoSaneamiento;
     }
 
     public function getFoliosExpansion($planoId)
@@ -149,6 +252,24 @@ class PlanoController extends Controller
         }
 
         return response()->json(['html' => $html]);
+    }
+
+    private function getDisplayFolios($plano)
+    {
+        $folios = $plano->folios;
+        $count = $folios->count();
+
+        if ($count == 0) {
+            return '-';
+        }
+
+        if ($count <= 2) {
+            return $folios->pluck('folio')->filter()->join(', ') ?: 'S/F';
+        }
+
+        $first_two = $folios->take(2)->pluck('folio')->filter()->join(', ');
+        $remaining = $count - 2;
+        return $first_two . " +{$remaining} más";
     }
 
     public function show($id)

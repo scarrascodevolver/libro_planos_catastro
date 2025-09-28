@@ -198,34 +198,13 @@
         </div>
     </div>
     <div class="card-body">
-        <!-- Info de registros -->
-        <div class="row mb-3">
-            <div class="col-sm-6">
-                <div id="planos-table_info" class="dataTables_info"></div>
-            </div>
-            <div class="col-sm-6">
-                <div class="dataTables_length float-right">
-                    <label>Mostrar
-                        <select id="table-length" class="custom-select custom-select-sm form-control form-control-sm">
-                            <option value="10">10</option>
-                            <option value="25" selected>25</option>
-                            <option value="50">50</option>
-                            <option value="100">100</option>
-                            <option value="-1">Todos</option>
-                        </select> registros
-                    </label>
-                </div>
-            </div>
-        </div>
-
         <!-- DataTable -->
         <div class="table-responsive">
-            <table id="planos-table" class="table table-bordered table-striped table-hover">
+            <table id="planos-table" class="table table-bordered table-striped table-hover table-nowrap">
                 <thead>
                     <tr>
                         @if(Auth::user()->isRegistro())
-                        <th width="50">Edit</th>
-                        <th width="50">Reasi</th>
+                        <th width="80">Acciones</th>
                         @endif
                         <th>N° Plano</th>
                         <th>Folios</th>
@@ -273,20 +252,20 @@ let expandedRows = {};
 function initPlanosTable() {
     const columnDefs = [
         @if(Auth::user()->isRegistro())
-        { "orderable": false, "targets": [0, 1] }, // Edit, Reasignar
+        { "orderable": false, "targets": [0] }, // Acciones
         { "orderable": false, "targets": -1 }, // Expandir
         @else
         { "orderable": false, "targets": -1 }, // Expandir
         @endif
-        { "className": "text-center", "targets": [0, 1, -1] }
+        { "className": "text-center", "targets": [0, -1] },
+        { "className": "nowrap", "targets": "_all" } // No wrap para mejor visualización
     ];
 
     const columns = [
         @if(Auth::user()->isRegistro())
         { "data": "acciones", "name": "acciones" },
-        { "data": "acciones", "name": "acciones" },
         @endif
-        { "data": "numero_plano", "name": "numero_plano" },
+        { "data": "numero_plano_completo", "name": "numero_plano_completo" },
         { "data": "folios_display", "name": "folios_display" },
         { "data": "solicitante_display", "name": "solicitante_display" },
         { "data": "apellido_paterno_display", "name": "apellido_paterno_display" },
@@ -327,7 +306,7 @@ function initPlanosTable() {
         columnDefs: columnDefs,
         pageLength: 25,
         lengthMenu: [[10, 25, 50, 100, -1], [10, 25, 50, 100, "Todos"]],
-        dom: 'rt<"row"<"col-sm-12 col-md-5"i><"col-sm-12 col-md-7"p>>',
+        dom: '<"row"<"col-sm-12 col-md-6"f><"col-sm-12 col-md-6"l>>rt<"row"<"col-sm-12 col-md-5"i><"col-sm-12 col-md-7"p>>',
         language: {
             url: '//cdn.datatables.net/plug-ins/1.13.6/i18n/es-ES.json'
         },
@@ -367,10 +346,7 @@ function initPlanosTable() {
     });
     @endif
 
-    // Control de paginación externa
-    $('#table-length').on('change', function() {
-        planosTable.page.len($(this).val()).draw();
-    });
+    // El control de paginación ahora es manejado automáticamente por DataTables
 }
 
 function expandRow(id) {
@@ -548,4 +524,74 @@ $('#print-table').on('click', function(e) {
     planosTable.button('.buttons-print').trigger();
 });
 </script>
+@endpush
+
+@push('styles')
+<style>
+/* Mejoras de visualización para la tabla */
+.table-nowrap {
+    white-space: nowrap;
+}
+
+#planos-table td {
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 150px;
+}
+
+#planos-table th {
+    white-space: nowrap;
+}
+
+/* Columnas específicas */
+#planos-table td:nth-child(1) { max-width: 80px; } /* Acciones */
+#planos-table td:nth-child(2) { max-width: 130px; } /* N° Plano Completo */
+#planos-table td:nth-child(3) { max-width: 120px; } /* Folios */
+#planos-table td:nth-child(4) { max-width: 120px; } /* Solicitante */
+#planos-table td:nth-child(5) { max-width: 100px; } /* Ap. Paterno */
+#planos-table td:nth-child(6) { max-width: 100px; } /* Ap. Materno */
+#planos-table td:nth-child(7) { max-width: 100px; } /* Comuna */
+#planos-table td:nth-child(8) { max-width: 80px; }  /* Hectáreas */
+#planos-table td:nth-child(9) { max-width: 80px; }  /* M² */
+#planos-table td:nth-child(10) { max-width: 60px; } /* Mes */
+#planos-table td:nth-child(11) { max-width: 60px; } /* Año */
+#planos-table td:nth-child(12) { max-width: 120px; } /* Responsable */
+#planos-table td:nth-child(13) { max-width: 120px; } /* Proyecto */
+#planos-table td:nth-child(14) { max-width: 50px; } /* Expandir */
+
+/* Botones más compactos */
+.btn-group .btn {
+    padding: 2px 6px;
+    margin: 0;
+}
+
+/* Tooltip para contenido truncado */
+#planos-table td[title] {
+    cursor: help;
+}
+
+/* Mejorar estilos de búsqueda DataTables */
+.dataTables_filter {
+    text-align: right;
+}
+
+.dataTables_filter input {
+    margin-left: 0.5em;
+    border-radius: 0.25rem;
+    border: 1px solid #ced4da;
+    padding: 0.375rem 0.75rem;
+}
+
+.dataTables_length {
+    text-align: left;
+}
+
+.dataTables_length select {
+    margin: 0 0.5em;
+    border-radius: 0.25rem;
+    border: 1px solid #ced4da;
+    padding: 0.375rem 0.75rem;
+}
+</style>
 @endpush

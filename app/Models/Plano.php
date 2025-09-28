@@ -36,12 +36,29 @@ class Plano extends Model
     public function getMesAttribute(): string
     {
         $meses = ['ENE','FEB','MAR','ABR','MAY','JUN','JUL','AGO','SEP','OCT','NOV','DIC'];
-        return $meses[$this->created_at->month - 1];
+
+        // Si hay mes específico en la columna 'mes', usarlo
+        if (!empty($this->attributes['mes'])) {
+            return strtoupper($this->attributes['mes']);
+        }
+
+        // Fallback a created_at si existe
+        if ($this->created_at) {
+            return $meses[$this->created_at->month - 1];
+        }
+
+        return 'DESCONOCIDO';
     }
 
     public function getAnoAttribute(): int
     {
-        return $this->created_at->year;
+        // Si hay año específico en la columna 'ano', usarlo
+        if (!empty($this->attributes['ano'])) {
+            return (int) $this->attributes['ano'];
+        }
+
+        // Fallback a created_at si existe
+        return $this->created_at ? $this->created_at->year : date('Y');
     }
 
     public function getDisplayFoliosAttribute(): string
