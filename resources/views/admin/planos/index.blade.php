@@ -433,33 +433,26 @@ function setupExpandibleRows() {
     // Remover event listeners previos para evitar duplicados
     $('#planos-table tbody tr').off('click.expandible');
 
-    // Configurar cada fila según la cantidad de folios del botón expandir
+    // EXPANSIÓN HÍBRIDA: Hacer TODAS las filas clickeables
     $('#planos-table tbody tr').each(function() {
         const $row = $(this);
         const $expandBtn = $row.find('.expandir-folios');
 
         if ($expandBtn.length) {
-            const foliosCount = parseInt($expandBtn.data('folios')) || 0;
+            // Todas las filas son expandibles ahora
+            $row.addClass('expandible-row');
 
-            if (foliosCount > 1) {
-                // Hacer fila expandible
-                $row.addClass('expandible-row');
-
-                // Agregar event listener para toda la fila EXCEPTO botones y enlaces
-                $row.on('click.expandible', function(e) {
-                    // No expandir si se hizo clic en:
-                    // - Botones (.btn)
-                    // - Enlaces (a)
-                    // - Elementos con clase actions-column
-                    // - El botón expandir/colapsar específicamente
-                    if (!$(e.target).closest('.btn, a, .actions-column, .expandir-folios').length) {
-                        $expandBtn.trigger('click');
-                    }
-                });
-            } else {
-                // Remover clase expandible si tiene 1 o menos folios
-                $row.removeClass('expandible-row');
-            }
+            // Agregar event listener para toda la fila EXCEPTO botones y enlaces
+            $row.on('click.expandible', function(e) {
+                // No expandir si se hizo clic en:
+                // - Botones (.btn)
+                // - Enlaces (a)
+                // - Elementos con clase actions-column
+                // - El botón expandir/colapsar específicamente
+                if (!$(e.target).closest('.btn, a, .actions-column, .expandir-folios').length) {
+                    $expandBtn.trigger('click');
+                }
+            });
         }
     });
 }
@@ -811,6 +804,36 @@ tr.expandible-row .btn {
 /* El botón de toggle mantiene su cursor normal */
 #filtros-card .card-header .btn-tool {
     cursor: pointer; /* Mantener cursor de botón */
+}
+
+/* Estilos para expansión híbrida */
+.child-row.bg-info {
+    border-left: 4px solid #17a2b8 !important;
+}
+
+.child-row.bg-info td {
+    padding: 15px !important;
+    vertical-align: top;
+}
+
+.child-row.bg-info .col-md-4 {
+    padding: 10px;
+    border-right: 1px solid rgba(255,255,255,0.2);
+}
+
+.child-row.bg-info .col-md-4:last-child {
+    border-right: none;
+}
+
+.child-row.bg-info strong {
+    font-size: 0.9em;
+    margin-bottom: 5px;
+    display: block;
+}
+
+.child-row.bg-info .text-light {
+    font-size: 0.85em;
+    line-height: 1.4;
 }
 </style>
 @endpush
