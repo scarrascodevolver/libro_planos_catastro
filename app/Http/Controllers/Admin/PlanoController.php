@@ -240,6 +240,7 @@ class PlanoController extends Controller
             $html .= '<tr class="child-row bg-light">';
             $html .= '<td></td><td></td>'; // Columnas vacías para acciones
             $html .= '<td class="pl-4">└ Folio</td>';
+            $html .= '<td></td>'; // Columna vacía para resumen de folios
             $html .= '<td>' . $folio->folio . '</td>';
             $html .= '<td>' . ($folio->solicitante ?: '-') . '</td>';
             $html .= '<td>' . ($folio->apellido_paterno ?: '-') . '</td>';
@@ -247,7 +248,7 @@ class PlanoController extends Controller
             $html .= '<td></td>'; // Comuna vacía en detalle
             $html .= '<td>' . ($folio->hectareas ? number_format($folio->hectareas, 2) : '-') . '</td>';
             $html .= '<td>' . number_format($folio->m2 ?: 0) . '</td>';
-            $html .= '<td colspan="5"></td>'; // Resto vacío
+            $html .= '<td colspan="4"></td>'; // Resto vacío (ajustado de 5 a 4)
             $html .= '</tr>';
         }
 
