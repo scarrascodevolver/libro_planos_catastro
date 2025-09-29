@@ -611,11 +611,12 @@ $('#print-table').on('click', function(e) {
 
 /* Mejorar estilos de búsqueda DataTables */
 .dataTables_filter {
-    text-align: right;
+    text-align: left;
 }
 
 .dataTables_filter input {
-    margin-left: 0.5em;
+    margin-left: 0;
+    margin-right: 0.5em;
     border-radius: 0.25rem;
     border: 1px solid #ced4da;
     padding: 0.375rem 0.75rem;
