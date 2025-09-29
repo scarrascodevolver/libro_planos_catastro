@@ -27,6 +27,10 @@ Route::middleware('auth')->group(function () {
     Route::get('/planos/{id}/folios-expansion', [PlanoController::class, 'getFoliosExpansion'])->name('planos.folios-expansion');
     Route::get('/planos/{id}/detalles-completos', [PlanoController::class, 'getDetallesCompletos'])->name('planos.detalles-completos');
 
+    // Edición de folios individuales
+    Route::get('/planos/folios/{folioId}/edit', [PlanoController::class, 'editFolio'])->name('planos.folios.edit');
+    Route::put('/planos/folios/{folioId}', [PlanoController::class, 'updateFolio'])->name('planos.folios.update');
+
     // TAB 2: Importación - PlanoImportacionController
     Route::get('/planos/importacion/index', [PlanoImportacionController::class, 'index'])->name('planos.importacion.index');
     Route::post('/planos/importacion/preview-matrix', [PlanoImportacionController::class, 'previewMatrix'])->name('planos.importacion.preview-matrix');

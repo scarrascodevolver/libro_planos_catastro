@@ -239,6 +239,9 @@
 <!-- Modal Editar Plano -->
 @include('admin.planos.modals.edit-plano')
 
+<!-- Modal Editar Folio Individual -->
+@include('admin.planos.modals.edit-folio')
+
 <!-- Modal Reasignar Número -->
 @include('admin.planos.modals.reasignar-numero')
 
@@ -428,6 +431,12 @@ function initPlanosTable() {
         const id = $(this).data('id');
         reasignarPlano(id);
     });
+
+    // Event listener para editar folio individual
+    $(document).on('click', '.editar-folio', function() {
+        const folioId = $(this).data('folio-id');
+        editarFolio(folioId);
+    });
     @endif
 
     // Event listener para ver detalles completos
@@ -561,7 +570,7 @@ window.toggleColumn = function(columnIndex, isVisible) {
 function expandRow(id) {
     $.get("{{ url('/planos') }}/" + id + "/folios-expansion")
         .done(function(response) {
-            const btn = $('button[data-id="' + id + '"]');
+            const btn = $('button[data-id="' + id + '"].toggle-expand');
             const row = btn.closest('tr');
 
             // Cambiar icono
@@ -579,7 +588,7 @@ function expandRow(id) {
 }
 
 function collapseRow(id) {
-    const btn = $('button[data-id="' + id + '"]');
+    const btn = $('button[data-id="' + id + '"].toggle-expand');
     const row = btn.closest('tr');
 
     // Cambiar icono
@@ -748,7 +757,6 @@ function verDetallesCompletos(id) {
 
 @if(Auth::user()->isRegistro())
 function editarPlano(id) {
-    console.log('📝 EDITANDO PLANO:', id);
 
     // Mostrar overlay de carga
     $('#edit-loading-overlay').removeClass('d-none').show();
@@ -760,13 +768,25 @@ function editarPlano(id) {
 
     $.get("{{ url('/planos') }}/" + id + "/edit")
         .done(function(response) {
-            console.log('✅ DATOS CARGADOS:', response.plano);
-
-            // Poblar modal de edición
+            // Poblar modal de edición - TODOS LOS CAMPOS
             $('#edit-modal #edit_id').val(id);
-            $('#edit-modal #edit_comuna').val(response.plano.comuna).trigger('change');
+            // Buscar comuna sin importar mayúsculas/minúsculas
+            const comunaPlano = response.plano.comuna.toLowerCase();
+            const comunaOption = $('#edit_comuna option').filter(function() {
+                return $(this).val().toLowerCase() === comunaPlano;
+            });
+
+            if (comunaOption.length > 0) {
+                $('#edit-modal #edit_comuna').val(comunaOption.val());
+            }
             $('#edit-modal #edit_responsable').val(response.plano.responsable);
             $('#edit-modal #edit_proyecto').val(response.plano.proyecto);
+            $('#edit-modal #edit_tipo_saneamiento').val(response.plano.tipo_saneamiento);
+            $('#edit-modal #edit_provincia').val(response.plano.provincia);
+            $('#edit-modal #edit_mes').val(response.plano.mes);
+            $('#edit-modal #edit_ano').val(response.plano.ano);
+            $('#edit-modal #edit_total_hectareas').val(response.plano.total_hectareas || '');
+            $('#edit-modal #edit_total_m2').val(response.plano.total_m2);
             $('#edit-modal #edit_observaciones').val(response.plano.observaciones || '');
             $('#edit-modal #edit_archivo').val(response.plano.archivo || '');
             $('#edit-modal #edit_tubo').val(response.plano.tubo || '');
@@ -780,8 +800,7 @@ function editarPlano(id) {
             $('#edit-loading-overlay').hide();
             $('#edit-modal').modal('show');
 
-            // Reinicializar Select2 para comuna
-            initEditModalSelect2();
+            // Ya no necesitamos Select2
         })
         .fail(function(xhr) {
             $('#edit-loading-overlay').hide();
@@ -804,7 +823,6 @@ function initModals() {
     // Modal Editar - Submit con validación avanzada
     $('#form-edit-plano').on('submit', function(e) {
         e.preventDefault();
-        console.log('💾 GUARDANDO CAMBIOS PLANO...');
 
         const $form = $(this);
         const $btnGuardar = $('#btn-guardar-plano');
@@ -830,7 +848,6 @@ function initModals() {
             method: 'PUT',
             data: formData,
             success: function(response) {
-                console.log('✅ PLANO ACTUALIZADO:', response);
 
                 if (response.success) {
                     Swal.fire({
@@ -852,7 +869,6 @@ function initModals() {
                 }
             },
             error: function(xhr) {
-                console.error('❌ ERROR ACTUALIZACIÓN:', xhr);
 
                 if (xhr.status === 422) {
                     // Errores de validación del servidor
@@ -886,11 +902,11 @@ function initModals() {
     $('#edit_observaciones').on('input', updateObservacionesCount);
 
     // Validación en tiempo real
-    $('#edit_responsable, #edit_proyecto').on('blur', function() {
+    $('#edit_responsable, #edit_proyecto, #edit_provincia, #edit_total_m2, #edit_ano').on('blur', function() {
         validateField($(this));
     });
 
-    $('#edit_comuna').on('change', function() {
+    $('#edit_comuna, #edit_tipo_saneamiento, #edit_mes').on('change', function() {
         validateField($(this));
     });
 
@@ -926,6 +942,87 @@ function initModals() {
         $('.invalid-feedback').text('');
         $('#edit-loading-overlay').hide();
     });
+
+    // Modal Editar Folio - Submit
+    $('#form-edit-folio').on('submit', function(e) {
+        e.preventDefault();
+    
+        const $form = $(this);
+        const $btnGuardar = $('#btn-guardar-folio');
+        const originalBtnText = $btnGuardar.html();
+
+        // Limpiar errores previos
+        $('.is-invalid').removeClass('is-invalid');
+        $('.invalid-feedback').text('');
+
+        // Deshabilitar botón y mostrar loading
+        $btnGuardar.prop('disabled', true).html('<i class="fas fa-spinner fa-spin"></i> Guardando...');
+
+        const folioId = $('#edit_folio_id').val();
+        const formData = $form.serialize();
+
+        $.ajax({
+            url: "{{ url('/planos/folios') }}/" + folioId,
+            method: 'PUT',
+            data: formData,
+            success: function(response) {
+
+                if (response.success) {
+                    Swal.fire({
+                        icon: 'success',
+                        title: '¡Folio actualizado!',
+                        text: response.message,
+                        timer: 2000,
+                        showConfirmButton: false
+                    });
+                    $('#edit-folio-modal').modal('hide');
+                    planosTable.draw(false);
+                } else {
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'Error al guardar',
+                        text: response.message,
+                        confirmButtonColor: '#dc3545'
+                    });
+                }
+            },
+            error: function(xhr) {
+
+                if (xhr.status === 422) {
+                    // Errores de validación del servidor
+                    const errors = xhr.responseJSON.errors;
+                    displayFolioValidationErrors(errors);
+
+                    Swal.fire({
+                        icon: 'warning',
+                        title: 'Errores de validación',
+                        text: 'Por favor revisa los campos marcados',
+                        confirmButtonColor: '#ffc107'
+                    });
+                } else {
+                    const message = xhr.responseJSON?.message || 'No se pudo actualizar el folio';
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'Error del servidor',
+                        text: message,
+                        confirmButtonColor: '#dc3545'
+                    });
+                }
+            },
+            complete: function() {
+                // Restaurar botón
+                $btnGuardar.prop('disabled', false).html(originalBtnText);
+            }
+        });
+    });
+
+    // Limpiar formulario folio al cerrar modal
+    $('#edit-folio-modal').on('hidden.bs.modal', function() {
+        $('#form-edit-folio')[0].reset();
+        $('.is-invalid').removeClass('is-invalid');
+        $('.invalid-feedback').text('');
+        $('#edit-folio-loading-overlay').hide();
+    });
 }
 
 // ===== FUNCIONES AUXILIARES UX EDICIÓN =====
@@ -960,6 +1057,21 @@ function validateField($field) {
     } else if (fieldName === 'comuna' && !value) {
         isValid = false;
         errorMessage = 'Debe seleccionar una comuna';
+    } else if (fieldName === 'tipo_saneamiento' && !value) {
+        isValid = false;
+        errorMessage = 'Debe seleccionar el tipo de saneamiento';
+    } else if (fieldName === 'provincia' && (!value || value.length < 2)) {
+        isValid = false;
+        errorMessage = 'La provincia debe tener al menos 2 caracteres';
+    } else if (fieldName === 'mes' && !value) {
+        isValid = false;
+        errorMessage = 'Debe seleccionar un mes';
+    } else if (fieldName === 'ano' && (!value || value < 2020 || value > 2030)) {
+        isValid = false;
+        errorMessage = 'El año debe estar entre 2020 y 2030';
+    } else if (fieldName === 'total_m2' && (!value || value < 1)) {
+        isValid = false;
+        errorMessage = 'El total de m² debe ser mayor a 0';
     }
 
     // Aplicar estilos de validación
@@ -978,7 +1090,11 @@ function validateEditForm() {
     let isValid = true;
 
     // Validar campos requeridos
-    const requiredFields = ['#edit_comuna', '#edit_responsable', '#edit_proyecto'];
+    const requiredFields = [
+        '#edit_comuna', '#edit_responsable', '#edit_proyecto',
+        '#edit_tipo_saneamiento', '#edit_provincia', '#edit_mes',
+        '#edit_ano', '#edit_total_m2'
+    ];
 
     requiredFields.forEach(function(selector) {
         const $field = $(selector);
@@ -991,7 +1107,6 @@ function validateEditForm() {
 }
 
 function displayValidationErrors(errors) {
-    console.log('🔥 ERRORES VALIDACIÓN:', errors);
 
     Object.keys(errors).forEach(function(fieldName) {
         const $field = $(`#edit_${fieldName}`);
@@ -1003,6 +1118,14 @@ function displayValidationErrors(errors) {
 }
 
 function initEditModalSelect2() {
+    // Obtener valor actual antes de reinicializar
+    const currentValue = $('#edit_comuna').val();
+
+    // Destruir Select2 anterior si existe
+    if ($('#edit_comuna').hasClass('select2-hidden-accessible')) {
+        $('#edit_comuna').select2('destroy');
+    }
+
     // Inicializar Select2 para comuna en modal de edición
     $('#edit_comuna').select2({
         dropdownParent: $('#edit-modal'),
@@ -1010,6 +1133,64 @@ function initEditModalSelect2() {
         allowClear: true,
         width: '100%',
         theme: 'bootstrap4'
+    });
+
+    // Restaurar valor si existía
+    if (currentValue) {
+        $('#edit_comuna').val(currentValue).trigger('change');
+    }
+}
+
+function editarFolio(folioId) {
+
+    // Mostrar overlay de carga
+    $('#edit-folio-loading-overlay').removeClass('d-none').show();
+
+    // Limpiar formulario y errores previos
+    $('#form-edit-folio')[0].reset();
+    $('.is-invalid').removeClass('is-invalid');
+    $('.invalid-feedback').text('');
+
+    $.get("{{ url('/planos/folios') }}/" + folioId + "/edit")
+        .done(function(response) {
+
+            // Poblar modal de edición de folio
+            $('#edit_folio_id').val(folioId);
+            $('#edit_folio_numero').val(response.folio.folio || '');
+            $('#edit_folio_solicitante').val(response.folio.solicitante);
+            $('#edit_folio_apellido_paterno').val(response.folio.apellido_paterno || '');
+            $('#edit_folio_apellido_materno').val(response.folio.apellido_materno || '');
+            $('#edit_folio_tipo_inmueble').val(response.folio.tipo_inmueble);
+            $('#edit_folio_numero_inmueble').val(response.folio.numero_inmueble || '');
+            $('#edit_folio_hectareas').val(response.folio.hectareas || '');
+            $('#edit_folio_m2').val(response.folio.m2);
+            $('#edit_folio_matrix_folio').val(response.folio.matrix_folio || '');
+            $('#edit_folio_is_from_matrix').val(response.folio.is_from_matrix ? '1' : '0');
+
+            // Ocultar loading y mostrar modal
+            $('#edit-folio-loading-overlay').hide();
+            $('#edit-folio-modal').modal('show');
+        })
+        .fail(function(xhr) {
+            $('#edit-folio-loading-overlay').hide();
+            const message = xhr.responseJSON?.message || 'No se pudo cargar la información del folio';
+            Swal.fire({
+                icon: 'error',
+                title: 'Error al cargar folio',
+                text: message,
+                confirmButtonColor: '#dc3545'
+            });
+        });
+}
+
+function displayFolioValidationErrors(errors) {
+
+    Object.keys(errors).forEach(function(fieldName) {
+        const $field = $(`#edit_folio_${fieldName}`);
+        if ($field.length) {
+            $field.addClass('is-invalid');
+            $field.siblings('.invalid-feedback').text(errors[fieldName][0]);
+        }
     });
 }
 

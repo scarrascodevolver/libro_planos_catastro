@@ -100,7 +100,7 @@ class PlanoController extends Controller
             })
             ->addColumn('expandir', function ($plano) {
                 $btnClass = $plano->cantidad_folios > 1 ? 'expandible' : '';
-                return '<button class="btn btn-sm btn-info expandir-folios '.$btnClass.'" data-id="'.$plano->id.'" data-folios="'.$plano->cantidad_folios.'">
+                return '<button class="btn btn-sm btn-info expandir-folios toggle-expand '.$btnClass.'" data-id="'.$plano->id.'" data-folios="'.$plano->cantidad_folios.'">
                     <i class="fas fa-plus"></i>
                 </button>';
             })
@@ -423,7 +423,12 @@ class PlanoController extends Controller
         $html = '';
         foreach ($plano->folios as $folio) {
             $html .= '<tr class="child-row bg-light">';
-            $html .= '<td></td>'; // Columna vacía para EDITAR
+            // Columna EDITAR - Botón para editar folio individual
+            if (Auth::user()->isRegistro()) {
+                $html .= '<td class="text-center"><button class="btn btn-sm btn-primary editar-folio" data-folio-id="' . $folio->id . '" title="Editar folio"><i class="fas fa-edit"></i></button></td>';
+            } else {
+                $html .= '<td></td>';
+            }
             $html .= '<td class="pl-4">└ Folio</td>'; // Columna REASIGNAR -> muestra "└ Folio"
             $html .= '<td>' . $folio->folio . '</td>'; // Columna N° PLANO -> muestra folio individual
             $html .= '<td>' . ($folio->solicitante ?: '-') . '</td>'; // Columna FOLIOS -> muestra solicitante
@@ -504,7 +509,13 @@ class PlanoController extends Controller
             'comuna' => 'required|string|max:100',
             'responsable' => 'required|string|max:255',
             'proyecto' => 'required|string|max:255',
-            'observaciones' => 'nullable|string',
+            'tipo_saneamiento' => 'required|in:SR,SU,CR,CU',
+            'provincia' => 'required|string|max:100',
+            'mes' => 'required|string|max:20',
+            'ano' => 'required|integer|between:2020,2030',
+            'total_hectareas' => 'nullable|numeric|min:0',
+            'total_m2' => 'required|integer|min:1',
+            'observaciones' => 'nullable|string|max:1000',
             'archivo' => 'nullable|string|max:255',
             'tubo' => 'nullable|string|max:255',
             'tela' => 'nullable|string|max:255',
@@ -513,8 +524,9 @@ class PlanoController extends Controller
 
         $plano = Plano::findOrFail($id);
         $plano->update($request->only([
-            'comuna', 'responsable', 'proyecto', 'observaciones',
-            'archivo', 'tubo', 'tela', 'archivo_digital'
+            'comuna', 'responsable', 'proyecto', 'tipo_saneamiento',
+            'provincia', 'mes', 'ano', 'total_hectareas', 'total_m2',
+            'observaciones', 'archivo', 'tubo', 'tela', 'archivo_digital'
         ]));
 
         return response()->json([
@@ -556,6 +568,72 @@ class PlanoController extends Controller
         return response()->json([
             'success' => true,
             'message' => 'Plano eliminado correctamente'
+        ]);
+    }
+
+    public function editFolio($folioId)
+    {
+        if (!Auth::user()->isRegistro()) {
+            abort(403, 'No tienes permisos para editar folios');
+        }
+
+        $folio = PlanoFolio::findOrFail($folioId);
+
+        return response()->json([
+            'folio' => $folio
+        ]);
+    }
+
+    public function updateFolio(Request $request, $folioId)
+    {
+        if (!Auth::user()->isRegistro()) {
+            abort(403, 'No tienes permisos para editar folios');
+        }
+
+        $request->validate([
+            'folio' => 'nullable|string|max:50',
+            'solicitante' => 'required|string|max:255',
+            'apellido_paterno' => 'nullable|string|max:255',
+            'apellido_materno' => 'nullable|string|max:255',
+            'tipo_inmueble' => 'required|in:HIJUELA,SITIO',
+            'numero_inmueble' => 'nullable|integer|min:1',
+            'hectareas' => 'nullable|numeric|min:0',
+            'm2' => 'required|integer|min:1',
+            'matrix_folio' => 'nullable|string|max:50',
+            'is_from_matrix' => 'required|boolean',
+        ]);
+
+        $folio = PlanoFolio::findOrFail($folioId);
+
+        // Si cambia el tipo de inmueble a SITIO, limpiar hectáreas
+        $data = $request->all();
+        if ($data['tipo_inmueble'] === 'SITIO') {
+            $data['hectareas'] = null;
+        }
+
+        $folio->update($data);
+
+        // Recalcular totales del plano padre
+        $this->recalcularTotalesPlano($folio->plano_id);
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Folio actualizado correctamente'
+        ]);
+    }
+
+    private function recalcularTotalesPlano($planoId)
+    {
+        $plano = Plano::with('folios')->findOrFail($planoId);
+
+        $totalHectareas = $plano->folios->sum('hectareas');
+        $totalM2 = $plano->folios->sum('m2');
+        $cantidadFolios = $plano->folios->count();
+
+        $plano->update([
+            'total_hectareas' => $totalHectareas > 0 ? $totalHectareas : null,
+            'total_m2' => $totalM2,
+            'cantidad_folios' => $cantidadFolios
         ]);
     }
 }

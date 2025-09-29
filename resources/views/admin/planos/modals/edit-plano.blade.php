@@ -31,10 +31,10 @@
                         <div class="col-md-6">
                             <div class="form-group">
                                 <label for="edit_comuna">Comuna <span class="text-danger">*</span></label>
-                                <select class="form-control select2-comuna" id="edit_comuna" name="comuna" required>
+                                <select class="form-control" id="edit_comuna" name="comuna" required>
                                     <option value="">Seleccionar comuna...</option>
                                     @foreach($comunas as $codigo => $nombre)
-                                        <option value="{{ $nombre }}">{{ $nombre }}</option>
+                                        <option value="{{ $nombre }}" data-codigo="{{ $codigo }}">{{ $nombre }}</option>
                                     @endforeach
                                 </select>
                                 <div class="invalid-feedback"></div>
@@ -54,7 +54,7 @@
 
                     <div class="row">
                         <!-- Proyecto -->
-                        <div class="col-md-12">
+                        <div class="col-md-6">
                             <div class="form-group">
                                 <label for="edit_proyecto">Proyecto <span class="text-danger">*</span></label>
                                 <input type="text" class="form-control" id="edit_proyecto" name="proyecto" required maxlength="255" placeholder="Ej: CONVENIO-FINANCIAMIENTO">
@@ -62,6 +62,86 @@
                                 <small class="form-text text-muted">Tipo de financiamiento o convenio asociado</small>
                             </div>
                         </div>
+
+                        <!-- Tipo Saneamiento -->
+                        <div class="col-md-6">
+                            <div class="form-group">
+                                <label for="edit_tipo_saneamiento">Tipo Saneamiento <span class="text-danger">*</span></label>
+                                <select class="form-control" id="edit_tipo_saneamiento" name="tipo_saneamiento" required>
+                                    <option value="">Seleccionar tipo...</option>
+                                    <option value="SR">SR - Saneamiento Rural</option>
+                                    <option value="SU">SU - Saneamiento Urbano</option>
+                                    <option value="CR">CR - Fiscal Rural</option>
+                                    <option value="CU">CU - Fiscal Urbano</option>
+                                </select>
+                                <div class="invalid-feedback"></div>
+                                <small class="form-text text-muted">Categoría del plano topográfico</small>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="row">
+                        <!-- Provincia -->
+                        <div class="col-md-4">
+                            <div class="form-group">
+                                <label for="edit_provincia">Provincia <span class="text-danger">*</span></label>
+                                <input type="text" class="form-control" id="edit_provincia" name="provincia" required maxlength="100" placeholder="Ej: Biobío">
+                                <div class="invalid-feedback"></div>
+                            </div>
+                        </div>
+
+                        <!-- Mes -->
+                        <div class="col-md-4">
+                            <div class="form-group">
+                                <label for="edit_mes">Mes <span class="text-danger">*</span></label>
+                                <select class="form-control" id="edit_mes" name="mes" required>
+                                    <option value="">Seleccionar mes...</option>
+                                    <option value="ENE">Enero</option>
+                                    <option value="FEB">Febrero</option>
+                                    <option value="MAR">Marzo</option>
+                                    <option value="ABR">Abril</option>
+                                    <option value="MAY">Mayo</option>
+                                    <option value="JUN">Junio</option>
+                                    <option value="JUL">Julio</option>
+                                    <option value="AGO">Agosto</option>
+                                    <option value="SEP">Septiembre</option>
+                                    <option value="OCT">Octubre</option>
+                                    <option value="NOV">Noviembre</option>
+                                    <option value="DIC">Diciembre</option>
+                                </select>
+                                <div class="invalid-feedback"></div>
+                            </div>
+                        </div>
+
+                        <!-- Año -->
+                        <div class="col-md-4">
+                            <div class="form-group">
+                                <label for="edit_ano">Año <span class="text-danger">*</span></label>
+                                <input type="number" class="form-control" id="edit_ano" name="ano" required min="2020" max="2030" placeholder="2025">
+                                <div class="invalid-feedback"></div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="row">
+                        <!-- Total Hectáreas -->
+                        <div class="col-md-4">
+                            <div class="form-group">
+                                <label for="edit_total_hectareas">Total Hectáreas</label>
+                                <input type="number" class="form-control" id="edit_total_hectareas" name="total_hectareas" step="0.0001" min="0" placeholder="0.0000">
+                                <small class="form-text text-muted">Solo para hijuelas</small>
+                            </div>
+                        </div>
+
+                        <!-- Total M² -->
+                        <div class="col-md-4">
+                            <div class="form-group">
+                                <label for="edit_total_m2">Total M² <span class="text-danger">*</span></label>
+                                <input type="number" class="form-control" id="edit_total_m2" name="total_m2" required min="1" placeholder="1000">
+                                <div class="invalid-feedback"></div>
+                            </div>
+                        </div>
+
                     </div>
 
                     <div class="row">
@@ -69,10 +149,10 @@
                         <div class="col-md-12">
                             <div class="form-group">
                                 <label for="edit_observaciones">Observaciones</label>
-                                <textarea class="form-control" id="edit_observaciones" name="observaciones" rows="3" placeholder="Observaciones adicionales del plano..." maxlength="500"></textarea>
+                                <textarea class="form-control" id="edit_observaciones" name="observaciones" rows="3" placeholder="Observaciones adicionales del plano..." maxlength="1000"></textarea>
                                 <div class="d-flex justify-content-between">
                                     <small class="form-text text-muted">Información adicional relevante</small>
-                                    <small class="form-text text-muted"><span id="observaciones-count">0</span>/500 caracteres</small>
+                                    <small class="form-text text-muted"><span id="observaciones-count">0</span>/1000 caracteres</small>
                                 </div>
                             </div>
                         </div>
