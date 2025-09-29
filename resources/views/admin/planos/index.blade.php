@@ -748,23 +748,50 @@ function verDetallesCompletos(id) {
 
 @if(Auth::user()->isRegistro())
 function editarPlano(id) {
+    console.log('📝 EDITANDO PLANO:', id);
+
+    // Mostrar overlay de carga
+    $('#edit-loading-overlay').removeClass('d-none').show();
+
+    // Limpiar formulario y errores previos
+    $('#form-edit-plano')[0].reset();
+    $('.is-invalid').removeClass('is-invalid');
+    $('.invalid-feedback').text('');
+
     $.get("{{ url('/planos') }}/" + id + "/edit")
         .done(function(response) {
+            console.log('✅ DATOS CARGADOS:', response.plano);
+
             // Poblar modal de edición
             $('#edit-modal #edit_id').val(id);
-            $('#edit-modal #edit_comuna').val(response.plano.comuna);
+            $('#edit-modal #edit_comuna').val(response.plano.comuna).trigger('change');
             $('#edit-modal #edit_responsable').val(response.plano.responsable);
             $('#edit-modal #edit_proyecto').val(response.plano.proyecto);
-            $('#edit-modal #edit_observaciones').val(response.plano.observaciones);
-            $('#edit-modal #edit_archivo').val(response.plano.archivo);
-            $('#edit-modal #edit_tubo').val(response.plano.tubo);
-            $('#edit-modal #edit_tela').val(response.plano.tela);
-            $('#edit-modal #edit_archivo_digital').val(response.plano.archivo_digital);
+            $('#edit-modal #edit_observaciones').val(response.plano.observaciones || '');
+            $('#edit-modal #edit_archivo').val(response.plano.archivo || '');
+            $('#edit-modal #edit_tubo').val(response.plano.tubo || '');
+            $('#edit-modal #edit_tela').val(response.plano.tela || '');
+            $('#edit-modal #edit_archivo_digital').val(response.plano.archivo_digital || '');
 
+            // Actualizar contador de caracteres
+            updateObservacionesCount();
+
+            // Ocultar loading y mostrar modal
+            $('#edit-loading-overlay').hide();
             $('#edit-modal').modal('show');
+
+            // Reinicializar Select2 para comuna
+            initEditModalSelect2();
         })
-        .fail(function() {
-            Swal.fire('Error', 'No se pudo cargar la información del plano', 'error');
+        .fail(function(xhr) {
+            $('#edit-loading-overlay').hide();
+            const message = xhr.responseJSON?.message || 'No se pudo cargar la información del plano';
+            Swal.fire({
+                icon: 'error',
+                title: 'Error al cargar',
+                text: message,
+                confirmButtonColor: '#dc3545'
+            });
         });
 }
 
@@ -774,29 +801,97 @@ function reasignarPlano(id) {
 }
 
 function initModals() {
-    // Modal Editar - Submit
+    // Modal Editar - Submit con validación avanzada
     $('#form-edit-plano').on('submit', function(e) {
         e.preventDefault();
+        console.log('💾 GUARDANDO CAMBIOS PLANO...');
+
+        const $form = $(this);
+        const $btnGuardar = $('#btn-guardar-plano');
+        const originalBtnText = $btnGuardar.html();
+
+        // Limpiar errores previos
+        $('.is-invalid').removeClass('is-invalid');
+        $('.invalid-feedback').text('');
+
+        // Validar formulario localmente primero
+        if (!validateEditForm()) {
+            return false;
+        }
+
+        // Deshabilitar botón y mostrar loading
+        $btnGuardar.prop('disabled', true).html('<i class="fas fa-spinner fa-spin"></i> Guardando...');
+
         const id = $('#edit_id').val();
-        const formData = $(this).serialize();
+        const formData = $form.serialize();
 
         $.ajax({
             url: "{{ url('/planos') }}/" + id,
             method: 'PUT',
             data: formData,
             success: function(response) {
+                console.log('✅ PLANO ACTUALIZADO:', response);
+
                 if (response.success) {
-                    Swal.fire('¡Éxito!', response.message, 'success');
+                    Swal.fire({
+                        icon: 'success',
+                        title: '¡Plano actualizado!',
+                        text: response.message,
+                        timer: 2000,
+                        showConfirmButton: false
+                    });
                     $('#edit-modal').modal('hide');
                     planosTable.draw(false);
                 } else {
-                    Swal.fire('Error', response.message, 'error');
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'Error al guardar',
+                        text: response.message,
+                        confirmButtonColor: '#dc3545'
+                    });
                 }
             },
-            error: function() {
-                Swal.fire('Error', 'No se pudo actualizar el plano', 'error');
+            error: function(xhr) {
+                console.error('❌ ERROR ACTUALIZACIÓN:', xhr);
+
+                if (xhr.status === 422) {
+                    // Errores de validación del servidor
+                    const errors = xhr.responseJSON.errors;
+                    displayValidationErrors(errors);
+
+                    Swal.fire({
+                        icon: 'warning',
+                        title: 'Errores de validación',
+                        text: 'Por favor revisa los campos marcados',
+                        confirmButtonColor: '#ffc107'
+                    });
+                } else {
+                    const message = xhr.responseJSON?.message || 'No se pudo actualizar el plano';
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'Error del servidor',
+                        text: message,
+                        confirmButtonColor: '#dc3545'
+                    });
+                }
+            },
+            complete: function() {
+                // Restaurar botón
+                $btnGuardar.prop('disabled', false).html(originalBtnText);
             }
         });
+    });
+
+    // Contador de caracteres para observaciones
+    $('#edit_observaciones').on('input', updateObservacionesCount);
+
+    // Validación en tiempo real
+    $('#edit_responsable, #edit_proyecto').on('blur', function() {
+        validateField($(this));
+    });
+
+    $('#edit_comuna').on('change', function() {
+        validateField($(this));
     });
 
     // Modal Reasignar - Submit
@@ -823,7 +918,101 @@ function initModals() {
             }
         });
     });
+
+    // Limpiar formulario al cerrar modal
+    $('#edit-modal').on('hidden.bs.modal', function() {
+        $('#form-edit-plano')[0].reset();
+        $('.is-invalid').removeClass('is-invalid');
+        $('.invalid-feedback').text('');
+        $('#edit-loading-overlay').hide();
+    });
 }
+
+// ===== FUNCIONES AUXILIARES UX EDICIÓN =====
+
+function updateObservacionesCount() {
+    const $textarea = $('#edit_observaciones');
+    const count = $textarea.val().length;
+    $('#observaciones-count').text(count);
+
+    if (count > 450) {
+        $('#observaciones-count').addClass('text-warning');
+    } else if (count >= 500) {
+        $('#observaciones-count').addClass('text-danger');
+    } else {
+        $('#observaciones-count').removeClass('text-warning text-danger');
+    }
+}
+
+function validateField($field) {
+    const fieldName = $field.attr('name');
+    const value = ($field.val() || '').trim();
+    let isValid = true;
+    let errorMessage = '';
+
+    // Validaciones específicas
+    if (fieldName === 'responsable' && (!value || value.length < 2)) {
+        isValid = false;
+        errorMessage = 'El responsable debe tener al menos 2 caracteres';
+    } else if (fieldName === 'proyecto' && (!value || value.length < 3)) {
+        isValid = false;
+        errorMessage = 'El proyecto debe tener al menos 3 caracteres';
+    } else if (fieldName === 'comuna' && !value) {
+        isValid = false;
+        errorMessage = 'Debe seleccionar una comuna';
+    }
+
+    // Aplicar estilos de validación
+    if (isValid) {
+        $field.removeClass('is-invalid').addClass('is-valid');
+        $field.siblings('.invalid-feedback').text('');
+    } else {
+        $field.removeClass('is-valid').addClass('is-invalid');
+        $field.siblings('.invalid-feedback').text(errorMessage);
+    }
+
+    return isValid;
+}
+
+function validateEditForm() {
+    let isValid = true;
+
+    // Validar campos requeridos
+    const requiredFields = ['#edit_comuna', '#edit_responsable', '#edit_proyecto'];
+
+    requiredFields.forEach(function(selector) {
+        const $field = $(selector);
+        if (!validateField($field)) {
+            isValid = false;
+        }
+    });
+
+    return isValid;
+}
+
+function displayValidationErrors(errors) {
+    console.log('🔥 ERRORES VALIDACIÓN:', errors);
+
+    Object.keys(errors).forEach(function(fieldName) {
+        const $field = $(`#edit_${fieldName}`);
+        if ($field.length) {
+            $field.addClass('is-invalid');
+            $field.siblings('.invalid-feedback').text(errors[fieldName][0]);
+        }
+    });
+}
+
+function initEditModalSelect2() {
+    // Inicializar Select2 para comuna en modal de edición
+    $('#edit_comuna').select2({
+        dropdownParent: $('#edit-modal'),
+        placeholder: 'Seleccionar comuna...',
+        allowClear: true,
+        width: '100%',
+        theme: 'bootstrap4'
+    });
+}
+
 @endif
 
 // Los botones de exportar ahora están integrados nativamente en DataTables
@@ -990,6 +1179,198 @@ tr.expandible-row .btn {
 .child-row.bg-info .text-light {
     font-size: 0.85em;
     line-height: 1.4;
+}
+
+/* ===== ESTILOS MODAL EDICIÓN MEJORADO ===== */
+
+/* Loading overlay para modal */
+#edit-loading-overlay {
+    border-radius: 0.375rem;
+}
+
+#edit-loading-overlay .spinner-border {
+    width: 3rem;
+    height: 3rem;
+}
+
+/* Modal de edición más amplio */
+#edit-modal .modal-dialog {
+    max-width: 900px;
+}
+
+/* Campos de formulario con mejor UX */
+#edit-modal .form-group label {
+    font-weight: 600;
+    color: #495057;
+    margin-bottom: 0.5rem;
+}
+
+#edit-modal .form-control {
+    border-radius: 0.375rem;
+    border: 1px solid #ced4da;
+    transition: border-color 0.15s ease-in-out, box-shadow 0.15s ease-in-out;
+}
+
+#edit-modal .form-control:focus {
+    border-color: #007bff;
+    box-shadow: 0 0 0 0.2rem rgba(0, 123, 255, 0.25);
+}
+
+/* Estados de validación mejorados */
+#edit-modal .form-control.is-valid {
+    border-color: #28a745;
+    background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 8 8'%3e%3cpath fill='%2328a745' d='m2.3 6.73.75-.75L5.2 3.83 4.45 3.08 3.05 4.48 2.3 3.73z'/%3e%3c/svg%3e");
+}
+
+#edit-modal .form-control.is-invalid {
+    border-color: #dc3545;
+    background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 12 12' width='12' height='12' fill='none' stroke='%23dc3545'%3e%3ccircle cx='6' cy='6' r='4.5'/%3e%3cpath d='m6 3v4m0 0h.01'/%3e%3c/svg%3e");
+}
+
+/* Invalid feedback más visible */
+#edit-modal .invalid-feedback {
+    display: block;
+    font-size: 0.875rem;
+    color: #dc3545;
+    margin-top: 0.25rem;
+}
+
+/* Card de archivos con mejor apariencia */
+#edit-modal .card {
+    border: 1px solid #e3e6f0;
+    border-radius: 0.5rem;
+    box-shadow: 0 0.15rem 1.75rem 0 rgba(58, 59, 69, 0.15);
+}
+
+#edit-modal .card-header {
+    background-color: #f8f9fc;
+    border-bottom: 1px solid #e3e6f0;
+    padding: 0.75rem 1rem;
+}
+
+#edit-modal .card-header h6 {
+    color: #5a5c69;
+    font-weight: 600;
+}
+
+#edit-modal .card-body {
+    padding: 1rem;
+}
+
+/* Tooltips informativos */
+.fa-info-circle {
+    cursor: help;
+    margin-left: 4px;
+}
+
+/* Contador de caracteres */
+#observaciones-count {
+    font-weight: 500;
+}
+
+#observaciones-count.text-warning {
+    color: #ffc107 !important;
+}
+
+#observaciones-count.text-danger {
+    color: #dc3545 !important;
+}
+
+/* Small text mejorado */
+#edit-modal .form-text {
+    font-size: 0.8rem;
+    color: #6c757d;
+    margin-top: 0.25rem;
+}
+
+/* Footer con mejor layout */
+#edit-modal .modal-footer .row {
+    width: 100%;
+    margin: 0;
+}
+
+#edit-modal .modal-footer .col-6 {
+    padding: 0;
+}
+
+/* Botones con mejor UX */
+#edit-modal .btn {
+    font-weight: 500;
+    border-radius: 0.375rem;
+    padding: 0.5rem 1rem;
+    transition: all 0.15s ease-in-out;
+}
+
+#edit-modal .btn:disabled {
+    cursor: not-allowed;
+    opacity: 0.6;
+}
+
+#edit-modal .btn-primary {
+    background-color: #007bff;
+    border-color: #007bff;
+}
+
+#edit-modal .btn-primary:hover:not(:disabled) {
+    background-color: #0056b3;
+    border-color: #004085;
+    transform: translateY(-1px);
+}
+
+#edit-modal .btn-secondary {
+    background-color: #6c757d;
+    border-color: #6c757d;
+}
+
+#edit-modal .btn-secondary:hover {
+    background-color: #545b62;
+    border-color: #4e555b;
+}
+
+/* Select2 en modal */
+#edit-modal .select2-container .select2-selection--single {
+    height: calc(1.5em + 0.75rem + 2px);
+    border: 1px solid #ced4da;
+    border-radius: 0.375rem;
+}
+
+#edit-modal .select2-container .select2-selection--single .select2-selection__rendered {
+    line-height: calc(1.5em + 0.75rem);
+    padding-left: 0.75rem;
+    color: #495057;
+}
+
+#edit-modal .select2-container--bootstrap4 .select2-selection--single .select2-selection__arrow {
+    height: calc(1.5em + 0.75rem);
+}
+
+/* Animaciones suaves */
+#edit-modal .modal-content {
+    animation: modalSlideIn 0.3s ease-out;
+}
+
+@keyframes modalSlideIn {
+    from {
+        opacity: 0;
+        transform: translateY(-50px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+    #edit-modal .modal-dialog {
+        max-width: 95%;
+        margin: 0.5rem auto;
+    }
+
+    #edit-modal .modal-footer .col-6 {
+        text-align: center !important;
+        margin-bottom: 0.5rem;
+    }
 }
 </style>
 @endpush
