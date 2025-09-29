@@ -238,17 +238,17 @@ class PlanoController extends Controller
         $html = '';
         foreach ($plano->folios as $folio) {
             $html .= '<tr class="child-row bg-light">';
-            $html .= '<td></td><td></td>'; // Columnas vacías para acciones
-            $html .= '<td class="pl-4">└ Folio</td>';
-            $html .= '<td></td>'; // Columna vacía para resumen de folios
-            $html .= '<td>' . $folio->folio . '</td>';
-            $html .= '<td>' . ($folio->solicitante ?: '-') . '</td>';
-            $html .= '<td>' . ($folio->apellido_paterno ?: '-') . '</td>';
-            $html .= '<td>' . ($folio->apellido_materno ?: '-') . '</td>';
-            $html .= '<td></td>'; // Comuna vacía en detalle
-            $html .= '<td>' . ($folio->hectareas ? number_format($folio->hectareas, 2) : '-') . '</td>';
-            $html .= '<td>' . number_format($folio->m2 ?: 0) . '</td>';
-            $html .= '<td colspan="4"></td>'; // Resto vacío (ajustado de 5 a 4)
+            $html .= '<td></td>'; // Columna vacía para EDITAR
+            $html .= '<td class="pl-4">└ Folio</td>'; // Columna REASIGNAR -> muestra "└ Folio"
+            $html .= '<td>' . $folio->folio . '</td>'; // Columna N° PLANO -> muestra folio individual
+            $html .= '<td>' . ($folio->solicitante ?: '-') . '</td>'; // Columna FOLIOS -> muestra solicitante
+            $html .= '<td>' . ($folio->apellido_paterno ?: '-') . '</td>'; // Columna SOLICITANTE -> muestra apellido paterno
+            $html .= '<td>' . ($folio->apellido_materno ?: '-') . '</td>'; // Columna APELLIDO PATERNO -> muestra apellido materno
+            $html .= '<td></td>'; // Columna APELLIDO MATERNO -> vacía
+            $html .= '<td></td>'; // Columna COMUNA -> vacía
+            $html .= '<td>' . ($folio->hectareas ? number_format($folio->hectareas, 2) : '-') . '</td>'; // Columna HECTÁREAS
+            $html .= '<td>' . number_format($folio->m2 ?: 0) . '</td>'; // Columna M²
+            $html .= '<td colspan="5"></td>'; // Resto vacío (MES, AÑO, RESPONSABLE, PROYECTO, [+/-])
             $html .= '</tr>';
         }
 
