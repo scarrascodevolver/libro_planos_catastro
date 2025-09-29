@@ -354,34 +354,22 @@ function initPlanosTable() {
         columnDefs: columnDefs,
         pageLength: 25,
         lengthMenu: [[10, 25, 50, 100, -1], [10, 25, 50, 100, "Todos"]],
-        dom: '<"row"<"col-sm-12 col-md-8"f><"col-sm-12 col-md-4 text-right"l>>rt<"row"<"col-sm-12 col-md-5"i><"col-sm-12 col-md-7"p>><"position-fixed invisible"B>',
+        dom: '<"row"<"col-sm-12 col-md-8"f><"col-sm-12 col-md-4 text-right"l>>rt<"row"<"col-sm-12 col-md-5"i><"col-sm-12 col-md-7"p>><"d-none"B>',
         buttons: [
             {
-                extend: 'colvis',
-                text: '<i class="fas fa-columns"></i> Columnas',
-                className: 'btn-sm',
-                columns: ':not(.no-export)' // No mostrar botones de acción en selector
-            },
-            {
                 extend: 'excel',
-                text: '<i class="fas fa-file-excel"></i> Excel',
-                className: 'btn-sm',
                 exportOptions: {
                     columns: ':visible:not(.no-export)'
                 }
             },
             {
                 extend: 'pdf',
-                text: '<i class="fas fa-file-pdf"></i> PDF',
-                className: 'btn-sm',
                 exportOptions: {
                     columns: ':visible:not(.no-export)'
                 }
             },
             {
                 extend: 'print',
-                text: '<i class="fas fa-print"></i> Imprimir',
-                className: 'btn-sm',
                 exportOptions: {
                     columns: ':visible:not(.no-export)'
                 }
@@ -454,30 +442,8 @@ function initPlanosTable() {
 function setupHeaderButtons() {
     // Event listeners para botones del header - configurados después de initComplete
     $('#btn-columns').off('click').on('click', function() {
-        // Debug mejorado
-        console.log('=== DEBUG BOTÓN COLUMNAS ===');
-        console.log('Botones DataTables encontrados:', $('.dt-button').length);
-        console.log('Contenedores dt-buttons:', $('.dt-buttons').length);
-        console.log('Clases de botones:', $('.dt-button').map(function() { return this.className; }).get());
-
-        // Buscar botón específico de colvis
-        const colvisButton = $('.dt-button').filter(function() {
-            return $(this).hasClass('buttons-colvis') || $(this).attr('data-type') === 'colvis' || this.textContent.includes('Columnas');
-        });
-
-        console.log('Botón colvis encontrado:', colvisButton.length);
-
-        if (colvisButton.length > 0) {
-            console.log('✅ Activando botón colvis encontrado');
-            colvisButton[0].click(); // Click nativo en lugar de trigger
-        } else if ($('.dt-button').length > 0) {
-            console.log('⚠️ Activando primer botón disponible');
-            $('.dt-button')[0].click();
-        } else {
-            console.log('❌ No hay botones disponibles - crear manual');
-            // Fallback: Crear selector manual de columnas
-            createManualColumnSelector();
-        }
+        // Usar siempre el selector manual (más confiable)
+        createManualColumnSelector();
     });
 
     $('#btn-excel').off('click').on('click', function() {
