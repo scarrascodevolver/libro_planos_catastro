@@ -177,6 +177,21 @@
             <span class="badge badge-primary ml-2" id="registros-encontrados-count">Cargando...</span>
         </h3>
         <div class="card-tools">
+            <!-- Botones DataTables -->
+            <div class="btn-group mr-2" id="datatable-buttons">
+                <button type="button" class="btn btn-sm btn-primary" id="btn-columns">
+                    <i class="fas fa-columns"></i> Columnas
+                </button>
+                <button type="button" class="btn btn-sm btn-success" id="btn-excel">
+                    <i class="fas fa-file-excel"></i> Excel
+                </button>
+                <button type="button" class="btn btn-sm btn-danger" id="btn-pdf">
+                    <i class="fas fa-file-pdf"></i> PDF
+                </button>
+                <button type="button" class="btn btn-sm btn-secondary" id="btn-print">
+                    <i class="fas fa-print"></i> Imprimir
+                </button>
+            </div>
             <button type="button" class="btn btn-tool" data-card-widget="collapse">
                 <i class="fas fa-minus"></i>
             </button>
@@ -339,7 +354,7 @@ function initPlanosTable() {
         columnDefs: columnDefs,
         pageLength: 25,
         lengthMenu: [[10, 25, 50, 100, -1], [10, 25, 50, 100, "Todos"]],
-        dom: '<"row"<"col-sm-12 col-md-6"f><"col-sm-12 col-md-6 text-right"lB>>rt<"row"<"col-sm-12 col-md-5"i><"col-sm-12 col-md-7"p>>',
+        dom: '<"row"<"col-sm-12 col-md-8"f><"col-sm-12 col-md-4 text-right"l>>rt<"row"<"col-sm-12 col-md-5"i><"col-sm-12 col-md-7"p>>',
         buttons: [
             {
                 extend: 'colvis',
@@ -430,6 +445,23 @@ function initPlanosTable() {
     });
 
     // El control de paginación ahora es manejado automáticamente por DataTables
+
+    // Event listeners para botones del header
+    $('#btn-columns').on('click', function() {
+        planosTable.button('.buttons-colvis').trigger();
+    });
+
+    $('#btn-excel').on('click', function() {
+        planosTable.button('.buttons-excel').trigger();
+    });
+
+    $('#btn-pdf').on('click', function() {
+        planosTable.button('.buttons-pdf').trigger();
+    });
+
+    $('#btn-print').on('click', function() {
+        planosTable.button('.buttons-print').trigger();
+    });
 }
 
 function expandRow(id) {
