@@ -409,6 +409,10 @@ function initPlanosTable() {
 
             // Actualizar contador de registros
             updateRegistrosCount();
+        },
+        initComplete: function() {
+            // Configurar event listeners de botones después de que DataTables esté listo
+            setupHeaderButtons();
         }
     });
 
@@ -445,22 +449,40 @@ function initPlanosTable() {
     });
 
     // El control de paginación ahora es manejado automáticamente por DataTables
+}
 
-    // Event listeners para botones del header
-    $('#btn-columns').on('click', function() {
-        // Activar el botón nativo de DataTables (ahora oculto con d-none)
-        $('.dt-button.buttons-colvis').trigger('click');
+function setupHeaderButtons() {
+    // Event listeners para botones del header - configurados después de initComplete
+    $('#btn-columns').off('click').on('click', function() {
+        // Debug: Ver qué botones están disponibles
+        console.log('Botones DataTables encontrados:', $('.dt-button').length);
+        console.log('Clases de botones:', $('.dt-button').map(function() { return this.className; }).get());
+
+        // Intentar diferentes selectores
+        if ($('.dt-button.buttons-colvis').length > 0) {
+            console.log('Método 1: buttons-colvis');
+            $('.dt-button.buttons-colvis').trigger('click');
+        } else if ($('.dt-button').eq(0).length > 0) {
+            console.log('Método 2: primer botón por índice');
+            $('.dt-button').eq(0).trigger('click');
+        } else if ($('.dt-buttons .dt-button:first').length > 0) {
+            console.log('Método 3: primer botón en contenedor');
+            $('.dt-buttons .dt-button:first').trigger('click');
+        } else {
+            console.log('Método 4: usar API directa');
+            planosTable.button(0).trigger();
+        }
     });
 
-    $('#btn-excel').on('click', function() {
+    $('#btn-excel').off('click').on('click', function() {
         planosTable.button('.buttons-excel').trigger();
     });
 
-    $('#btn-pdf').on('click', function() {
+    $('#btn-pdf').off('click').on('click', function() {
         planosTable.button('.buttons-pdf').trigger();
     });
 
-    $('#btn-print').on('click', function() {
+    $('#btn-print').off('click').on('click', function() {
         planosTable.button('.buttons-print').trigger();
     });
 }
