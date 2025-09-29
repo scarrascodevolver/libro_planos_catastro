@@ -198,8 +198,16 @@
         </div>
     </div>
     <div class="card-body">
-        <!-- DataTable -->
-        <div class="table-responsive">
+        <!-- Barra compacta con controles de DataTable -->
+        <div class="datatable-controls-bar-compact">
+            <div class="d-flex justify-content-between align-items-center">
+                <div id="datatable-search-container"></div>
+                <div id="datatable-length-container"></div>
+            </div>
+        </div>
+
+        <!-- DataTable con scroll horizontal inmediato -->
+        <div class="datatable-container">
             <table id="planos-table" class="table table-bordered table-striped table-hover table-nowrap">
                 <thead>
                     <tr>
@@ -355,7 +363,9 @@ function initPlanosTable() {
         columnDefs: columnDefs,
         pageLength: 25,
         lengthMenu: [[10, 25, 50, 100, -1], [10, 25, 50, 100, "Todos"]],
-        dom: '<"row"<"col-sm-12 col-md-8"f><"col-sm-12 col-md-4 text-right"l>>rt<"row"<"col-sm-12 col-md-5"i><"col-sm-12 col-md-7"p>><"d-none"B>',
+        dom: '<"row"<"col-sm-12 col-md-8"f><"col-sm-12 col-md-4 text-right"l>>rt<"d-none"B>',
+        info: false,      // Desactivar información de registros
+        paging: false,    // Desactivar paginación (mostrar todos los registros)
         buttons: [
             {
                 extend: 'excel',
@@ -402,6 +412,9 @@ function initPlanosTable() {
         initComplete: function() {
             // Configurar event listeners de botones después de que DataTables esté listo
             setupHeaderButtons();
+
+            // Mover controles de DataTable a la barra fija
+            moveDataTableControls();
         }
     });
 
@@ -434,6 +447,32 @@ function initPlanosTable() {
     });
 
     // El control de paginación ahora es manejado automáticamente por DataTables
+}
+
+function moveDataTableControls() {
+    // Mover el filtro de búsqueda a la barra fija
+    setTimeout(function() {
+        const searchElement = $('.dataTables_filter').first().clone();
+        const lengthElement = $('.dataTables_length').first().clone();
+
+        if (searchElement.length) {
+            $('#datatable-search-container').html(searchElement);
+
+            // Reconectar funcionalidad de búsqueda
+            $('#datatable-search-container input').off('keyup').on('keyup', function() {
+                planosTable.search(this.value).draw();
+            });
+        }
+
+        if (lengthElement.length) {
+            $('#datatable-length-container').html(lengthElement);
+
+            // Reconectar funcionalidad de cambio de entradas
+            $('#datatable-length-container select').off('change').on('change', function() {
+                planosTable.page.len(this.value).draw();
+            });
+        }
+    }, 100);
 }
 
 function setupHeaderButtons() {
@@ -474,16 +513,16 @@ function createManualColumnSelector() {
     dropdown.innerHTML = `
         <div style="
             position: fixed !important;
-            top: 20% !important;
-            left: 50% !important;
-            transform: translateX(-50%) !important;
+            top: 130px !important;
+            right: 20px !important;
+            transform: none !important;
             z-index: 999999 !important;
             background: white !important;
             border: 1px solid #dee2e6 !important;
             border-radius: 6px !important;
-            padding: 20px !important;
-            width: 320px !important;
-            max-height: 400px !important;
+            padding: 15px !important;
+            width: 280px !important;
+            max-height: 350px !important;
             font-size: 14px !important;
             font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif !important;
             color: #212529 !important;
@@ -1531,6 +1570,121 @@ tr.expandible-row .btn {
         opacity: 1;
         transform: translateY(0);
     }
+}
+
+/* ===== CONTENEDOR DATATABLE CON SCROLL HORIZONTAL ===== */
+
+/* Wrapper con altura dinámica hasta el fondo */
+.datatable-container {
+    height: calc(100vh - 320px); /* Altura dinámica: 100% viewport - espacio para header/navbar/controles */
+    overflow: auto; /* Scroll vertical y horizontal */
+    border: 1px solid #dee2e6;
+    border-radius: 0.375rem;
+    background: white;
+    position: relative;
+}
+
+/* Tabla con ancho mínimo para forzar scroll horizontal */
+.datatable-container .table {
+    margin-bottom: 0;
+    min-width: 1800px; /* Ancho mínimo para garantizar scroll horizontal */
+    white-space: nowrap; /* Evita que el contenido se envuelva */
+}
+
+/* Mejorar barras de scroll */
+.datatable-container::-webkit-scrollbar {
+    width: 12px;  /* Barra vertical un poco más ancha */
+    height: 16px; /* Barra horizontal más amplia para mejor usabilidad */
+}
+
+.datatable-container::-webkit-scrollbar-track {
+    background: #f1f1f1;
+    border-radius: 4px;
+}
+
+.datatable-container::-webkit-scrollbar-thumb {
+    background: #6c757d;
+    border-radius: 4px;
+    border: 1px solid #f1f1f1;
+}
+
+.datatable-container::-webkit-scrollbar-thumb:hover {
+    background: #495057;
+}
+
+/* Header fijo para mejor navegación */
+.datatable-container .table thead th {
+    position: sticky;
+    top: 0;
+    background: white;
+    z-index: 10;
+    border-bottom: 2px solid #dee2e6;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+/* Asegurar que el contenido no se superponga */
+.datatable-container .table tbody tr td {
+    vertical-align: middle;
+}
+
+/* ===== BARRA COMPACTA DE CONTROLES DATATABLE ===== */
+
+/* Barra de controles ultracompacta */
+.datatable-controls-bar-compact {
+    background: #f8f9fa;
+    border: 1px solid #dee2e6;
+    border-radius: 0.375rem 0.375rem 0 0;
+    padding: 8px 12px; /* Padding reducido drásticamente */
+    position: sticky;
+    top: 0;
+    z-index: 20;
+    box-shadow: 0 1px 2px rgba(0,0,0,0.05);
+    min-height: 40px; /* Altura mínima muy reducida */
+}
+
+/* Contenedores de controles reubicados y compactos */
+#datatable-search-container .dataTables_filter {
+    margin-bottom: 0 !important;
+    text-align: left !important;
+}
+
+#datatable-search-container .dataTables_filter label {
+    margin-bottom: 0 !important;
+    font-size: 0.9rem;
+}
+
+#datatable-search-container .dataTables_filter input {
+    padding: 4px 8px !important;
+    font-size: 0.9rem;
+    height: 32px;
+}
+
+#datatable-length-container .dataTables_length {
+    margin-bottom: 0 !important;
+    text-align: right !important;
+}
+
+#datatable-length-container .dataTables_length label {
+    margin-bottom: 0 !important;
+    font-size: 0.9rem;
+}
+
+#datatable-length-container .dataTables_length select {
+    padding: 4px 8px !important;
+    font-size: 0.9rem;
+    height: 32px;
+}
+
+/* Ocultar controles originales de DataTable */
+.dataTables_wrapper .dataTables_filter,
+.dataTables_wrapper .dataTables_length {
+    display: none !important;
+}
+
+/* Ajustar el contenedor de la tabla */
+.datatable-container {
+    border-radius: 0 0 0.375rem 0.375rem;
+    border-top: none;
 }
 
 /* Responsive adjustments */

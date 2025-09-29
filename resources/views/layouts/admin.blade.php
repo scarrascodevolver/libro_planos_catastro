@@ -224,7 +224,8 @@
         </section>
     </div>
 
-    <!-- Footer -->
+    <!-- Footer eliminado para aprovechar máximo espacio vertical -->
+    <!--
     <footer class="main-footer">
         <strong>&copy; 2025 <a href="#">Región del Biobío</a>.</strong>
         Sistema de Libro de Planos Topográficos.
@@ -232,6 +233,7 @@
             <b>Versión</b> 1.0.0
         </div>
     </footer>
+    -->
 </div>
 
 <!-- jQuery -->
