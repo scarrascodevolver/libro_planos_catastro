@@ -46,6 +46,13 @@ class SessionControl extends Model
 
     public static function getProximoCorrelativo(): int
     {
-        return 29272;
+        // Obtener el correlativo más alto actual de la base de datos
+        $ultimoNumero = \App\Models\Plano::whereRaw('LENGTH(numero_plano) = 12')
+                            ->whereRaw('SUBSTRING(numero_plano, 1, 2) = "08"')
+                            ->selectRaw('MAX(CAST(SUBSTRING(numero_plano, 6, 6) AS UNSIGNED)) as max_correlativo')
+                            ->value('max_correlativo');
+
+        // Si no hay números anteriores, empezar desde 29272
+        return ($ultimoNumero ?? 29271) + 1;
     }
 }

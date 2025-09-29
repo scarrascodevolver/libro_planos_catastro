@@ -22,12 +22,11 @@
                     </div>
 
                     <div class="form-group">
-                        <label for="nuevo_numero">Nuevo Número de Plano <span class="text-danger">*</span></label>
-                        <input type="text" class="form-control" id="nuevo_numero" name="nuevo_numero" required maxlength="50"
-                               placeholder="Ej: 0830329999SU" pattern="^08[0-9]{8}[A-Z]{2}$">
+                        <label for="nuevo_numero">Nuevo Número de Plano (Automático)</label>
+                        <input type="text" class="form-control bg-light" id="nuevo_numero" name="nuevo_numero" readonly
+                               placeholder="Generando automáticamente...">
                         <small class="form-text text-muted">
-                            Formato: 08 + código comuna (3) + correlativo (6) + tipo (2)<br>
-                            Ejemplo: <code>0830329999SU</code>
+                            <i class="fas fa-info-circle"></i> El número se genera automáticamente usando el próximo correlativo disponible
                         </small>
                     </div>
 

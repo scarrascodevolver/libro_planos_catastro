@@ -30,7 +30,7 @@ class SessionControlController extends Controller
         $activeControl = SessionControl::quienTieneControl();
         $userHasControl = $activeControl && $activeControl->id === $user->id;
 
-        $proximoCorrelativo = $this->getProximoCorrelativo();
+        $proximoCorrelativo = SessionControl::getProximoCorrelativo();
         $proximoNumero = $this->generarProximoNumero($proximoCorrelativo);
 
         return response()->json([
@@ -76,7 +76,7 @@ class SessionControlController extends Controller
             'is_active' => true
         ]);
 
-        $proximoCorrelativo = $this->getProximoCorrelativo();
+        $proximoCorrelativo = SessionControl::getProximoCorrelativo();
         $proximoNumero = $this->generarProximoNumero($proximoCorrelativo);
 
         return response()->json([
@@ -138,7 +138,7 @@ class SessionControlController extends Controller
             ]);
         }
 
-        $proximoCorrelativo = $this->getProximoCorrelativo();
+        $proximoCorrelativo = SessionControl::getProximoCorrelativo();
         $proximoNumero = $this->generarProximoNumero($proximoCorrelativo);
 
         return response()->json([
@@ -148,17 +148,6 @@ class SessionControlController extends Controller
         ]);
     }
 
-    private function getProximoCorrelativo(): int
-    {
-        // Obtener el último número correlativo usado
-        $ultimoPlano = Plano::selectRaw('MAX(CAST(SUBSTRING(numero_plano, 4, 6) AS UNSIGNED)) as ultimo_correlativo')
-            ->where('numero_plano', 'REGEXP', '^08[0-9]{8}[A-Z]{2}$')
-            ->first();
-
-        $ultimoCorrelativo = $ultimoPlano->ultimo_correlativo ?? 329271;
-
-        return $ultimoCorrelativo + 1;
-    }
 
     private function generarProximoNumero(int $correlativo, string $codigoComuna = '303', string $tipo = 'SU'): string
     {

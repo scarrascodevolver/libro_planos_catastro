@@ -10,6 +10,9 @@
 @endsection
 
 @section('content')
+<!-- Control de Sesiones para Numeración -->
+@include('admin.planos.partials.session-control')
+
 <!-- Filtros Card -->
 <div class="card collapsed-card" id="filtros-card">
     <div class="card-header">
@@ -846,8 +849,53 @@ function editarPlano(id) {
 }
 
 function reasignarPlano(id) {
-    $('#reasignar-modal #reasignar_id').val(id);
-    $('#reasignar-modal').modal('show');
+    // Verificar control de sesión antes de permitir reasignación
+    $.get('{{ route("session-control.status") }}')
+        .done(function(response) {
+            if (!response.hasControl) {
+                Swal.fire({
+                    icon: 'warning',
+                    title: 'Control Requerido',
+                    html: `<p>Necesitas tener control de numeración para reasignar planos.</p>
+                           <p>Estado actual: <strong>${response.whoHasControl || 'Nadie tiene control'}</strong></p>`,
+                    confirmButtonText: 'Entendido',
+                    confirmButtonColor: '#007bff'
+                });
+                return;
+            }
+
+            // Si tiene control, proceder con reasignación
+            $('#reasignar-modal #reasignar_id').val(id);
+
+            // Generar automáticamente el próximo número
+            $('#nuevo_numero').val('Generando...');
+            $.post('{{ route("session-control.generar-numero") }}', {
+                codigo_comuna: '303', // Valor por defecto, se puede hacer dinámico después
+                tipo_plano: 'SU'      // Valor por defecto, se puede hacer dinámico después
+            })
+            .done(function(response) {
+                if (response.success) {
+                    $('#nuevo_numero').val(response.numeroCompleto);
+                } else {
+                    $('#nuevo_numero').val('Error al generar');
+                    Swal.fire('Error', 'No se pudo generar el número automático', 'error');
+                }
+            })
+            .fail(function() {
+                $('#nuevo_numero').val('Error al generar');
+                Swal.fire('Error', 'No se pudo generar el número automático', 'error');
+            });
+
+            $('#reasignar-modal').modal('show');
+        })
+        .fail(function() {
+            Swal.fire({
+                icon: 'error',
+                title: 'Error',
+                text: 'No se pudo verificar el estado del control de sesión',
+                confirmButtonColor: '#dc3545'
+            });
+        });
 }
 
 function initModals() {
@@ -1687,6 +1735,42 @@ tr.expandible-row .btn {
     border-top: none;
 }
 
+/* ===== ESTILOS CONTROL DE SESIONES ===== */
+
+/* Widget de control de sesiones */
+.session-control-card {
+    border-left: 4px solid #28a745 !important;
+    box-shadow: 0 2px 8px rgba(40, 167, 69, 0.15);
+}
+
+.no-control {
+    border-left: 4px solid #dc3545 !important;
+    box-shadow: 0 2px 8px rgba(220, 53, 69, 0.15);
+}
+
+#session-control-widget .info-box {
+    border-radius: 0.375rem;
+    transition: all 0.3s ease;
+}
+
+#session-control-widget .info-box:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+}
+
+/* Badges más prominentes */
+#session-badge {
+    font-size: 0.85rem;
+    padding: 0.5rem 0.75rem;
+}
+
+/* Botones de control */
+#session-control-widget .btn-group .btn {
+    margin-right: 0.5rem;
+    border-radius: 0.375rem;
+    font-weight: 500;
+}
+
 /* Responsive adjustments */
 @media (max-width: 768px) {
     #edit-modal .modal-dialog {
@@ -1697,6 +1781,17 @@ tr.expandible-row .btn {
     #edit-modal .modal-footer .col-6 {
         text-align: center !important;
         margin-bottom: 0.5rem;
+    }
+
+    #session-control-widget .btn-group {
+        display: flex;
+        flex-direction: column;
+        gap: 0.5rem;
+    }
+
+    #session-control-widget .btn-group .btn {
+        margin-right: 0;
+        width: 100%;
     }
 }
 </style>
