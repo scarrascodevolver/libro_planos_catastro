@@ -354,7 +354,7 @@ function initPlanosTable() {
         columnDefs: columnDefs,
         pageLength: 25,
         lengthMenu: [[10, 25, 50, 100, -1], [10, 25, 50, 100, "Todos"]],
-        dom: '<"row"<"col-sm-12 col-md-8"f><"col-sm-12 col-md-4 text-right"l>>rt<"row"<"col-sm-12 col-md-5"i><"col-sm-12 col-md-7"p>><"d-none"B>',
+        dom: '<"row"<"col-sm-12 col-md-8"f><"col-sm-12 col-md-4 text-right"l>>rt<"row"<"col-sm-12 col-md-5"i><"col-sm-12 col-md-7"p>><"position-fixed invisible"B>',
         buttons: [
             {
                 extend: 'colvis',
@@ -454,23 +454,29 @@ function initPlanosTable() {
 function setupHeaderButtons() {
     // Event listeners para botones del header - configurados después de initComplete
     $('#btn-columns').off('click').on('click', function() {
-        // Debug: Ver qué botones están disponibles
+        // Debug mejorado
+        console.log('=== DEBUG BOTÓN COLUMNAS ===');
         console.log('Botones DataTables encontrados:', $('.dt-button').length);
+        console.log('Contenedores dt-buttons:', $('.dt-buttons').length);
         console.log('Clases de botones:', $('.dt-button').map(function() { return this.className; }).get());
 
-        // Intentar diferentes selectores
-        if ($('.dt-button.buttons-colvis').length > 0) {
-            console.log('Método 1: buttons-colvis');
-            $('.dt-button.buttons-colvis').trigger('click');
-        } else if ($('.dt-button').eq(0).length > 0) {
-            console.log('Método 2: primer botón por índice');
-            $('.dt-button').eq(0).trigger('click');
-        } else if ($('.dt-buttons .dt-button:first').length > 0) {
-            console.log('Método 3: primer botón en contenedor');
-            $('.dt-buttons .dt-button:first').trigger('click');
+        // Buscar botón específico de colvis
+        const colvisButton = $('.dt-button').filter(function() {
+            return $(this).hasClass('buttons-colvis') || $(this).attr('data-type') === 'colvis' || this.textContent.includes('Columnas');
+        });
+
+        console.log('Botón colvis encontrado:', colvisButton.length);
+
+        if (colvisButton.length > 0) {
+            console.log('✅ Activando botón colvis encontrado');
+            colvisButton[0].click(); // Click nativo en lugar de trigger
+        } else if ($('.dt-button').length > 0) {
+            console.log('⚠️ Activando primer botón disponible');
+            $('.dt-button')[0].click();
         } else {
-            console.log('Método 4: usar API directa');
-            planosTable.button(0).trigger();
+            console.log('❌ No hay botones disponibles - crear manual');
+            // Fallback: Crear selector manual de columnas
+            createManualColumnSelector();
         }
     });
 
@@ -484,6 +490,50 @@ function setupHeaderButtons() {
 
     $('#btn-print').off('click').on('click', function() {
         planosTable.button('.buttons-print').trigger();
+    });
+}
+
+function createManualColumnSelector() {
+    // Crear selector de columnas manual como último recurso
+    const columns = planosTable.columns().header().map(function(header, index) {
+        return {
+            index: index,
+            title: $(header).text(),
+            visible: planosTable.column(index).visible(),
+            isExportable: !$(header).hasClass('no-export')
+        };
+    });
+
+    let dropdownHtml = '<div class="dropdown-menu show position-absolute" style="top: 40px; right: 0; z-index: 9999;">';
+    columns.forEach(function(col) {
+        if (col.isExportable && col.title.trim()) {
+            const checked = col.visible ? 'checked' : '';
+            dropdownHtml += `
+                <label class="dropdown-item-text d-flex align-items-center mb-1">
+                    <input type="checkbox" class="mr-2 manual-column-toggle" data-column="${col.index}" ${checked}>
+                    ${col.title}
+                </label>`;
+        }
+    });
+    dropdownHtml += '</div>';
+
+    // Remover dropdown existente
+    $('.manual-column-dropdown').remove();
+
+    // Agregar nuevo dropdown
+    const $dropdown = $(dropdownHtml).addClass('manual-column-dropdown');
+    $('#btn-columns').closest('.btn-group').append($dropdown);
+
+    // Event listeners para checkboxes
+    $('.manual-column-toggle').on('change', function() {
+        const columnIndex = $(this).data('column');
+        const isChecked = $(this).is(':checked');
+        planosTable.column(columnIndex).visible(isChecked);
+    });
+
+    // Cerrar al hacer clic fuera
+    $(document).one('click', function() {
+        $('.manual-column-dropdown').remove();
     });
 }
 
