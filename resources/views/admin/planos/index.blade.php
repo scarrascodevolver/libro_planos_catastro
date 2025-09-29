@@ -558,11 +558,8 @@ window.toggleColumn = function(columnIndex, isVisible) {
 function expandRow(id) {
     $.get("{{ url('/planos') }}/" + id + "/folios-expansion")
         .done(function(response) {
-            const btn = $('button[data-id="' + id + '"].toggle-expand');
-            const row = btn.closest('tr');
-
-            // Cambiar icono
-            btn.find('i').removeClass('fa-plus').addClass('fa-minus');
+            // Buscar la fila por el data-id que asignamos
+            const row = $(`tr[data-id="${id}"]`);
 
             // Insertar filas hijas
             $(response.html).insertAfter(row);
@@ -576,11 +573,8 @@ function expandRow(id) {
 }
 
 function collapseRow(id) {
-    const btn = $('button[data-id="' + id + '"].toggle-expand');
-    const row = btn.closest('tr');
-
-    // Cambiar icono
-    btn.find('i').removeClass('fa-minus').addClass('fa-plus');
+    // Buscar la fila por el data-id que asignamos
+    const row = $(`tr[data-id="${id}"]`);
 
     // Remover filas hijas
     row.nextUntil(':not(.child-row)').remove();
