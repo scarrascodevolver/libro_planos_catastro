@@ -495,7 +495,8 @@ function setupHeaderButtons() {
 
 function createManualColumnSelector() {
     // Crear selector de columnas manual como último recurso
-    const columns = planosTable.columns().header().map(function(header, index) {
+    const headers = planosTable.columns().header().toArray();
+    const columns = headers.map(function(header, index) {
         return {
             index: index,
             title: $(header).text(),
