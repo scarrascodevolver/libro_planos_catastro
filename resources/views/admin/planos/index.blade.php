@@ -448,7 +448,48 @@ function initPlanosTable() {
 
     // Event listeners para botones del header
     $('#btn-columns').on('click', function() {
-        planosTable.button('.buttons-colvis').trigger();
+        // Método alternativo: Crear el modal de columnas manualmente
+        const table = planosTable;
+        const columns = table.settings()[0].aoColumns;
+
+        // Crear un modal simple con checkboxes para cada columna
+        let modalHtml = '<div class="modal fade" id="columns-modal" tabindex="-1">';
+        modalHtml += '<div class="modal-dialog"><div class="modal-content">';
+        modalHtml += '<div class="modal-header">';
+        modalHtml += '<h4 class="modal-title"><i class="fas fa-columns"></i> Seleccionar Columnas</h4>';
+        modalHtml += '<button type="button" class="close" data-dismiss="modal">&times;</button>';
+        modalHtml += '</div><div class="modal-body">';
+
+        columns.forEach(function(column, index) {
+            if (column.sTitle && !$(column.nTh).hasClass('no-export')) {
+                const isVisible = table.column(index).visible();
+                const checked = isVisible ? 'checked' : '';
+                modalHtml += `<div class="form-check">`;
+                modalHtml += `<input class="form-check-input column-toggle" type="checkbox" ${checked} data-column="${index}" id="col-${index}">`;
+                modalHtml += `<label class="form-check-label" for="col-${index}">${column.sTitle}</label>`;
+                modalHtml += `</div>`;
+            }
+        });
+
+        modalHtml += '</div><div class="modal-footer">';
+        modalHtml += '<button type="button" class="btn btn-secondary" data-dismiss="modal">Cerrar</button>';
+        modalHtml += '</div></div></div></div>';
+
+        // Remover modal existente si existe
+        $('#columns-modal').remove();
+
+        // Agregar modal al DOM
+        $('body').append(modalHtml);
+
+        // Event listener para checkboxes
+        $('.column-toggle').on('change', function() {
+            const columnIndex = $(this).data('column');
+            const isChecked = $(this).is(':checked');
+            table.column(columnIndex).visible(isChecked);
+        });
+
+        // Mostrar modal
+        $('#columns-modal').modal('show');
     });
 
     $('#btn-excel').on('click', function() {
