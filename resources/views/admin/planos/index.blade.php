@@ -174,6 +174,7 @@
         <h3 class="card-title">
             <i class="fas fa-table"></i>
             Registro de Planos
+            <span class="badge badge-primary ml-2" id="registros-encontrados-count">Cargando...</span>
         </h3>
         <div class="card-tools">
             <div class="btn-group">
@@ -320,6 +321,9 @@ function initPlanosTable() {
 
             // Configurar filas expandibles clickeables
             setupExpandibleRows();
+
+            // Actualizar contador de registros
+            updateRegistrosCount();
         }
     });
 
@@ -473,6 +477,35 @@ function updateFiltrosCount() {
         }
     });
     $('#filtros-activos-count').text(count);
+}
+
+function updateRegistrosCount() {
+    // Obtener información de DataTables
+    const info = planosTable.page.info();
+    const total = info.recordsDisplay; // Registros después de filtrar
+    const totalSinFiltro = info.recordsTotal; // Total sin filtrar
+
+    let texto = '';
+    if (total === totalSinFiltro) {
+        // Sin filtros aplicados
+        texto = `Total: ${total} registros`;
+    } else {
+        // Con filtros aplicados
+        texto = `Registros encontrados: ${total}`;
+
+        // Cambiar color del badge según si hay filtros
+        $('#registros-encontrados-count')
+            .removeClass('badge-primary badge-success')
+            .addClass('badge-success');
+    }
+
+    if (total === totalSinFiltro) {
+        $('#registros-encontrados-count')
+            .removeClass('badge-success badge-primary')
+            .addClass('badge-primary');
+    }
+
+    $('#registros-encontrados-count').text(texto);
 }
 
 @if(Auth::user()->isRegistro())
