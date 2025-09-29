@@ -306,7 +306,7 @@ function initPlanosTable() {
         columnDefs: columnDefs,
         pageLength: 25,
         lengthMenu: [[10, 25, 50, 100, -1], [10, 25, 50, 100, "Todos"]],
-        dom: '<"row"<"col-sm-12 col-md-6"f><"col-sm-12 col-md-6 text-right"l>>rt<"row"<"col-sm-12 col-md-5"i><"col-sm-12 col-md-7"p>>',
+        dom: '<"row"<"col-sm-12 col-md-8"f><"col-sm-12 col-md-4 text-right"l>>rt<"row"<"col-sm-12 col-md-5"i><"col-sm-12 col-md-7"p>>',
         language: {
             url: '//cdn.datatables.net/plug-ins/1.13.6/i18n/es-ES.json'
         },
@@ -633,14 +633,36 @@ $('#print-table').on('click', function(e) {
 }
 
 .dataTables_length {
-    text-align: left;
+    text-align: right !important;
+    margin-top: 0;
+}
+
+.dataTables_length label {
+    display: flex !important;
+    align-items: center !important;
+    justify-content: flex-end !important;
+    margin-bottom: 0 !important;
+    font-weight: normal !important;
 }
 
 .dataTables_length select {
-    margin: 0 0.5em;
+    margin: 0 0.5em !important;
     border-radius: 0.25rem;
     border: 1px solid #ced4da;
     padding: 0.375rem 0.75rem;
+    min-width: 80px;
+}
+
+/* Mejorar espaciado general entre filtro y length */
+.dataTables_filter {
+    margin-bottom: 0 !important;
+}
+
+.dataTables_filter label {
+    display: flex !important;
+    align-items: center !important;
+    margin-bottom: 0 !important;
+    font-weight: normal !important;
 }
 
 /* Filas expandibles clickeables */
