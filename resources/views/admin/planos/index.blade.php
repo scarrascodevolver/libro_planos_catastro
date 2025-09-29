@@ -442,7 +442,10 @@ function initPlanosTable() {
 function setupHeaderButtons() {
     // Event listeners para botones del header - configurados después de initComplete
     $('#btn-columns').off('click').on('click', function() {
-        // Usar siempre el selector manual (más confiable)
+        console.log('🔥 BOTÓN COLUMNAS CLICKEADO');
+        console.log('planosTable existe:', typeof planosTable);
+
+        // Crear el selector manual
         createManualColumnSelector();
     });
 
@@ -460,49 +463,100 @@ function setupHeaderButtons() {
 }
 
 function createManualColumnSelector() {
-    // Crear selector de columnas manual como último recurso
-    const headers = planosTable.columns().header().toArray();
-    const columns = headers.map(function(header, index) {
-        return {
-            index: index,
-            title: $(header).text(),
-            visible: planosTable.column(index).visible(),
-            isExportable: !$(header).hasClass('no-export')
-        };
-    });
+    console.log('🚀 CREANDO SELECTOR MANUAL');
 
-    let dropdownHtml = '<div class="dropdown-menu show position-absolute" style="top: 40px; right: 0; z-index: 9999;">';
-    columns.forEach(function(col) {
-        if (col.isExportable && col.title.trim()) {
-            const checked = col.visible ? 'checked' : '';
-            dropdownHtml += `
-                <label class="dropdown-item-text d-flex align-items-center mb-1">
-                    <input type="checkbox" class="mr-2 manual-column-toggle" data-column="${col.index}" ${checked}>
-                    ${col.title}
-                </label>`;
-        }
-    });
-    dropdownHtml += '</div>';
+    // MÉTODO DIRECTO: Crear elemento visible SIN clases CSS conflictivas
 
     // Remover dropdown existente
-    $('.manual-column-dropdown').remove();
+    const existing = document.querySelector('.super-visible-dropdown');
+    if (existing) existing.remove();
 
-    // Agregar nuevo dropdown
-    const $dropdown = $(dropdownHtml).addClass('manual-column-dropdown');
-    $('#btn-columns').closest('.btn-group').append($dropdown);
+    // Crear elemento completamente nuevo
+    const dropdown = document.createElement('div');
+    dropdown.className = 'super-visible-dropdown';
+    dropdown.innerHTML = `
+        <div style="
+            position: fixed !important;
+            top: 20% !important;
+            left: 50% !important;
+            transform: translateX(-50%) !important;
+            z-index: 999999 !important;
+            background: white !important;
+            border: 1px solid #dee2e6 !important;
+            border-radius: 6px !important;
+            padding: 20px !important;
+            width: 320px !important;
+            max-height: 400px !important;
+            font-size: 14px !important;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif !important;
+            color: #212529 !important;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.15) !important;
+            overflow-y: auto !important;
+        ">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; border-bottom: 1px solid #dee2e6; padding-bottom: 10px;">
+                <h5 style="margin: 0; color: #495057 !important;">
+                    <i class="fas fa-columns" style="margin-right: 8px; color: #007bff;"></i>
+                    Seleccionar Columnas
+                </h5>
+                <button onclick="this.closest('.super-visible-dropdown').remove()"
+                        style="background: none; border: none; font-size: 18px; color: #6c757d; cursor: pointer; padding: 0; width: 20px; height: 20px;">
+                    ×
+                </button>
+            </div>
+            <div id="columns-list" style="max-height: 280px; overflow-y: auto;"></div>
+        </div>
+    `;
 
-    // Event listeners para checkboxes
-    $('.manual-column-toggle').on('change', function() {
-        const columnIndex = $(this).data('column');
-        const isChecked = $(this).is(':checked');
-        planosTable.column(columnIndex).visible(isChecked);
+    // Agregar al body
+    document.body.appendChild(dropdown);
+
+    // Generar lista de columnas
+    const columnsList = document.getElementById('columns-list');
+    const headers = planosTable.columns().header().toArray();
+
+    headers.forEach(function(header, index) {
+        const title = $(header).text().trim();
+        const isVisible = planosTable.column(index).visible();
+        const isExportable = !$(header).hasClass('no-export');
+
+        if (isExportable && title) {
+            const label = document.createElement('label');
+            label.style.cssText = `
+                display: flex !important;
+                align-items: center !important;
+                padding: 6px 8px !important;
+                margin-bottom: 2px !important;
+                cursor: pointer !important;
+                border-radius: 4px !important;
+                transition: background-color 0.2s !important;
+            `;
+            label.innerHTML = `
+                <input type="checkbox" ${isVisible ? 'checked' : ''}
+                       onchange="toggleColumn(${index}, this.checked)"
+                       style="margin-right: 10px !important; transform: scale(1.1) !important;">
+                <span style="color: #495057 !important; font-weight: 500 !important;">${title}</span>
+            `;
+
+            // Hover effect
+            label.onmouseenter = function() {
+                this.style.backgroundColor = '#f8f9fa';
+            };
+            label.onmouseleave = function() {
+                this.style.backgroundColor = 'transparent';
+            };
+
+            columnsList.appendChild(label);
+        }
     });
 
-    // Cerrar al hacer clic fuera
-    $(document).one('click', function() {
-        $('.manual-column-dropdown').remove();
-    });
+    console.log('✅ DROPDOWN SÚPER VISIBLE CREADO');
 }
+
+// Función global para toggle de columnas
+window.toggleColumn = function(columnIndex, isVisible) {
+    planosTable.column(columnIndex).visible(isVisible);
+    console.log(`Columna ${columnIndex} ${isVisible ? 'mostrada' : 'ocultada'}`);
+};
 
 function expandRow(id) {
     $.get("{{ url('/planos') }}/" + id + "/folios-expansion")
