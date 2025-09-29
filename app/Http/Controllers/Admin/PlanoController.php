@@ -114,6 +114,11 @@ class PlanoController extends Controller
                 }
             })
             ->rawColumns(['acciones', 'expandir'])
+            ->setRowData([
+                'data-folios-count' => function($plano) {
+                    return $plano->cantidad_folios;
+                }
+            ])
             ->make(true);
     }
 

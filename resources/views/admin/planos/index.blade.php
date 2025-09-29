@@ -317,6 +317,9 @@ function initPlanosTable() {
                     expandRow(id);
                 }
             });
+
+            // Configurar filas expandibles clickeables
+            setupExpandibleRows();
         }
     });
 
@@ -381,6 +384,40 @@ function collapseRow(id) {
 
     // Marcar como colapsado
     expandedRows[id] = false;
+}
+
+function setupExpandibleRows() {
+    // Remover event listeners previos para evitar duplicados
+    $('#planos-table tbody tr').off('click.expandible');
+
+    // Configurar cada fila según su cantidad de folios
+    $('#planos-table tbody tr').each(function() {
+        const $row = $(this);
+        const foliosCount = $row.data('folios-count');
+
+        if (foliosCount && foliosCount > 1) {
+            // Hacer fila expandible
+            $row.addClass('expandible-row');
+
+            // Agregar event listener para toda la fila EXCEPTO botones y enlaces
+            $row.on('click.expandible', function(e) {
+                // No expandir si se hizo clic en:
+                // - Botones (.btn)
+                // - Enlaces (a)
+                // - Elementos con clase actions-column
+                // - El botón expandir/colapsar
+                if (!$(e.target).closest('.btn, a, .actions-column, .expandir-folios').length) {
+                    const expandBtn = $row.find('.expandir-folios');
+                    if (expandBtn.length) {
+                        expandBtn.trigger('click');
+                    }
+                }
+            });
+        } else {
+            // Remover clase expandible si tiene 1 o menos folios
+            $row.removeClass('expandible-row');
+        }
+    });
 }
 
 function initFiltros() {
@@ -592,6 +629,32 @@ $('#print-table').on('click', function(e) {
     border-radius: 0.25rem;
     border: 1px solid #ced4da;
     padding: 0.375rem 0.75rem;
+}
+
+/* Filas expandibles clickeables */
+tr.expandible-row {
+    cursor: pointer;
+    transition: background-color 0.2s ease;
+}
+
+tr.expandible-row:hover {
+    background-color: #f8f9fa !important;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+/* Los botones de acción mantienen su cursor default */
+tr.expandible-row .btn {
+    cursor: pointer; /* Mantener cursor de botón */
+}
+
+/* Indicar que la fila es expandible con un pequeño icono */
+tr.expandible-row::before {
+    content: "▶";
+    position: absolute;
+    left: 5px;
+    font-size: 8px;
+    color: #6c757d;
+    opacity: 0.5;
 }
 </style>
 @endpush
