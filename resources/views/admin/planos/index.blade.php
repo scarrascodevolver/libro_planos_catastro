@@ -445,13 +445,22 @@ function initFiltros() {
         updateFiltrosCount();
     });
 
-    // Toggle panel de filtros
+    // Toggle panel de filtros (botón específico)
     $('#toggle-filtros').on('click', function() {
         const icon = $(this).find('i');
         if (icon.hasClass('fa-plus')) {
             icon.removeClass('fa-plus').addClass('fa-minus');
         } else {
             icon.removeClass('fa-minus').addClass('fa-plus');
+        }
+    });
+
+    // Hacer clickeable todo el header de filtros (EXCEPTO el botón)
+    $('#filtros-card .card-header').on('click', function(e) {
+        // No activar si se hizo clic en el botón específico o sus elementos hijos
+        if (!$(e.target).closest('.btn-tool, .card-tools').length) {
+            // Simular clic en el botón toggle
+            $('#toggle-filtros').trigger('click');
         }
     });
 }
@@ -678,6 +687,21 @@ tr.expandible-row:hover {
 
 /* Los botones de acción mantienen su cursor default */
 tr.expandible-row .btn {
+    cursor: pointer; /* Mantener cursor de botón */
+}
+
+/* Header de filtros clickeable */
+#filtros-card .card-header {
+    cursor: pointer;
+    transition: background-color 0.2s ease;
+}
+
+#filtros-card .card-header:hover {
+    background-color: #f8f9fa !important;
+}
+
+/* El botón de toggle mantiene su cursor normal */
+#filtros-card .card-header .btn-tool {
     cursor: pointer; /* Mantener cursor de botón */
 }
 </style>
