@@ -98,12 +98,6 @@ class PlanoController extends Controller
             ->addColumn('created_at_display', function ($plano) {
                 return $plano->created_at ? $plano->created_at->format('d/m/Y') : '-';
             })
-            ->addColumn('expandir', function ($plano) {
-                $btnClass = $plano->cantidad_folios > 1 ? 'expandible' : '';
-                return '<button class="btn btn-sm btn-info expandir-folios toggle-expand '.$btnClass.'" data-id="'.$plano->id.'" data-folios="'.$plano->cantidad_folios.'">
-                    <i class="fas fa-plus"></i>
-                </button>';
-            })
             ->addColumn('detalles', function ($plano) {
                 return '<button class="btn btn-sm btn-primary ver-detalles" data-id="'.$plano->id.'" title="Ver todos los detalles">
                     <i class="fas fa-eye"></i>
@@ -144,7 +138,7 @@ class PlanoController extends Controller
                     });
                 }
             })
-            ->rawColumns(['acciones', 'expandir', 'detalles'])
+            ->rawColumns(['acciones', 'detalles'])
             ->make(true);
     }
 

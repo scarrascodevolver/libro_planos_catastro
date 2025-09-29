@@ -224,7 +224,6 @@
                         <th>Tela</th>
                         <th>Archivo Digital</th>
                         <th>Fecha Creación</th>
-                        <th width="30">+/-</th>
                         <th width="80">Detalles</th>
                     </tr>
                 </thead>
@@ -327,7 +326,6 @@ function initPlanosTable() {
         { "data": "tela_display", "name": "tela_display" },
         { "data": "archivo_digital_display", "name": "archivo_digital_display" },
         { "data": "created_at_display", "name": "created_at_display" },
-        { "data": "expandir", "name": "expandir" },
         { "data": "detalles", "name": "detalles" }
     ];
 
@@ -407,18 +405,8 @@ function initPlanosTable() {
         }
     });
 
-    // Event listeners para expansión
-    $('#planos-table tbody').on('click', '.expandir-folios', function() {
-        const btn = $(this);
-        const id = btn.data('id');
-        const icon = btn.find('i');
-
-        if (icon.hasClass('fa-plus')) {
-            expandRow(id);
-        } else {
-            collapseRow(id);
-        }
-    });
+    // Event listeners para expansión - YA NO NECESARIO, manejado por setupExpandibleRows()
+    // Se eliminó el botón .expandir-folios, ahora las filas son clickeables directamente
 
     @if(Auth::user()->isRegistro())
     // Event listeners para edición
@@ -608,30 +596,40 @@ function setupExpandibleRows() {
     // EXPANSIÓN SIMPLIFICADA: Solo múltiples folios son clickeables
     $('#planos-table tbody tr').each(function() {
         const $row = $(this);
-        const $expandBtn = $row.find('.expandir-folios');
 
-        if ($expandBtn.length) {
-            const foliosCount = parseInt($expandBtn.data('folios')) || 0;
+        // Obtener cantidad de folios desde el HTML directamente
+        @if(Auth::user()->isRegistro())
+        const foliosText = $row.find('td:nth-child(3)').text(); // Columna Folios para rol registro
+        @else
+        const foliosText = $row.find('td:nth-child(2)').text(); // Columna Folios para rol consulta
+        @endif
+        const hasMultipleFolios = foliosText.includes('+') || foliosText.includes(',');
 
-            if (foliosCount > 1) {
-                // Solo hacer expandible si tiene múltiples folios
-                $row.addClass('expandible-row');
+        if (hasMultipleFolios) {
+            // Solo hacer expandible si tiene múltiples folios
+            $row.addClass('expandible-row');
 
-                // Agregar event listener para toda la fila EXCEPTO botones y enlaces
-                $row.on('click.expandible', function(e) {
-                    // No expandir si se hizo clic en:
-                    // - Botones (.btn)
-                    // - Enlaces (a)
-                    // - Elementos con clase actions-column
-                    // - El botón expandir/colapsar específicamente
-                    if (!$(e.target).closest('.btn, a, .actions-column, .expandir-folios').length) {
-                        $expandBtn.trigger('click');
-                    }
-                });
-            } else {
-                // Remover clase expandible si tiene 1 folio
-                $row.removeClass('expandible-row');
-            }
+            // Obtener ID del data attribute o de los botones
+            const id = $row.find('.editar-plano').data('id') || $row.find('.ver-detalles').data('id');
+            $row.attr('data-id', id);
+
+            // Agregar event listener para toda la fila EXCEPTO botones
+            $row.on('click.expandible', function(e) {
+                // No expandir si se hizo clic en botones o enlaces
+                if ($(e.target).closest('.btn, a, .btn-group').length > 0) {
+                    return;
+                }
+
+                const rowId = $(this).data('id');
+                if (expandedRows[rowId]) {
+                    collapseRow(rowId);
+                } else {
+                    expandRow(rowId);
+                }
+            });
+        } else {
+            // Remover clase expandible si tiene 1 folio
+            $row.removeClass('expandible-row');
         }
     });
 }
