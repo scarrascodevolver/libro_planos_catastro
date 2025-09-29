@@ -80,6 +80,24 @@ class PlanoController extends Controller
             ->addColumn('numero_plano_completo', function ($plano) {
                 return $this->formatNumeroPlanoCompleto($plano);
             })
+            ->addColumn('observaciones_display', function ($plano) {
+                return $plano->observaciones ?: '-';
+            })
+            ->addColumn('archivo_display', function ($plano) {
+                return $plano->archivo ?: '-';
+            })
+            ->addColumn('tubo_display', function ($plano) {
+                return $plano->tubo ?: '-';
+            })
+            ->addColumn('tela_display', function ($plano) {
+                return $plano->tela ?: '-';
+            })
+            ->addColumn('archivo_digital_display', function ($plano) {
+                return $plano->archivo_digital ?: '-';
+            })
+            ->addColumn('created_at_display', function ($plano) {
+                return $plano->created_at ? $plano->created_at->format('d/m/Y') : '-';
+            })
             ->addColumn('expandir', function ($plano) {
                 $btnClass = $plano->cantidad_folios > 1 ? 'expandible' : '';
                 return '<button class="btn btn-sm btn-info expandir-folios '.$btnClass.'" data-id="'.$plano->id.'" data-folios="'.$plano->cantidad_folios.'">
@@ -104,6 +122,11 @@ class PlanoController extends Controller
                           ->orWhere('proyecto', 'LIKE', "%{$searchValue}%")
                           ->orWhere('mes', 'LIKE', "%{$searchValue}%")
                           ->orWhere('ano', 'LIKE', "%{$searchValue}%")
+                          ->orWhere('observaciones', 'LIKE', "%{$searchValue}%")
+                          ->orWhere('archivo', 'LIKE', "%{$searchValue}%")
+                          ->orWhere('tubo', 'LIKE', "%{$searchValue}%")
+                          ->orWhere('tela', 'LIKE', "%{$searchValue}%")
+                          ->orWhere('archivo_digital', 'LIKE', "%{$searchValue}%")
                           // Búsqueda en número completo concatenado
                           ->orWhereRaw("CONCAT(
                               LPAD(COALESCE(codigo_region, '08'), 2, '0'),
@@ -396,59 +419,22 @@ class PlanoController extends Controller
     public function getFoliosExpansion($planoId)
     {
         $plano = Plano::with('folios')->findOrFail($planoId);
-        $cantidadFolios = $plano->folios->count();
 
         $html = '';
-
-        if ($cantidadFolios === 1) {
-            // EXPANSIÓN HÍBRIDA: Para 1 folio, mostrar datos adicionales del plano
-            $html .= '<tr class="child-row bg-info text-white">';
+        foreach ($plano->folios as $folio) {
+            $html .= '<tr class="child-row bg-light">';
             $html .= '<td></td>'; // Columna vacía para EDITAR
-            $html .= '<td class="pl-4"><i class="fas fa-info-circle"></i> Datos Adicionales</td>';
-            $html .= '<td colspan="12">'; // Ocupar resto de columnas
-
-            $html .= '<div class="row">';
-            $html .= '<div class="col-md-4">';
-            $html .= '<strong>Observaciones:</strong><br>';
-            $html .= '<span class="text-light">' . ($plano->observaciones ?: 'Sin observaciones') . '</span>';
-            $html .= '</div>';
-
-            $html .= '<div class="col-md-4">';
-            $html .= '<strong>Archivos:</strong><br>';
-            $html .= '<span class="text-light">Archivo: ' . ($plano->archivo ?: 'No especificado') . '</span><br>';
-            $html .= '<span class="text-light">Tubo: ' . ($plano->tubo ?: 'No especificado') . '</span><br>';
-            $html .= '<span class="text-light">Tela: ' . ($plano->tela ?: 'No especificado') . '</span>';
-            $html .= '</div>';
-
-            $html .= '<div class="col-md-4">';
-            $html .= '<strong>Digital:</strong><br>';
-            $html .= '<span class="text-light">' . ($plano->archivo_digital ?: 'No disponible') . '</span><br>';
-            $html .= '<strong>Total Hectáreas:</strong><br>';
-            $html .= '<span class="text-light">' . ($plano->total_hectareas ? number_format($plano->total_hectareas, 4) : '0') . ' ha</span><br>';
-            $html .= '<strong>Total M²:</strong><br>';
-            $html .= '<span class="text-light">' . number_format($plano->total_m2 ?: 0) . ' m²</span>';
-            $html .= '</div>';
-            $html .= '</div>';
-
-            $html .= '</td>';
+            $html .= '<td class="pl-4">└ Folio</td>'; // Columna REASIGNAR -> muestra "└ Folio"
+            $html .= '<td>' . $folio->folio . '</td>'; // Columna N° PLANO -> muestra folio individual
+            $html .= '<td>' . ($folio->solicitante ?: '-') . '</td>'; // Columna FOLIOS -> muestra solicitante
+            $html .= '<td>' . ($folio->apellido_paterno ?: '-') . '</td>'; // Columna SOLICITANTE -> muestra apellido paterno
+            $html .= '<td>' . ($folio->apellido_materno ?: '-') . '</td>'; // Columna APELLIDO PATERNO -> muestra apellido materno
+            $html .= '<td></td>'; // Columna APELLIDO MATERNO -> vacía
+            $html .= '<td></td>'; // Columna COMUNA -> vacía
+            $html .= '<td>' . ($folio->hectareas ? number_format($folio->hectareas, 2) : '-') . '</td>'; // Columna HECTÁREAS
+            $html .= '<td>' . number_format($folio->m2 ?: 0) . '</td>'; // Columna M²
+            $html .= '<td colspan="12"></td>'; // Resto vacío - ajustado para las nuevas columnas
             $html .= '</tr>';
-        } else {
-            // EXPANSIÓN TRADICIONAL: Para múltiples folios, mostrar lista de folios
-            foreach ($plano->folios as $folio) {
-                $html .= '<tr class="child-row bg-light">';
-                $html .= '<td></td>'; // Columna vacía para EDITAR
-                $html .= '<td class="pl-4">└ Folio</td>'; // Columna REASIGNAR -> muestra "└ Folio"
-                $html .= '<td>' . $folio->folio . '</td>'; // Columna N° PLANO -> muestra folio individual
-                $html .= '<td>' . ($folio->solicitante ?: '-') . '</td>'; // Columna FOLIOS -> muestra solicitante
-                $html .= '<td>' . ($folio->apellido_paterno ?: '-') . '</td>'; // Columna SOLICITANTE -> muestra apellido paterno
-                $html .= '<td>' . ($folio->apellido_materno ?: '-') . '</td>'; // Columna APELLIDO PATERNO -> muestra apellido materno
-                $html .= '<td></td>'; // Columna APELLIDO MATERNO -> vacía
-                $html .= '<td></td>'; // Columna COMUNA -> vacía
-                $html .= '<td>' . ($folio->hectareas ? number_format($folio->hectareas, 2) : '-') . '</td>'; // Columna HECTÁREAS
-                $html .= '<td>' . number_format($folio->m2 ?: 0) . '</td>'; // Columna M²
-                $html .= '<td colspan="6"></td>'; // Resto vacío (MES, AÑO, RESPONSABLE, PROYECTO, [+/-], DETALLES)
-                $html .= '</tr>';
-            }
         }
 
         return response()->json(['html' => $html]);

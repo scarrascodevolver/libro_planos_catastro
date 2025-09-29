@@ -177,22 +177,6 @@
             <span class="badge badge-primary ml-2" id="registros-encontrados-count">Cargando...</span>
         </h3>
         <div class="card-tools">
-            <div class="btn-group">
-                <button type="button" class="btn btn-tool dropdown-toggle" data-toggle="dropdown">
-                    <i class="fas fa-download"></i>
-                </button>
-                <div class="dropdown-menu dropdown-menu-right">
-                    <a class="dropdown-item" href="#" id="export-excel">
-                        <i class="fas fa-file-excel text-success"></i> Excel
-                    </a>
-                    <a class="dropdown-item" href="#" id="export-pdf">
-                        <i class="fas fa-file-pdf text-danger"></i> PDF
-                    </a>
-                    <a class="dropdown-item" href="#" id="print-table">
-                        <i class="fas fa-print"></i> Imprimir
-                    </a>
-                </div>
-            </div>
             <button type="button" class="btn btn-tool" data-card-widget="collapse">
                 <i class="fas fa-minus"></i>
             </button>
@@ -219,6 +203,12 @@
                         <th>Año</th>
                         <th>Responsable</th>
                         <th>Proyecto</th>
+                        <th>Observaciones</th>
+                        <th>Archivo</th>
+                        <th>Tubo</th>
+                        <th>Tela</th>
+                        <th>Archivo Digital</th>
+                        <th>Fecha Creación</th>
                         <th width="30">+/-</th>
                         <th width="80">Detalles</th>
                     </tr>
@@ -287,11 +277,14 @@ function initPlanosTable() {
         @if(Auth::user()->isRegistro())
         { "orderable": false, "targets": [0] }, // Acciones
         { "orderable": false, "targets": [-1, -2] }, // Expandir y Detalles
+        { "className": "no-export", "targets": [0, -1, -2] }, // No exportar acciones, expandir y detalles
         @else
         { "orderable": false, "targets": [-1, -2] }, // Expandir y Detalles
+        { "className": "no-export", "targets": [-1, -2] }, // No exportar expandir y detalles
         @endif
         { "className": "text-center", "targets": [0, -1, -2] },
-        { "className": "nowrap", "targets": "_all" } // No wrap para mejor visualización
+        { "className": "nowrap", "targets": "_all" }, // No wrap para mejor visualización
+        { "visible": false, "targets": [12, 13, 14, 15, 16] } // Ocultar por defecto las nuevas columnas
     ];
 
     const columns = [
@@ -310,6 +303,12 @@ function initPlanosTable() {
         { "data": "ano_display", "name": "ano_display" },
         { "data": "responsable", "name": "responsable" },
         { "data": "proyecto", "name": "proyecto" },
+        { "data": "observaciones_display", "name": "observaciones_display" },
+        { "data": "archivo_display", "name": "archivo_display" },
+        { "data": "tubo_display", "name": "tubo_display" },
+        { "data": "tela_display", "name": "tela_display" },
+        { "data": "archivo_digital_display", "name": "archivo_digital_display" },
+        { "data": "created_at_display", "name": "created_at_display" },
         { "data": "expandir", "name": "expandir" },
         { "data": "detalles", "name": "detalles" }
     ];
@@ -340,9 +339,47 @@ function initPlanosTable() {
         columnDefs: columnDefs,
         pageLength: 25,
         lengthMenu: [[10, 25, 50, 100, -1], [10, 25, 50, 100, "Todos"]],
-        dom: '<"row"<"col-sm-12 col-md-8"f><"col-sm-12 col-md-4 text-right"l>>rt<"row"<"col-sm-12 col-md-5"i><"col-sm-12 col-md-7"p>>',
+        dom: '<"row"<"col-sm-12 col-md-6"f><"col-sm-12 col-md-6 text-right"lB>>rt<"row"<"col-sm-12 col-md-5"i><"col-sm-12 col-md-7"p>>',
+        buttons: [
+            {
+                extend: 'colvis',
+                text: '<i class="fas fa-columns"></i> Columnas',
+                className: 'btn-sm',
+                columns: ':not(.no-export)' // No mostrar botones de acción en selector
+            },
+            {
+                extend: 'excel',
+                text: '<i class="fas fa-file-excel"></i> Excel',
+                className: 'btn-sm',
+                exportOptions: {
+                    columns: ':visible:not(.no-export)'
+                }
+            },
+            {
+                extend: 'pdf',
+                text: '<i class="fas fa-file-pdf"></i> PDF',
+                className: 'btn-sm',
+                exportOptions: {
+                    columns: ':visible:not(.no-export)'
+                }
+            },
+            {
+                extend: 'print',
+                text: '<i class="fas fa-print"></i> Imprimir',
+                className: 'btn-sm',
+                exportOptions: {
+                    columns: ':visible:not(.no-export)'
+                }
+            }
+        ],
         language: {
-            url: '//cdn.datatables.net/plug-ins/1.13.6/i18n/es-ES.json'
+            url: '//cdn.datatables.net/plug-ins/1.13.6/i18n/es-ES.json',
+            buttons: {
+                colvis: 'Columnas',
+                excel: 'Exportar Excel',
+                pdf: 'Exportar PDF',
+                print: 'Imprimir'
+            }
         },
         drawCallback: function() {
             // Reabrir filas expandidas
@@ -433,26 +470,33 @@ function setupExpandibleRows() {
     // Remover event listeners previos para evitar duplicados
     $('#planos-table tbody tr').off('click.expandible');
 
-    // EXPANSIÓN HÍBRIDA: Hacer TODAS las filas clickeables
+    // EXPANSIÓN SIMPLIFICADA: Solo múltiples folios son clickeables
     $('#planos-table tbody tr').each(function() {
         const $row = $(this);
         const $expandBtn = $row.find('.expandir-folios');
 
         if ($expandBtn.length) {
-            // Todas las filas son expandibles ahora
-            $row.addClass('expandible-row');
+            const foliosCount = parseInt($expandBtn.data('folios')) || 0;
 
-            // Agregar event listener para toda la fila EXCEPTO botones y enlaces
-            $row.on('click.expandible', function(e) {
-                // No expandir si se hizo clic en:
-                // - Botones (.btn)
-                // - Enlaces (a)
-                // - Elementos con clase actions-column
-                // - El botón expandir/colapsar específicamente
-                if (!$(e.target).closest('.btn, a, .actions-column, .expandir-folios').length) {
-                    $expandBtn.trigger('click');
-                }
-            });
+            if (foliosCount > 1) {
+                // Solo hacer expandible si tiene múltiples folios
+                $row.addClass('expandible-row');
+
+                // Agregar event listener para toda la fila EXCEPTO botones y enlaces
+                $row.on('click.expandible', function(e) {
+                    // No expandir si se hizo clic en:
+                    // - Botones (.btn)
+                    // - Enlaces (a)
+                    // - Elementos con clase actions-column
+                    // - El botón expandir/colapsar específicamente
+                    if (!$(e.target).closest('.btn, a, .actions-column, .expandir-folios').length) {
+                        $expandBtn.trigger('click');
+                    }
+                });
+            } else {
+                // Remover clase expandible si tiene 1 folio
+                $row.removeClass('expandible-row');
+            }
         }
     });
 }
@@ -656,21 +700,7 @@ function initModals() {
 }
 @endif
 
-// Exportar funciones
-$('#export-excel').on('click', function(e) {
-    e.preventDefault();
-    planosTable.button('.buttons-excel').trigger();
-});
-
-$('#export-pdf').on('click', function(e) {
-    e.preventDefault();
-    planosTable.button('.buttons-pdf').trigger();
-});
-
-$('#print-table').on('click', function(e) {
-    e.preventDefault();
-    planosTable.button('.buttons-print').trigger();
-});
+// Los botones de exportar ahora están integrados nativamente en DataTables
 </script>
 @endpush
 
