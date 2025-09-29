@@ -81,7 +81,10 @@ class PlanoController extends Controller
                 return $this->formatNumeroPlanoCompleto($plano);
             })
             ->addColumn('expandir', function ($plano) {
-                return '<button class="btn btn-sm btn-info expandir-folios" data-id="'.$plano->id.'"><i class="fas fa-plus"></i></button>';
+                $btnClass = $plano->cantidad_folios > 1 ? 'expandible' : '';
+                return '<button class="btn btn-sm btn-info expandir-folios '.$btnClass.'" data-id="'.$plano->id.'" data-folios="'.$plano->cantidad_folios.'">
+                    <i class="fas fa-plus"></i>
+                </button>';
             })
             // Configurar búsqueda global personalizada
             ->filter(function ($query) use ($request) {
@@ -114,11 +117,6 @@ class PlanoController extends Controller
                 }
             })
             ->rawColumns(['acciones', 'expandir'])
-            ->setRowData([
-                'data-folios-count' => function($plano) {
-                    return $plano->cantidad_folios;
-                }
-            ])
             ->make(true);
     }
 

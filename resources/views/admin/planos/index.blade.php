@@ -390,32 +390,33 @@ function setupExpandibleRows() {
     // Remover event listeners previos para evitar duplicados
     $('#planos-table tbody tr').off('click.expandible');
 
-    // Configurar cada fila según su cantidad de folios
+    // Configurar cada fila según la cantidad de folios del botón expandir
     $('#planos-table tbody tr').each(function() {
         const $row = $(this);
-        const foliosCount = $row.data('folios-count');
+        const $expandBtn = $row.find('.expandir-folios');
 
-        if (foliosCount && foliosCount > 1) {
-            // Hacer fila expandible
-            $row.addClass('expandible-row');
+        if ($expandBtn.length) {
+            const foliosCount = parseInt($expandBtn.data('folios')) || 0;
 
-            // Agregar event listener para toda la fila EXCEPTO botones y enlaces
-            $row.on('click.expandible', function(e) {
-                // No expandir si se hizo clic en:
-                // - Botones (.btn)
-                // - Enlaces (a)
-                // - Elementos con clase actions-column
-                // - El botón expandir/colapsar
-                if (!$(e.target).closest('.btn, a, .actions-column, .expandir-folios').length) {
-                    const expandBtn = $row.find('.expandir-folios');
-                    if (expandBtn.length) {
-                        expandBtn.trigger('click');
+            if (foliosCount > 1) {
+                // Hacer fila expandible
+                $row.addClass('expandible-row');
+
+                // Agregar event listener para toda la fila EXCEPTO botones y enlaces
+                $row.on('click.expandible', function(e) {
+                    // No expandir si se hizo clic en:
+                    // - Botones (.btn)
+                    // - Enlaces (a)
+                    // - Elementos con clase actions-column
+                    // - El botón expandir/colapsar específicamente
+                    if (!$(e.target).closest('.btn, a, .actions-column, .expandir-folios').length) {
+                        $expandBtn.trigger('click');
                     }
-                }
-            });
-        } else {
-            // Remover clase expandible si tiene 1 o menos folios
-            $row.removeClass('expandible-row');
+                });
+            } else {
+                // Remover clase expandible si tiene 1 o menos folios
+                $row.removeClass('expandible-row');
+            }
         }
     });
 }
@@ -645,16 +646,6 @@ tr.expandible-row:hover {
 /* Los botones de acción mantienen su cursor default */
 tr.expandible-row .btn {
     cursor: pointer; /* Mantener cursor de botón */
-}
-
-/* Indicar que la fila es expandible con un pequeño icono */
-tr.expandible-row::before {
-    content: "▶";
-    position: absolute;
-    left: 5px;
-    font-size: 8px;
-    color: #6c757d;
-    opacity: 0.5;
 }
 </style>
 @endpush
