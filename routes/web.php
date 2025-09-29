@@ -25,6 +25,7 @@ Route::middleware('auth')->group(function () {
     Route::delete('/planos/{id}', [PlanoController::class, 'destroy'])->name('planos.destroy');
     Route::post('/planos/{id}/reasignar', [PlanoController::class, 'reasignar'])->name('planos.reasignar');
     Route::get('/planos/{id}/folios-expansion', [PlanoController::class, 'getFoliosExpansion'])->name('planos.folios-expansion');
+    Route::get('/planos/{id}/detalles-completos', [PlanoController::class, 'getDetallesCompletos'])->name('planos.detalles-completos');
 
     // TAB 2: Importación - PlanoImportacionController
     Route::get('/planos/importacion/index', [PlanoImportacionController::class, 'index'])->name('planos.importacion.index');
