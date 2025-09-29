@@ -419,10 +419,42 @@ class PlanoHistoricoController extends Controller
     {
         if (empty($fecha)) return 'DESCONOCIDO';
 
+        // Normalizar entrada (quitar espacios y convertir a mayúsculas)
+        $mesTexto = strtoupper(trim($fecha));
+
+        // Mapeo de nombres completos a abreviaciones
+        $mesesMap = [
+            'ENERO' => 'ENE',
+            'FEBRERO' => 'FEB',
+            'MARZO' => 'MAR',
+            'ABRIL' => 'ABR',
+            'MAYO' => 'MAY',
+            'JUNIO' => 'JUN',
+            'JULIO' => 'JUL',
+            'AGOSTO' => 'AGO',
+            'SEPTIEMBRE' => 'SEP',
+            'OCTUBRE' => 'OCT',
+            'NOVIEMBRE' => 'NOV',
+            'DICIEMBRE' => 'DIC'
+        ];
+
+        // Si ya es una abreviación válida, retornarla
+        if (in_array($mesTexto, array_values($mesesMap))) {
+            return $mesTexto;
+        }
+
+        // Buscar en el mapeo de nombres completos
+        if (isset($mesesMap[$mesTexto])) {
+            return $mesesMap[$mesTexto];
+        }
+
+        // Intentar parsear como fecha si no es texto de mes
         try {
             $carbon = Carbon::parse($fecha);
             return strtoupper($carbon->format('M'));
         } catch (\Exception $e) {
+            // Log para debugging
+            Log::warning("Mes no reconocido: '$fecha'");
             return 'DESCONOCIDO';
         }
     }
