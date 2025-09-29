@@ -220,6 +220,7 @@
                         <th>Responsable</th>
                         <th>Proyecto</th>
                         <th width="30">+/-</th>
+                        <th width="80">Detalles</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -235,6 +236,37 @@
 
 <!-- Modal Reasignar Número -->
 @include('admin.planos.modals.reasignar-numero')
+
+<!-- Modal Detalles Completos -->
+<div class="modal fade" id="modal-detalles-completos" tabindex="-1">
+    <div class="modal-dialog modal-xl">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h4 class="modal-title">
+                    <i class="fas fa-eye"></i>
+                    Detalles Completos del Plano
+                    <span id="modal-numero-plano" class="badge badge-info ml-2"></span>
+                </h4>
+                <button type="button" class="close" data-dismiss="modal">
+                    <span>&times;</span>
+                </button>
+            </div>
+            <div class="modal-body">
+                <div id="modal-detalles-content">
+                    <div class="text-center">
+                        <i class="fas fa-spinner fa-spin fa-2x"></i>
+                        <p class="mt-2">Cargando detalles...</p>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-dismiss="modal">
+                    <i class="fas fa-times"></i> Cerrar
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
 
 @endsection
 
@@ -254,11 +286,11 @@ function initPlanosTable() {
     const columnDefs = [
         @if(Auth::user()->isRegistro())
         { "orderable": false, "targets": [0] }, // Acciones
-        { "orderable": false, "targets": -1 }, // Expandir
+        { "orderable": false, "targets": [-1, -2] }, // Expandir y Detalles
         @else
-        { "orderable": false, "targets": -1 }, // Expandir
+        { "orderable": false, "targets": [-1, -2] }, // Expandir y Detalles
         @endif
-        { "className": "text-center", "targets": [0, -1] },
+        { "className": "text-center", "targets": [0, -1, -2] },
         { "className": "nowrap", "targets": "_all" } // No wrap para mejor visualización
     ];
 
@@ -278,7 +310,8 @@ function initPlanosTable() {
         { "data": "ano_display", "name": "ano_display" },
         { "data": "responsable", "name": "responsable" },
         { "data": "proyecto", "name": "proyecto" },
-        { "data": "expandir", "name": "expandir" }
+        { "data": "expandir", "name": "expandir" },
+        { "data": "detalles", "name": "detalles" }
     ];
 
     planosTable = $('#planos-table').DataTable({
@@ -352,6 +385,12 @@ function initPlanosTable() {
         reasignarPlano(id);
     });
     @endif
+
+    // Event listener para ver detalles completos
+    $('#planos-table tbody').on('click', '.ver-detalles', function() {
+        const id = $(this).data('id');
+        verDetallesCompletos(id);
+    });
 
     // El control de paginación ahora es manejado automáticamente por DataTables
 }
@@ -505,6 +544,43 @@ function updateRegistrosCount() {
     }
 
     $('#registros-encontrados-count').text(texto);
+}
+
+function verDetallesCompletos(id) {
+    // Mostrar modal con loading
+    $('#modal-detalles-completos').modal('show');
+
+    // Resetear contenido
+    $('#modal-detalles-content').html(`
+        <div class="text-center">
+            <i class="fas fa-spinner fa-spin fa-2x"></i>
+            <p class="mt-2">Cargando detalles...</p>
+        </div>
+    `);
+
+    // Cargar datos del plano
+    $.get("{{ url('/planos') }}/" + id + "/detalles-completos")
+        .done(function(response) {
+            if (response.success) {
+                $('#modal-numero-plano').text(response.plano.numero_plano_completo);
+                $('#modal-detalles-content').html(response.html);
+            } else {
+                $('#modal-detalles-content').html(`
+                    <div class="alert alert-danger">
+                        <i class="fas fa-exclamation-triangle"></i>
+                        Error: ${response.message}
+                    </div>
+                `);
+            }
+        })
+        .fail(function() {
+            $('#modal-detalles-content').html(`
+                <div class="alert alert-danger">
+                    <i class="fas fa-exclamation-triangle"></i>
+                    Error al cargar los detalles del plano
+                </div>
+            `);
+        });
 }
 
 @if(Auth::user()->isRegistro())

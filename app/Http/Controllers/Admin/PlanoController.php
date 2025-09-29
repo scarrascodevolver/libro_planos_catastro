@@ -86,6 +86,11 @@ class PlanoController extends Controller
                     <i class="fas fa-plus"></i>
                 </button>';
             })
+            ->addColumn('detalles', function ($plano) {
+                return '<button class="btn btn-sm btn-primary ver-detalles" data-id="'.$plano->id.'" title="Ver todos los detalles">
+                    <i class="fas fa-eye"></i>
+                </button>';
+            })
             // Configurar búsqueda global personalizada
             ->filter(function ($query) use ($request) {
                 if ($request->has('search') && !empty($request->search['value'])) {
@@ -116,7 +121,7 @@ class PlanoController extends Controller
                     });
                 }
             })
-            ->rawColumns(['acciones', 'expandir'])
+            ->rawColumns(['acciones', 'expandir', 'detalles'])
             ->make(true);
     }
 
@@ -234,6 +239,160 @@ class PlanoController extends Controller
         return $codigoRegion . $codigoComuna . $numeroCorrelativo . $tipoSaneamiento;
     }
 
+    private function generarHtmlDetallesCompletos($plano)
+    {
+        $html = '
+        <div class="row">
+            <!-- Sección PLANO -->
+            <div class="col-md-6">
+                <div class="card">
+                    <div class="card-header bg-primary">
+                        <h5 class="card-title mb-0">
+                            <i class="fas fa-map"></i> Información del Plano
+                        </h5>
+                    </div>
+                    <div class="card-body">
+                        <table class="table table-borderless table-sm">
+                            <tr>
+                                <td><strong>N° Plano:</strong></td>
+                                <td>' . ($plano->numero_plano ?: '-') . '</td>
+                            </tr>
+                            <tr>
+                                <td><strong>N° Completo:</strong></td>
+                                <td>' . $this->formatNumeroPlanoCompleto($plano) . '</td>
+                            </tr>
+                            <tr>
+                                <td><strong>Tipo:</strong></td>
+                                <td>' . ($plano->tipo_saneamiento ?: '-') . '</td>
+                            </tr>
+                            <tr>
+                                <td><strong>Comuna:</strong></td>
+                                <td>' . ($plano->comuna ?: '-') . '</td>
+                            </tr>
+                            <tr>
+                                <td><strong>Provincia:</strong></td>
+                                <td>' . ($plano->provincia ?: '-') . '</td>
+                            </tr>
+                            <tr>
+                                <td><strong>Mes:</strong></td>
+                                <td>' . ($plano->mes ?: '-') . '</td>
+                            </tr>
+                            <tr>
+                                <td><strong>Año:</strong></td>
+                                <td>' . ($plano->ano ?: '-') . '</td>
+                            </tr>
+                            <tr>
+                                <td><strong>Responsable:</strong></td>
+                                <td>' . ($plano->responsable ?: '-') . '</td>
+                            </tr>
+                            <tr>
+                                <td><strong>Proyecto:</strong></td>
+                                <td>' . ($plano->proyecto ?: '-') . '</td>
+                            </tr>
+                            <tr>
+                                <td><strong>Providencia:</strong></td>
+                                <td>' . ($plano->providencia ?: '-') . '</td>
+                            </tr>
+                            <tr>
+                                <td><strong>Archivo:</strong></td>
+                                <td>' . ($plano->archivo ?: '-') . '</td>
+                            </tr>
+                            <tr>
+                                <td><strong>Tubo:</strong></td>
+                                <td>' . ($plano->tubo ?: '-') . '</td>
+                            </tr>
+                            <tr>
+                                <td><strong>Tela:</strong></td>
+                                <td>' . ($plano->tela ?: '-') . '</td>
+                            </tr>
+                            <tr>
+                                <td><strong>Archivo Digital:</strong></td>
+                                <td>' . ($plano->archivo_digital ?: '-') . '</td>
+                            </tr>
+                            <tr>
+                                <td><strong>Total Hectáreas:</strong></td>
+                                <td>' . ($plano->total_hectareas ? number_format($plano->total_hectareas, 2) : '-') . '</td>
+                            </tr>
+                            <tr>
+                                <td><strong>Total M²:</strong></td>
+                                <td>' . number_format($plano->total_m2 ?: 0) . '</td>
+                            </tr>
+                            <tr>
+                                <td><strong>Cantidad Folios:</strong></td>
+                                <td>' . $plano->cantidad_folios . '</td>
+                            </tr>
+                        </table>';
+
+        if ($plano->observaciones) {
+            $html .= '
+                        <div class="mt-3">
+                            <strong>Observaciones:</strong>
+                            <div class="bg-light p-2 rounded mt-1">
+                                ' . nl2br(e($plano->observaciones)) . '
+                            </div>
+                        </div>';
+        }
+
+        $html .= '
+                    </div>
+                </div>
+            </div>
+
+            <!-- Sección FOLIOS -->
+            <div class="col-md-6">
+                <div class="card">
+                    <div class="card-header bg-success">
+                        <h5 class="card-title mb-0">
+                            <i class="fas fa-list"></i> Folios (' . $plano->cantidad_folios . ')
+                        </h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="table-responsive">
+                            <table class="table table-sm table-striped">
+                                <thead>
+                                    <tr>
+                                        <th>Folio</th>
+                                        <th>Solicitante</th>
+                                        <th>Ap. Paterno</th>
+                                        <th>Ap. Materno</th>
+                                        <th>Tipo</th>
+                                        <th>N°</th>
+                                        <th>Hectáreas</th>
+                                        <th>M²</th>
+                                    </tr>
+                                </thead>
+                                <tbody>';
+
+        foreach ($plano->folios as $folio) {
+            $html .= '
+                                    <tr>
+                                        <td>' . ($folio->folio ?: '-') . '</td>
+                                        <td>' . ($folio->solicitante ?: '-') . '</td>
+                                        <td>' . ($folio->apellido_paterno ?: '-') . '</td>
+                                        <td>' . ($folio->apellido_materno ?: '-') . '</td>
+                                        <td>
+                                            <span class="badge badge-' . ($folio->tipo_inmueble == 'HIJUELA' ? 'info' : 'warning') . '">
+                                                ' . $folio->tipo_inmueble . '
+                                            </span>
+                                        </td>
+                                        <td>' . ($folio->numero_inmueble ?: '-') . '</td>
+                                        <td>' . ($folio->hectareas ? number_format($folio->hectareas, 2) : '-') . '</td>
+                                        <td>' . number_format($folio->m2 ?: 0) . '</td>
+                                    </tr>';
+        }
+
+        $html .= '
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>';
+
+        return $html;
+    }
+
     public function getFoliosExpansion($planoId)
     {
         $plano = Plano::with('folios')->findOrFail($planoId);
@@ -251,11 +410,26 @@ class PlanoController extends Controller
             $html .= '<td></td>'; // Columna COMUNA -> vacía
             $html .= '<td>' . ($folio->hectareas ? number_format($folio->hectareas, 2) : '-') . '</td>'; // Columna HECTÁREAS
             $html .= '<td>' . number_format($folio->m2 ?: 0) . '</td>'; // Columna M²
-            $html .= '<td colspan="5"></td>'; // Resto vacío (MES, AÑO, RESPONSABLE, PROYECTO, [+/-])
+            $html .= '<td colspan="6"></td>'; // Resto vacío (MES, AÑO, RESPONSABLE, PROYECTO, [+/-], DETALLES)
             $html .= '</tr>';
         }
 
         return response()->json(['html' => $html]);
+    }
+
+    public function getDetallesCompletos($planoId)
+    {
+        $plano = Plano::with(['folios', 'creator'])->findOrFail($planoId);
+
+        $html = $this->generarHtmlDetallesCompletos($plano);
+
+        return response()->json([
+            'success' => true,
+            'plano' => [
+                'numero_plano_completo' => $this->formatNumeroPlanoCompleto($plano)
+            ],
+            'html' => $html
+        ]);
     }
 
     private function getDisplayFolios($plano)
