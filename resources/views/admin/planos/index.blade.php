@@ -306,7 +306,7 @@ function initPlanosTable() {
         columnDefs: columnDefs,
         pageLength: 25,
         lengthMenu: [[10, 25, 50, 100, -1], [10, 25, 50, 100, "Todos"]],
-        dom: '<"row"<"col-sm-12 col-md-6"f><"col-sm-12 col-md-6"l>>rt<"row"<"col-sm-12 col-md-5"i><"col-sm-12 col-md-7"p>>',
+        dom: '<"row"<"col-sm-12 col-md-6"f><"col-sm-12 col-md-6 text-right"l>>rt<"row"<"col-sm-12 col-md-5"i><"col-sm-12 col-md-7"p>>',
         language: {
             url: '//cdn.datatables.net/plug-ins/1.13.6/i18n/es-ES.json'
         },
@@ -610,16 +610,26 @@ $('#print-table').on('click', function(e) {
 }
 
 /* Mejorar estilos de búsqueda DataTables */
+#planos-table_filter {
+    text-align: left !important;
+}
+
 .dataTables_filter {
-    text-align: left;
+    text-align: left !important;
+}
+
+.dataTables_filter label {
+    float: left !important;
+    text-align: left !important;
 }
 
 .dataTables_filter input {
-    margin-left: 0;
+    margin-left: 0 !important;
     margin-right: 0.5em;
     border-radius: 0.25rem;
     border: 1px solid #ced4da;
     padding: 0.375rem 0.75rem;
+    display: inline-block !important;
 }
 
 .dataTables_length {
