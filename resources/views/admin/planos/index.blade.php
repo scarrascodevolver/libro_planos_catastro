@@ -437,8 +437,7 @@ function initFiltros() {
         planosTable.draw();
         updateFiltrosCount();
 
-        // Colapsar panel de filtros
-        $('#filtros-card').CardWidget('collapse');
+        // NO colapsar automáticamente - el usuario decide manualmente
     });
 
     // Limpiar filtros

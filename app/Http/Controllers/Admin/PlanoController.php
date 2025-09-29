@@ -28,7 +28,7 @@ class PlanoController extends Controller
         $comunas = ComunaBiobio::orderBy('nombre')->pluck('nombre', 'codigo');
         $responsables = Plano::select('responsable')->distinct()->whereNotNull('responsable')->orderBy('responsable')->pluck('responsable');
         $proyectos = Plano::select('proyecto')->distinct()->whereNotNull('proyecto')->orderBy('proyecto')->pluck('proyecto');
-        $anos = Plano::selectRaw('DISTINCT ano')->whereNotNull('ano')->orderBy('ano', 'desc')->pluck('ano');
+        $anos = Plano::select('ano')->distinct()->whereNotNull('ano')->where('ano', '>', 0)->orderBy('ano', 'desc')->pluck('ano')->unique();
 
         return view('admin.planos.index', compact('comunas', 'responsables', 'proyectos', 'anos'));
     }
