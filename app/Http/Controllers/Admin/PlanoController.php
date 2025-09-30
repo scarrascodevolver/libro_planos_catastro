@@ -70,7 +70,7 @@ class PlanoController extends Controller
                 return $plano->total_hectareas ? number_format($plano->total_hectareas, 2) : '-';
             })
             ->addColumn('m2_display', function ($plano) {
-                return number_format($plano->total_m2 ?: 0);
+                return number_format($plano->total_m2 ?: 0, 2, ',', '.');
             })
             ->addColumn('mes_display', function ($plano) {
                 return $plano->mes ?: 'DESCONOCIDO';
@@ -414,7 +414,7 @@ class PlanoController extends Controller
                             </tr>
                             <tr>
                                 <td><strong>Total M²:</strong></td>
-                                <td>' . number_format($plano->total_m2 ?: 0) . '</td>
+                                <td>' . number_format($plano->total_m2 ?: 0, 2, ',', '.') . '</td>
                             </tr>
                             <tr>
                                 <td><strong>Cantidad Folios:</strong></td>
@@ -475,8 +475,8 @@ class PlanoController extends Controller
                                             </span>
                                         </td>
                                         <td>' . ($folio->numero_inmueble ?: '-') . '</td>
-                                        <td>' . ($folio->hectareas ? number_format($folio->hectareas, 2) : '-') . '</td>
-                                        <td>' . number_format($folio->m2 ?: 0) . '</td>
+                                        <td>' . ($folio->hectareas ? number_format($folio->hectareas, 2, ',', '') : '-') . '</td>
+                                        <td>' . number_format($folio->m2 ?: 0, 2, ',', '.') . '</td>
                                     </tr>';
         }
 
@@ -512,8 +512,8 @@ class PlanoController extends Controller
             $html .= '<td>' . ($folio->apellido_materno ?: '-') . '</td>'; // Columna APELLIDO PATERNO -> muestra apellido materno
             $html .= '<td></td>'; // Columna APELLIDO MATERNO -> vacía
             $html .= '<td></td>'; // Columna COMUNA -> vacía
-            $html .= '<td>' . ($folio->hectareas ? number_format($folio->hectareas, 2) : '-') . '</td>'; // Columna HECTÁREAS
-            $html .= '<td>' . number_format($folio->m2 ?: 0) . '</td>'; // Columna M²
+            $html .= '<td>' . ($folio->hectareas ? number_format($folio->hectareas, 2, ',', '') : '-') . '</td>'; // Columna HECTÁREAS
+            $html .= '<td>' . number_format($folio->m2 ?: 0, 2, ',', '.') . '</td>'; // Columna M²
             $html .= '<td colspan="12"></td>'; // Resto vacío - ajustado para las nuevas columnas
             $html .= '</tr>';
         }
@@ -590,7 +590,7 @@ class PlanoController extends Controller
             'mes' => 'required|string|max:20',
             'ano' => 'required|integer|between:2020,2030',
             'total_hectareas' => 'nullable|numeric|min:0',
-            'total_m2' => 'required|integer|min:1',
+            'total_m2' => 'required|numeric|min:0.01',
             'observaciones' => 'nullable|string|max:1000',
             'archivo' => 'nullable|string|max:255',
             'tubo' => 'nullable|string|max:255',
@@ -674,7 +674,7 @@ class PlanoController extends Controller
             'tipo_inmueble' => 'required|in:HIJUELA,SITIO',
             'numero_inmueble' => 'nullable|integer|min:1',
             'hectareas' => 'nullable|numeric|min:0',
-            'm2' => 'required|integer|min:1',
+            'm2' => 'required|numeric|min:0.01',
             'matrix_folio' => 'nullable|string|max:50',
             'is_from_matrix' => 'required|boolean',
         ]);
@@ -808,6 +808,86 @@ class PlanoController extends Controller
             return response()->json([
                 'success' => false,
                 'message' => 'Error al eliminar folios: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
+     * Agregar un folio a un plano existente
+     */
+    public function agregarFolio(Request $request, $id)
+    {
+        if (!Auth::user()->isRegistro()) {
+            abort(403, 'No tienes permisos para agregar folios');
+        }
+
+        $validated = $request->validate([
+            'folio' => 'nullable|string|max:50',
+            'solicitante' => 'required|string|max:255',
+            'apellido_paterno' => 'nullable|string|max:255',
+            'apellido_materno' => 'nullable|string|max:255',
+            'tipo_inmueble' => 'required|in:HIJUELA,SITIO',
+            'numero_inmueble' => 'required|integer|min:1',
+            'hectareas' => 'nullable|numeric|min:0',
+            'm2' => 'required|numeric|min:0.01',
+            'is_from_matrix' => 'nullable|boolean',
+            'matrix_folio' => 'nullable|string|max:50'
+        ]);
+
+        $plano = Plano::findOrFail($id);
+
+        // Validar que el folio no exista ya en este plano (si viene folio)
+        if (!empty($validated['folio'])) {
+            $existe = PlanoFolio::where('plano_id', $id)
+                ->where('folio', $validated['folio'])
+                ->exists();
+
+            if ($existe) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Este folio ya existe en el plano'
+                ], 422);
+            }
+        }
+
+        // Si es SITIO, limpiar hectáreas
+        if ($validated['tipo_inmueble'] === 'SITIO') {
+            $validated['hectareas'] = null;
+        }
+
+        try {
+            DB::beginTransaction();
+
+            // Crear nuevo folio
+            PlanoFolio::create([
+                'plano_id' => $id,
+                'folio' => $validated['folio'],
+                'solicitante' => $validated['solicitante'],
+                'apellido_paterno' => $validated['apellido_paterno'],
+                'apellido_materno' => $validated['apellido_materno'],
+                'tipo_inmueble' => $validated['tipo_inmueble'],
+                'numero_inmueble' => $validated['numero_inmueble'],
+                'hectareas' => $validated['hectareas'],
+                'm2' => $validated['m2'],
+                'is_from_matrix' => $validated['is_from_matrix'] ?? false,
+                'matrix_folio' => $validated['matrix_folio']
+            ]);
+
+            // Recalcular totales del plano
+            $this->recalcularTotalesPlano($id);
+
+            DB::commit();
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Folio agregado exitosamente al plano'
+            ]);
+
+        } catch (\Exception $e) {
+            DB::rollBack();
+            return response()->json([
+                'success' => false,
+                'message' => 'Error al agregar folio: ' . $e->getMessage()
             ], 500);
         }
     }

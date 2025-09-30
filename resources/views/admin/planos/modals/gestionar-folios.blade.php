@@ -117,39 +117,97 @@
                                 </div>
                             </div>
 
-                            <div class="row">
-                                <div class="col-md-6">
-                                    <div class="form-group">
-                                        <label>Tipo Inmueble <span class="text-danger">*</span></label>
-                                        <select class="form-control" id="agregar_tipo_inmueble" name="tipo_inmueble" required>
-                                            <option value="">Seleccionar...</option>
-                                            <option value="HIJUELA">HIJUELA</option>
-                                            <option value="SITIO">SITIO</option>
-                                        </select>
-                                    </div>
+                            <!-- Ubicación (Rural/Urbano) -->
+                            <div class="form-group">
+                                <label>Ubicación <span class="text-danger">*</span></label>
+                                <div class="form-check">
+                                    <input class="form-check-input" type="radio" name="ubicacion" id="agregar_rural" value="RURAL" required>
+                                    <label class="form-check-label" for="agregar_rural">
+                                        <i class="fas fa-tree text-success"></i> Rural (Hijuela)
+                                    </label>
                                 </div>
-                                <div class="col-md-6">
+                                <div class="form-check">
+                                    <input class="form-check-input" type="radio" name="ubicacion" id="agregar_urbano" value="URBANO">
+                                    <label class="form-check-label" for="agregar_urbano">
+                                        <i class="fas fa-city text-primary"></i> Urbano (Sitio)
+                                    </label>
+                                </div>
+                            </div>
+
+                            <!-- Número Hijuela (solo Rural) -->
+                            <div class="row" id="div_numero_hijuela" style="display: none;">
+                                <div class="col-md-12">
                                     <div class="form-group">
-                                        <label>Número Inmueble</label>
-                                        <input type="number" class="form-control" id="agregar_numero_inmueble" name="numero_inmueble">
+                                        <label>Número Hijuela <span class="text-danger">*</span></label>
+                                        <input type="number" class="form-control" id="agregar_numero_hijuela" name="numero_inmueble">
                                     </div>
                                 </div>
                             </div>
 
-                            <div class="row">
-                                <div class="col-md-6">
+                            <!-- Número Sitio (solo Urbano) -->
+                            <div class="row" id="div_numero_sitio" style="display: none;">
+                                <div class="col-md-12">
                                     <div class="form-group">
-                                        <label>Hectáreas (solo HIJUELA)</label>
-                                        <input type="number" step="0.0001" class="form-control" id="agregar_hectareas" name="hectareas">
-                                    </div>
-                                </div>
-                                <div class="col-md-6">
-                                    <div class="form-group">
-                                        <label>M² <span class="text-danger">*</span></label>
-                                        <input type="number" class="form-control" id="agregar_m2" name="m2" required>
+                                        <label>Número Sitio <span class="text-danger">*</span></label>
+                                        <input type="number" class="form-control" id="agregar_numero_sitio" name="numero_inmueble_sitio">
                                     </div>
                                 </div>
                             </div>
+
+                            <!-- Hectáreas y M² (solo Rural) -->
+                            <div id="div_hectareas_m2" style="display: none;">
+                                <div class="alert alert-info">
+                                    <i class="fas fa-info-circle"></i>
+                                    <small>Ingresa <strong>hectáreas</strong> o <strong>m²</strong>. El otro campo se calculará automáticamente.</small>
+                                </div>
+                                <div class="row">
+                                    <div class="col-md-6">
+                                        <div class="form-group">
+                                            <label>Hectáreas <span class="text-danger">*</span></label>
+                                            <div class="input-group">
+                                                <input type="text" class="form-control" id="agregar_hectareas" name="hectareas" placeholder="0,00">
+                                                <div class="input-group-append">
+                                                    <span class="input-group-text">ha</span>
+                                                </div>
+                                            </div>
+                                            <small class="text-muted">Formato: 7,22 (con coma)</small>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <div class="form-group">
+                                            <label>Metros Cuadrados <span class="text-danger">*</span></label>
+                                            <div class="input-group">
+                                                <input type="text" class="form-control" id="agregar_m2_rural" name="m2_rural" placeholder="0,00">
+                                                <div class="input-group-append">
+                                                    <span class="input-group-text">m²</span>
+                                                </div>
+                                            </div>
+                                            <small class="text-muted">Formato: 72.200,00</small>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- M² solo (solo Urbano) -->
+                            <div id="div_m2_urbano" style="display: none;">
+                                <div class="row">
+                                    <div class="col-md-12">
+                                        <div class="form-group">
+                                            <label>Metros Cuadrados <span class="text-danger">*</span></label>
+                                            <div class="input-group">
+                                                <input type="text" class="form-control" id="agregar_m2_urbano" name="m2_urbano" placeholder="0,00">
+                                                <div class="input-group-append">
+                                                    <span class="input-group-text">m²</span>
+                                                </div>
+                                            </div>
+                                            <small class="text-muted">Formato: 6.629,22</small>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <input type="hidden" id="agregar_tipo_inmueble" name="tipo_inmueble">
+                            <input type="hidden" id="agregar_m2_final" name="m2">
 
                             <button type="submit" class="btn btn-success">
                                 <i class="fas fa-plus"></i> Agregar Folio

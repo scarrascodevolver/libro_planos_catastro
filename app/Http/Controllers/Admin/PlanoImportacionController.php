@@ -374,4 +374,39 @@ class PlanoImportacionController extends Controller
             'message' => "Batch '{$request->batch}' eliminado: {$eliminados} registros"
         ]);
     }
+
+    public function buscarFolioMatrix(Request $request)
+    {
+        $folio = $request->get('folio');
+
+        if (empty($folio)) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Folio requerido'
+            ]);
+        }
+
+        $registro = MatrixImport::where('folio', $folio)->first();
+
+        if ($registro) {
+            return response()->json([
+                'success' => true,
+                'data' => [
+                    'folio' => $registro->folio,
+                    'nombres' => $registro->nombres,
+                    'apellido_paterno' => $registro->apellido_paterno,
+                    'apellido_materno' => $registro->apellido_materno,
+                    'tipo_inmueble' => $registro->tipo_inmueble,
+                    'comuna' => $registro->comuna,
+                    'responsable' => $registro->responsable,
+                    'convenio_financiamiento' => $registro->convenio_financiamiento
+                ]
+            ]);
+        }
+
+        return response()->json([
+            'success' => false,
+            'message' => 'Folio no encontrado en Matrix'
+        ]);
+    }
 }

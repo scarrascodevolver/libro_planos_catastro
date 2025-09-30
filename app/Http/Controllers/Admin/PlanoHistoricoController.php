@@ -189,9 +189,9 @@ class PlanoHistoricoController extends Controller
             'COMUNA' => $fila[8] ?? '',
             'HIJ' => intval($fila[9] ?? 0),
             'HA' => floatval($fila[10] ?? 0),
-            'M²_HIJ' => intval($fila[11] ?? 0), // Primera columna M²
+            'M²_HIJ' => floatval($fila[11] ?? 0), // Primera columna M² - Con decimales
             'SITIO' => intval($fila[12] ?? 0),
-            'M²_SITIO' => intval($fila[13] ?? 0), // Segunda columna M²
+            'M²_SITIO' => floatval($fila[13] ?? 0), // Segunda columna M² - Con decimales
             'FECHA' => $fila[14] ?? '',
             'AÑO' => intval($fila[15] ?? 0),
             'Responsable' => $fila[16] ?? '',
@@ -475,8 +475,8 @@ class PlanoHistoricoController extends Controller
     private function determinarTipoInmueble($fila)
     {
         $hectareas = floatval($fila['HA'] ?? 0);
-        $m2Hij = intval($fila['M²_HIJ'] ?? 0);
-        $m2Sitio = intval($fila['M²_SITIO'] ?? 0);
+        $m2Hij = floatval($fila['M²_HIJ'] ?? 0);
+        $m2Sitio = floatval($fila['M²_SITIO'] ?? 0);
 
         if ($hectareas > 0 || $m2Hij > 0) {
             // Es HIJUELA

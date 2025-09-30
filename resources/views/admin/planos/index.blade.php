@@ -1613,6 +1613,211 @@ $('#modal-gestionar-folios').on('hidden.bs.modal', function() {
     $('#quitar-folios-lista').html('');
     $('#form-agregar-folio')[0].reset();
     $('.folio-checkbox').prop('checked', false);
+    // Ocultar todos los divs de agregar folio
+    $('#div_numero_hijuela, #div_numero_sitio, #div_hectareas_m2, #div_m2_urbano').hide();
+});
+
+//===========================================
+// TAB 2: AGREGAR FOLIO
+//===========================================
+
+// Mostrar/Ocultar campos según Rural/Urbano
+$('input[name="ubicacion"]').on('change', function() {
+    const ubicacion = $(this).val();
+
+    // Ocultar todos primero
+    $('#div_numero_hijuela, #div_numero_sitio, #div_hectareas_m2, #div_m2_urbano').hide();
+    $('#agregar_hectareas, #agregar_m2_rural, #agregar_m2_urbano').val('');
+
+    if (ubicacion === 'RURAL') {
+        $('#div_numero_hijuela').show();
+        $('#div_hectareas_m2').show();
+        $('#agregar_tipo_inmueble').val('HIJUELA');
+        $('#agregar_numero_hijuela').prop('required', true);
+        $('#agregar_numero_sitio').prop('required', false);
+    } else if (ubicacion === 'URBANO') {
+        $('#div_numero_sitio').show();
+        $('#div_m2_urbano').show();
+        $('#agregar_tipo_inmueble').val('SITIO');
+        $('#agregar_numero_sitio').prop('required', true);
+        $('#agregar_numero_hijuela').prop('required', false);
+    }
+});
+
+// Función para formatear número chileno (punto miles, coma decimal)
+function formatearNumeroChileno(valor) {
+    if (!valor) return '';
+    valor = valor.toString().replace(/\./g, '').replace(',', '.');
+    const numero = parseFloat(valor);
+    if (isNaN(numero)) return '';
+    return numero.toLocaleString('es-CL', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+}
+
+// Función para parsear número chileno a decimal
+function parsearNumeroChileno(valor) {
+    if (!valor) return 0;
+    valor = valor.toString().replace(/\./g, '').replace(',', '.');
+    return parseFloat(valor) || 0;
+}
+
+// Conversión automática: Hectáreas → M²
+$('#agregar_hectareas').on('input', function() {
+    const valor = $(this).val();
+    if (!valor) {
+        $('#agregar_m2_rural').val('');
+        return;
+    }
+
+    const hectareas = parsearNumeroChileno(valor);
+    const m2 = hectareas * 10000;
+    $('#agregar_m2_rural').val(formatearNumeroChileno(m2));
+});
+
+// Conversión automática: M² → Hectáreas
+$('#agregar_m2_rural').on('input', function() {
+    const valor = $(this).val();
+    if (!valor) {
+        $('#agregar_hectareas').val('');
+        return;
+    }
+
+    const m2 = parsearNumeroChileno(valor);
+    const hectareas = m2 / 10000;
+    $('#agregar_hectareas').val(formatearNumeroChileno(hectareas));
+});
+
+// Formatear M² urbano al escribir
+$('#agregar_m2_urbano').on('blur', function() {
+    const valor = $(this).val();
+    if (valor) {
+        $(this).val(formatearNumeroChileno(valor));
+    }
+});
+
+// Búsqueda en Matrix (opcional)
+$('#btn-buscar-matrix').on('click', function() {
+    const folio = $('#buscar-matrix-folio').val().trim();
+
+    if (!folio) {
+        Swal.fire('Error', 'Ingresa un número de folio', 'warning');
+        return;
+    }
+
+    const $btn = $(this);
+    $btn.prop('disabled', true).html('<i class="fas fa-spinner fa-spin"></i> Buscando...');
+
+    $.ajax({
+        url: '{{ route("api.matrix.buscar") }}',
+        method: 'GET',
+        data: { folio: folio },
+        success: function(response) {
+            if (response.success && response.data) {
+                // Auto-completar campos
+                $('#agregar_folio').val(response.data.folio);
+                $('#agregar_solicitante').val(response.data.nombres);
+                $('#agregar_apellido_paterno').val(response.data.apellido_paterno || '');
+                $('#agregar_apellido_materno').val(response.data.apellido_materno || '');
+
+                Swal.fire('¡Encontrado!', 'Datos cargados desde Matrix. Completa los campos restantes.', 'success');
+            } else {
+                Swal.fire('No encontrado', 'El folio no existe en Matrix. Puedes ingresar los datos manualmente.', 'info');
+            }
+        },
+        error: function() {
+            Swal.fire('Error', 'Error al buscar en Matrix', 'error');
+        },
+        complete: function() {
+            $btn.prop('disabled', false).html('<i class="fas fa-search"></i> Buscar');
+        }
+    });
+});
+
+// Submit formulario agregar folio
+$('#form-agregar-folio').on('submit', function(e) {
+    e.preventDefault();
+
+    const planoId = $('#agregar_plano_id').val();
+    const ubicacion = $('input[name="ubicacion"]:checked').val();
+
+    if (!ubicacion) {
+        Swal.fire('Error', 'Selecciona la ubicación (Rural o Urbano)', 'warning');
+        return;
+    }
+
+    // Preparar datos
+    const formData = {
+        folio: $('#agregar_folio').val(),
+        solicitante: $('#agregar_solicitante').val(),
+        apellido_paterno: $('#agregar_apellido_paterno').val() || null,
+        apellido_materno: $('#agregar_apellido_materno').val() || null,
+        tipo_inmueble: $('#agregar_tipo_inmueble').val(),
+        is_from_matrix: false,
+        matrix_folio: null
+    };
+
+    if (ubicacion === 'RURAL') {
+        formData.numero_inmueble = $('#agregar_numero_hijuela').val();
+        formData.hectareas = parsearNumeroChileno($('#agregar_hectareas').val());
+        formData.m2 = parsearNumeroChileno($('#agregar_m2_rural').val());
+
+        if (!formData.hectareas || !formData.m2) {
+            Swal.fire('Error', 'Completa hectáreas y m² para inmuebles rurales', 'warning');
+            return;
+        }
+    } else {
+        formData.numero_inmueble = $('#agregar_numero_sitio').val();
+        formData.hectareas = null;
+        formData.m2 = parsearNumeroChileno($('#agregar_m2_urbano').val());
+
+        if (!formData.m2) {
+            Swal.fire('Error', 'Completa los m² para inmuebles urbanos', 'warning');
+            return;
+        }
+    }
+
+    // Validaciones
+    if (!formData.solicitante) {
+        Swal.fire('Error', 'El campo Solicitante es obligatorio', 'warning');
+        return;
+    }
+
+    if (!formData.numero_inmueble) {
+        Swal.fire('Error', 'El número de ' + (ubicacion === 'RURAL' ? 'hijuela' : 'sitio') + ' es obligatorio', 'warning');
+        return;
+    }
+
+    // Enviar AJAX
+    $.ajax({
+        url: `{{ url('planos') }}/${planoId}/agregar-folio`,
+        method: 'POST',
+        data: formData,
+        headers: {
+            'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content')
+        },
+        success: function(response) {
+            if (response.success) {
+                Swal.fire({
+                    icon: 'success',
+                    title: '¡Folio agregado!',
+                    text: response.message,
+                    timer: 2000
+                });
+
+                $('#modal-gestionar-folios').modal('hide');
+                $('#form-agregar-folio')[0].reset();
+                table.ajax.reload(null, false);
+            } else {
+                Swal.fire('Error', response.message || 'Error al agregar folio', 'error');
+            }
+        },
+        error: function(xhr) {
+            let errorMsg = 'Error al agregar folio';
+            if (xhr.responseJSON && xhr.responseJSON.message) {
+                errorMsg = xhr.responseJSON.message;
+            }
+            Swal.fire('Error', errorMsg, 'error');
+        }
+    });
 });
 
 @endif

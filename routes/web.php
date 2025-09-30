@@ -32,6 +32,7 @@ Route::middleware('auth')->group(function () {
     Route::get('/planos/{id}/folios-gestion', [PlanoController::class, 'getFoliosParaGestion'])->name('planos.folios.gestion');
     Route::post('/planos/{id}/reasignar', [PlanoController::class, 'reasignar'])->name('planos.reasignar');
     Route::post('/planos/{id}/quitar-folios', [PlanoController::class, 'quitarFolios'])->name('planos.folios.quitar');
+    Route::post('/planos/{id}/agregar-folio', [PlanoController::class, 'agregarFolio'])->name('planos.folios.agregar');
     Route::put('/planos/{id}', [PlanoController::class, 'update'])->name('planos.update');
     Route::delete('/planos/{id}', [PlanoController::class, 'destroy'])->name('planos.destroy');
 
@@ -56,6 +57,9 @@ Route::middleware('auth')->group(function () {
     Route::get('/planos/historico', [PlanoHistoricoController::class, 'showImportForm'])->name('admin.planos.historico');
     Route::post('/planos/historico/preview', [PlanoHistoricoController::class, 'previewExcel'])->name('admin.planos.historico.preview');
     Route::post('/planos/historico/import', [PlanoHistoricoController::class, 'importHistorico'])->name('admin.planos.historico.import');
+
+    // API Matrix buscar folio
+    Route::get('/api/matrix/buscar', [PlanoImportacionController::class, 'buscarFolioMatrix'])->name('api.matrix.buscar');
 
     // Control de Sesiones - SessionControlController
     Route::get('/session-control/status', [SessionControlController::class, 'getStatus'])->name('session-control.status');
