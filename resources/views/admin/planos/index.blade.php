@@ -10,9 +10,6 @@
 @endsection
 
 @section('content')
-<!-- Control de Sesiones para Numeración -->
-@include('admin.planos.partials.session-control')
-
 <!-- Filtros Card -->
 <div class="card collapsed-card" id="filtros-card">
     <div class="card-header">
@@ -153,7 +150,13 @@
                         </div>
                     </div>
                 </div>
-                <div class="col-md-6">
+                <div class="col-md-3">
+                    <div class="form-group">
+                        <label for="filtro_numero_plano">Número Plano</label>
+                        <input type="text" class="form-control" id="filtro_numero_plano" name="numero_plano" placeholder="Número completo">
+                    </div>
+                </div>
+                <div class="col-md-3">
                     <div class="form-group">
                         <label>&nbsp;</label>
                         <div class="btn-group d-block">
@@ -164,6 +167,40 @@
                                 <i class="fas fa-eraser"></i> Limpiar
                             </button>
                         </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Fila 4: Campos Adicionales (Excel-like) -->
+            <div class="row">
+                <div class="col-md-2">
+                    <div class="form-group">
+                        <label for="filtro_archivo">Archivo</label>
+                        <input type="text" class="form-control form-control-sm" id="filtro_archivo" name="archivo" placeholder="Archivo">
+                    </div>
+                </div>
+                <div class="col-md-2">
+                    <div class="form-group">
+                        <label for="filtro_tubo">Tubo</label>
+                        <input type="text" class="form-control form-control-sm" id="filtro_tubo" name="tubo" placeholder="Tubo">
+                    </div>
+                </div>
+                <div class="col-md-2">
+                    <div class="form-group">
+                        <label for="filtro_tela">Tela</label>
+                        <input type="text" class="form-control form-control-sm" id="filtro_tela" name="tela" placeholder="Tela">
+                    </div>
+                </div>
+                <div class="col-md-2">
+                    <div class="form-group">
+                        <label for="filtro_archivo_digital">Archivo Digital</label>
+                        <input type="text" class="form-control form-control-sm" id="filtro_archivo_digital" name="archivo_digital" placeholder="Archivo digital">
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="form-group">
+                        <label for="filtro_observaciones">Observaciones</label>
+                        <input type="text" class="form-control form-control-sm" id="filtro_observaciones" name="observaciones" placeholder="Buscar en observaciones">
                     </div>
                 </div>
             </div>
@@ -360,15 +397,21 @@ function initPlanosTable() {
                 d.hectareas_max = $('#filtro_hectareas_max').val();
                 d.m2_min = $('#filtro_m2_min').val();
                 d.m2_max = $('#filtro_m2_max').val();
+                d.numero_plano = $('#filtro_numero_plano').val();
+                d.archivo = $('#filtro_archivo').val();
+                d.tubo = $('#filtro_tubo').val();
+                d.tela = $('#filtro_tela').val();
+                d.archivo_digital = $('#filtro_archivo_digital').val();
+                d.observaciones = $('#filtro_observaciones').val();
             }
         },
         columns: columns,
         columnDefs: columnDefs,
         pageLength: 25,
         lengthMenu: [[10, 25, 50, 100, -1], [10, 25, 50, 100, "Todos"]],
-        dom: '<"row"<"col-sm-12 col-md-8"f><"col-sm-12 col-md-4 text-right"l>>rt<"d-none"B>',
-        info: false,      // Desactivar información de registros
-        paging: false,    // Desactivar paginación (mostrar todos los registros)
+        dom: '<"row"<"col-sm-12 col-md-8"f><"col-sm-12 col-md-4 text-right"l>>rt<"row"<"col-sm-12 col-md-5"i><"col-sm-12 col-md-7"p>><"d-none"B>',
+        info: true,       // Activar información de registros
+        paging: true,     // Activar paginación
         buttons: [
             {
                 extend: 'excel',
@@ -390,7 +433,28 @@ function initPlanosTable() {
             }
         ],
         language: {
-            url: '//cdn.datatables.net/plug-ins/1.13.6/i18n/es-ES.json',
+            "decimal": ",",
+            "thousands": ".",
+            "info": "Mostrando _START_ a _END_ de _TOTAL_ registros",
+            "infoEmpty": "Mostrando 0 a 0 de 0 registros",
+            "infoFiltered": "(filtrado de _MAX_ registros totales)",
+            "infoPostFix": "",
+            "lengthMenu": "Mostrar _MENU_ registros",
+            "loadingRecords": "Cargando...",
+            "processing": "Procesando...",
+            "search": "Buscar:",
+            "searchPlaceholder": "Término de búsqueda",
+            "zeroRecords": "No se encontraron registros coincidentes",
+            "paginate": {
+                "first": "Primero",
+                "last": "Último",
+                "next": "Siguiente",
+                "previous": "Anterior"
+            },
+            "aria": {
+                "orderable": "Ordenar por esta columna",
+                "orderableReverse": "Ordenar esta columna en orden inverso"
+            },
             buttons: {
                 colvis: 'Columnas',
                 excel: 'Exportar Excel',
@@ -723,33 +787,77 @@ function updateFiltrosCount() {
     $('#filtros-activos-count').text(count);
 }
 
+function obtenerFiltrosActivos() {
+    return {
+        comuna: $('#filtro_comuna').val() || '',
+        ano: $('#filtro_ano').val() || '',
+        mes: $('#filtro_mes').val() || '',
+        responsable: $('#filtro_responsable').val() || '',
+        proyecto: $('#filtro_proyecto').val() || '',
+        folio: $('#filtro_folio').val() || '',
+        solicitante: $('#filtro_solicitante').val() || '',
+        apellido_paterno: $('#filtro_apellido_paterno').val() || '',
+        apellido_materno: $('#filtro_apellido_materno').val() || '',
+        hectareas_min: $('#filtro_hectareas_min').val() || '',
+        hectareas_max: $('#filtro_hectareas_max').val() || '',
+        m2_min: $('#filtro_m2_min').val() || '',
+        m2_max: $('#filtro_m2_max').val() || '',
+        numero_plano: $('#filtro_numero_plano').val() || '',
+        archivo: $('#filtro_archivo').val() || '',
+        tubo: $('#filtro_tubo').val() || '',
+        tela: $('#filtro_tela').val() || '',
+        archivo_digital: $('#filtro_archivo_digital').val() || '',
+        observaciones: $('#filtro_observaciones').val() || ''
+    };
+}
+
 function updateRegistrosCount() {
-    // Obtener información de DataTables
-    const info = planosTable.page.info();
-    const total = info.recordsDisplay; // Registros después de filtrar
-    const totalSinFiltro = info.recordsTotal; // Total sin filtrar
+    // Obtener datos actuales de los filtros aplicados
+    const filtrosData = obtenerFiltrosActivos();
+    const busquedaGlobal = $('#tabla-buscar').val();
 
-    let texto = '';
-    if (total === totalSinFiltro) {
-        // Sin filtros aplicados
-        texto = `Total: ${total} registros`;
-    } else {
-        // Con filtros aplicados
-        texto = `Registros encontrados: ${total}`;
+    // Agregar búsqueda global a los filtros
+    const requestData = {
+        ...filtrosData,
+        search: busquedaGlobal || ''
+    };
 
-        // Cambiar color del badge según si hay filtros
-        $('#registros-encontrados-count')
-            .removeClass('badge-primary badge-success')
-            .addClass('badge-success');
-    }
+    // Llamar al endpoint de contadores
+    $.ajax({
+        url: '{{ route("planos.contadores") }}',
+        method: 'GET',
+        data: requestData,
+        success: function(response) {
+            const { totalPlanos, totalFolios, message } = response;
 
-    if (total === totalSinFiltro) {
-        $('#registros-encontrados-count')
-            .removeClass('badge-success badge-primary')
-            .addClass('badge-primary');
-    }
+            // Obtener información de DataTables para comparar
+            const info = planosTable.page.info();
+            const totalSinFiltro = info.recordsTotal;
 
-    $('#registros-encontrados-count').text(texto);
+            let texto = message;
+
+            // Cambiar color del badge según si hay filtros
+            if (totalPlanos === totalSinFiltro) {
+                // Sin filtros aplicados
+                $('#registros-encontrados-count')
+                    .removeClass('badge-success')
+                    .addClass('badge-primary');
+            } else {
+                // Con filtros aplicados
+                $('#registros-encontrados-count')
+                    .removeClass('badge-primary')
+                    .addClass('badge-success');
+            }
+
+            $('#registros-encontrados-count').text(texto);
+        },
+        error: function() {
+            // Fallback al método anterior si hay error
+            const info = planosTable.page.info();
+            const total = info.recordsDisplay;
+            $('#registros-encontrados-count').text(`Registros: ${total}`);
+        }
+    });
 }
 
 function verDetallesCompletos(id) {

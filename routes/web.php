@@ -19,6 +19,7 @@ Route::middleware('auth')->group(function () {
 
     // TAB 1: Tabla General - PlanoController
     Route::get('/planos', [PlanoController::class, 'index'])->name('planos.index');
+    Route::get('/planos/contadores', [PlanoController::class, 'getContadores'])->name('planos.contadores');
     Route::get('/planos/{id}', [PlanoController::class, 'show'])->name('planos.show');
     Route::get('/planos/{id}/edit', [PlanoController::class, 'edit'])->name('planos.edit');
     Route::put('/planos/{id}', [PlanoController::class, 'update'])->name('planos.update');

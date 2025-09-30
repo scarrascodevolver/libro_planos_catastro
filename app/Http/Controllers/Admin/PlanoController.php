@@ -142,6 +142,63 @@ class PlanoController extends Controller
             ->make(true);
     }
 
+    public function getContadores(Request $request)
+    {
+        try {
+            $query = Plano::query();
+
+            // Aplicar todos los filtros incluido búsqueda global
+            $this->applyFilters($query, $request);
+
+            // Aplicar filtro de búsqueda global si existe
+            if ($request->has('search') && !empty($request->search)) {
+                $searchValue = $request->search;
+                $query->where(function($q) use ($searchValue) {
+                    $q->where('numero_plano', 'LIKE', "%{$searchValue}%")
+                      ->orWhere('numero_correlativo', 'LIKE', "%{$searchValue}%")
+                      ->orWhere('comuna', 'LIKE', "%{$searchValue}%")
+                      ->orWhere('responsable', 'LIKE', "%{$searchValue}%")
+                      ->orWhere('proyecto', 'LIKE', "%{$searchValue}%")
+                      ->orWhere('mes', 'LIKE', "%{$searchValue}%")
+                      ->orWhere('ano', 'LIKE', "%{$searchValue}%")
+                      ->orWhere('observaciones', 'LIKE', "%{$searchValue}%")
+                      ->orWhere('archivo', 'LIKE', "%{$searchValue}%")
+                      ->orWhere('tubo', 'LIKE', "%{$searchValue}%")
+                      ->orWhere('tela', 'LIKE', "%{$searchValue}%")
+                      ->orWhere('archivo_digital', 'LIKE', "%{$searchValue}%")
+                      ->orWhereHas('folios', function($folioQuery) use ($searchValue) {
+                          $folioQuery->where('folio', 'LIKE', "%{$searchValue}%")
+                                    ->orWhere('solicitante', 'LIKE', "%{$searchValue}%")
+                                    ->orWhere('apellido_paterno', 'LIKE', "%{$searchValue}%")
+                                    ->orWhere('apellido_materno', 'LIKE', "%{$searchValue}%");
+                      });
+                });
+            }
+
+            // Contar planos
+            $totalPlanos = $query->count();
+
+            // Contar folios de esos planos
+            $planosIds = $query->pluck('id');
+            $totalFolios = PlanoFolio::whereIn('plano_id', $planosIds)->count();
+
+            return response()->json([
+                'totalPlanos' => $totalPlanos,
+                'totalFolios' => $totalFolios,
+                'message' => $totalPlanos . ' plano' . ($totalPlanos != 1 ? 's' : '') .
+                            ' encontrado' . ($totalPlanos != 1 ? 's' : '') .
+                            ' con ' . $totalFolios . ' folio' . ($totalFolios != 1 ? 's' : '')
+            ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'error' => true,
+                'message' => 'Error: ' . $e->getMessage(),
+                'totalPlanos' => 0,
+                'totalFolios' => 0
+            ], 500);
+        }
+    }
+
     private function applyFilters($query, Request $request)
     {
         // Solo aplicar filtros específicos (no la búsqueda global - eso lo maneja Yajra automáticamente)
@@ -188,6 +245,30 @@ class PlanoController extends Controller
             $query->whereHas('folios', function($q) use ($request) {
                 $q->where('apellido_materno', 'LIKE', '%' . $request->apellido_materno . '%');
             });
+        }
+
+        if ($request->filled('numero_plano')) {
+            $query->where('numero_plano', 'LIKE', '%' . $request->numero_plano . '%');
+        }
+
+        if ($request->filled('archivo')) {
+            $query->where('archivo', 'LIKE', '%' . $request->archivo . '%');
+        }
+
+        if ($request->filled('tubo')) {
+            $query->where('tubo', 'LIKE', '%' . $request->tubo . '%');
+        }
+
+        if ($request->filled('tela')) {
+            $query->where('tela', 'LIKE', '%' . $request->tela . '%');
+        }
+
+        if ($request->filled('archivo_digital')) {
+            $query->where('archivo_digital', 'LIKE', '%' . $request->archivo_digital . '%');
+        }
+
+        if ($request->filled('observaciones')) {
+            $query->where('observaciones', 'LIKE', '%' . $request->observaciones . '%');
         }
 
         if ($request->filled('hectareas_min')) {
