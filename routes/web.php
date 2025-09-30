@@ -20,17 +20,23 @@ Route::middleware('auth')->group(function () {
     // TAB 1: Tabla General - PlanoController
     Route::get('/planos', [PlanoController::class, 'index'])->name('planos.index');
     Route::get('/planos/contadores', [PlanoController::class, 'getContadores'])->name('planos.contadores');
-    Route::get('/planos/{id}', [PlanoController::class, 'show'])->name('planos.show');
-    Route::get('/planos/{id}/edit', [PlanoController::class, 'edit'])->name('planos.edit');
-    Route::put('/planos/{id}', [PlanoController::class, 'update'])->name('planos.update');
-    Route::delete('/planos/{id}', [PlanoController::class, 'destroy'])->name('planos.destroy');
-    Route::post('/planos/{id}/reasignar', [PlanoController::class, 'reasignar'])->name('planos.reasignar');
-    Route::get('/planos/{id}/folios-expansion', [PlanoController::class, 'getFoliosExpansion'])->name('planos.folios-expansion');
-    Route::get('/planos/{id}/detalles-completos', [PlanoController::class, 'getDetallesCompletos'])->name('planos.detalles-completos');
 
-    // Edición de folios individuales
+    // Rutas específicas ANTES de rutas genéricas con {id}
     Route::get('/planos/folios/{folioId}/edit', [PlanoController::class, 'editFolio'])->name('planos.folios.edit');
     Route::put('/planos/folios/{folioId}', [PlanoController::class, 'updateFolio'])->name('planos.folios.update');
+
+    // Rutas con {id} específicas ANTES de show genérico
+    Route::get('/planos/{id}/edit', [PlanoController::class, 'edit'])->name('planos.edit');
+    Route::get('/planos/{id}/folios-expansion', [PlanoController::class, 'getFoliosExpansion'])->name('planos.folios-expansion');
+    Route::get('/planos/{id}/detalles-completos', [PlanoController::class, 'getDetallesCompletos'])->name('planos.detalles-completos');
+    Route::get('/planos/{id}/folios-gestion', [PlanoController::class, 'getFoliosParaGestion'])->name('planos.folios.gestion');
+    Route::post('/planos/{id}/reasignar', [PlanoController::class, 'reasignar'])->name('planos.reasignar');
+    Route::post('/planos/{id}/quitar-folios', [PlanoController::class, 'quitarFolios'])->name('planos.folios.quitar');
+    Route::put('/planos/{id}', [PlanoController::class, 'update'])->name('planos.update');
+    Route::delete('/planos/{id}', [PlanoController::class, 'destroy'])->name('planos.destroy');
+
+    // Ruta genérica show AL FINAL
+    Route::get('/planos/{id}', [PlanoController::class, 'show'])->name('planos.show');
 
     // TAB 2: Importación - PlanoImportacionController
     Route::get('/planos/importacion/index', [PlanoImportacionController::class, 'index'])->name('planos.importacion.index');

@@ -292,6 +292,9 @@
 <!-- Modal Reasignar Número -->
 @include('admin.planos.modals.reasignar-numero')
 
+<!-- Modal Gestionar Folios (Agregar/Quitar) -->
+@include('admin.planos.modals.gestionar-folios')
+
 <!-- Modal Detalles Completos -->
 <div class="modal fade" id="modal-detalles-completos" tabindex="-1">
     <div class="modal-dialog modal-xl">
@@ -527,7 +530,13 @@ function moveDataTableControls() {
 
             // Reconectar funcionalidad de búsqueda
             $('#datatable-search-container input').off('keyup').on('keyup', function() {
-                planosTable.search(this.value).draw();
+                const searchValue = this.value;
+                planosTable.search(searchValue).draw();
+
+                // Si se borra completamente el campo, asegurarse de recargar todo
+                if (searchValue === '') {
+                    planosTable.search('').draw();
+                }
             });
         }
 
@@ -751,10 +760,27 @@ function initFiltros() {
 
     // Limpiar filtros
     $('#limpiar-filtros').on('click', function() {
+        // 1. Limpiar formulario de filtros avanzados
         $('#filtros-form')[0].reset();
+
+        // 2. Limpiar Select2 correctamente
         $('.select2').val(null).trigger('change');
-        planosTable.draw();
-        updateFiltrosCount();
+
+        // 3. Limpiar búsqueda global de DataTable
+        planosTable.search('').columns().search('');
+
+        // 4. Limpiar input de búsqueda visual
+        $('#datatable-search-container input').val('');
+        $('.dataTables_filter input').val('');
+
+        // 5. Pequeño delay para asegurar que todo se limpió
+        setTimeout(function() {
+            // 6. Recargar tabla con draw(false) para mantener página actual
+            planosTable.draw(false);
+
+            // 7. Actualizar contador
+            updateFiltrosCount();
+        }, 100);
     });
 
     // Toggle panel de filtros (botón específico)
@@ -785,6 +811,11 @@ function updateFiltrosCount() {
         }
     });
     $('#filtros-activos-count').text(count);
+
+    // Actualizar también el contador de registros
+    setTimeout(function() {
+        updateRegistrosCount();
+    }, 200);
 }
 
 function obtenerFiltrosActivos() {
@@ -1383,6 +1414,209 @@ function displayFolioValidationErrors(errors) {
 
 @endif
 
+// ===== GESTIONAR FOLIOS (AGREGAR/QUITAR) =====
+
+@if(Auth::user()->isRegistro())
+// Event listener para botón gestionar folios
+$('#planos-table tbody').on('click', '.gestionar-folios', function() {
+    const id = $(this).data('id');
+    abrirModalGestionFolios(id);
+});
+
+function abrirModalGestionFolios(planoId) {
+    // Resetear modal
+    $('#gestion-numero-plano').text('');
+    $('#quitar-folios-lista').html('');
+    $('#count-seleccionados').text('0');
+    $('#btn-confirmar-quitar').prop('disabled', true);
+
+    // Resetear tab a "Quitar"
+    $('#quitar-tab').tab('show');
+
+    // Mostrar loading
+    $('#quitar-loading').show();
+
+    // Abrir modal
+    $('#modal-gestionar-folios').modal('show');
+
+    // Cargar datos
+    $.get(`{{ url('/planos') }}/${planoId}/folios-gestion`)
+        .done(function(response) {
+            if (response.success) {
+                $('#gestion-numero-plano').text(response.plano.numero_plano_completo);
+                $('#total-folios-plano').text(response.plano.cantidad_folios);
+
+                // Guardar ID del plano
+                $('#modal-gestionar-folios').data('plano-id', planoId);
+                $('#agregar_plano_id').val(planoId);
+
+                // Renderizar lista de folios
+                renderizarListaFolios(response.folios, response.plano.cantidad_folios);
+            }
+        })
+        .fail(function() {
+            Swal.fire('Error', 'No se pudieron cargar los folios', 'error');
+            $('#modal-gestionar-folios').modal('hide');
+        })
+        .always(function() {
+            $('#quitar-loading').hide();
+        });
+}
+
+function renderizarListaFolios(folios, totalFolios) {
+    if (folios.length === 0) {
+        $('#quitar-folios-lista').html(`
+            <div class="alert alert-warning">
+                <i class="fas fa-exclamation-triangle"></i>
+                No hay folios para mostrar
+            </div>
+        `);
+        return;
+    }
+
+    let html = '<div class="list-group">';
+
+    folios.forEach(function(folio) {
+        const hectareasDisplay = folio.hectareas ? `${folio.hectareas} ha` : '-';
+        const m2Display = folio.m2 ? folio.m2.toLocaleString() : '0';
+
+        html += `
+            <label class="list-group-item d-flex align-items-center folio-checkbox-item">
+                <input type="checkbox"
+                       class="folio-checkbox mr-3"
+                       data-folio-id="${folio.id}"
+                       ${totalFolios === 1 ? 'disabled' : ''}>
+                <div class="flex-grow-1">
+                    <div class="d-flex justify-content-between">
+                        <strong>Folio: ${folio.folio}</strong>
+                        <span class="badge badge-info">${folio.tipo_inmueble} ${folio.numero_inmueble || ''}</span>
+                    </div>
+                    <div class="text-muted small">
+                        ${folio.nombre_completo}
+                    </div>
+                    <div class="text-muted small">
+                        <i class="fas fa-ruler-combined"></i> ${hectareasDisplay} |
+                        <i class="fas fa-square"></i> ${m2Display} m²
+                    </div>
+                </div>
+            </label>
+        `;
+    });
+
+    html += '</div>';
+
+    if (totalFolios === 1) {
+        html += `
+            <div class="alert alert-warning mt-2 mb-0">
+                <i class="fas fa-info-circle"></i>
+                Este plano solo tiene 1 folio, no puede ser eliminado.
+            </div>
+        `;
+    }
+
+    $('#quitar-folios-lista').html(html);
+
+    // Event listener para checkboxes
+    $('.folio-checkbox').on('change', function() {
+        actualizarContadorSeleccionados();
+    });
+}
+
+function actualizarContadorSeleccionados() {
+    const seleccionados = $('.folio-checkbox:checked').length;
+    const total = $('#total-folios-plano').text();
+
+    $('#count-seleccionados').text(seleccionados);
+
+    // Validar que quede al menos 1 folio
+    const quedaranFolios = parseInt(total) - seleccionados;
+
+    if (seleccionados > 0 && quedaranFolios >= 1) {
+        $('#btn-confirmar-quitar').prop('disabled', false);
+    } else {
+        $('#btn-confirmar-quitar').prop('disabled', true);
+    }
+}
+
+// Confirmar eliminar folios
+$('#btn-confirmar-quitar').on('click', function() {
+    const planoId = $('#modal-gestionar-folios').data('plano-id');
+    const seleccionados = $('.folio-checkbox:checked');
+    const foliosIds = [];
+
+    seleccionados.each(function() {
+        foliosIds.push($(this).data('folio-id'));
+    });
+
+    if (foliosIds.length === 0) {
+        Swal.fire('Atención', 'No has seleccionado folios para eliminar', 'warning');
+        return;
+    }
+
+    Swal.fire({
+        title: '¿Confirmar eliminación?',
+        html: `Se eliminarán <strong>${foliosIds.length}</strong> folio(s) del plano.<br><br>Esta acción no se puede deshacer.`,
+        icon: 'warning',
+        showCancelButton: true,
+        confirmButtonColor: '#dc3545',
+        cancelButtonColor: '#6c757d',
+        confirmButtonText: 'Sí, eliminar',
+        cancelButtonText: 'Cancelar'
+    }).then((result) => {
+        if (result.isConfirmed) {
+            eliminarFolios(planoId, foliosIds);
+        }
+    });
+});
+
+function eliminarFolios(planoId, foliosIds) {
+    const $btnEliminar = $('#btn-confirmar-quitar');
+    const originalText = $btnEliminar.html();
+
+    $btnEliminar.prop('disabled', true).html('<i class="fas fa-spinner fa-spin"></i> Eliminando...');
+
+    $.ajax({
+        url: `{{ url('/planos') }}/${planoId}/quitar-folios`,
+        method: 'POST',
+        data: {
+            folios_ids: foliosIds,
+            _token: '{{ csrf_token() }}'
+        },
+        success: function(response) {
+            if (response.success) {
+                Swal.fire({
+                    icon: 'success',
+                    title: '¡Folios eliminados!',
+                    text: response.message,
+                    timer: 2000,
+                    showConfirmButton: false
+                });
+
+                $('#modal-gestionar-folios').modal('hide');
+                planosTable.draw(false);
+            } else {
+                Swal.fire('Error', response.message, 'error');
+            }
+        },
+        error: function(xhr) {
+            const message = xhr.responseJSON?.message || 'Error al eliminar folios';
+            Swal.fire('Error', message, 'error');
+        },
+        complete: function() {
+            $btnEliminar.prop('disabled', false).html(originalText);
+        }
+    });
+}
+
+// Limpiar modal al cerrar
+$('#modal-gestionar-folios').on('hidden.bs.modal', function() {
+    $('#quitar-folios-lista').html('');
+    $('#form-agregar-folio')[0].reset();
+    $('.folio-checkbox').prop('checked', false);
+});
+
+@endif
+
 // Los botones de exportar ahora están integrados nativamente en DataTables
 </script>
 @endpush
@@ -1901,6 +2135,16 @@ tr.expandible-row .btn {
         margin-right: 0;
         width: 100%;
     }
+}
+
+/* ===== BOTONES ACCIONES COMPACTOS ===== */
+#planos-table .btn-group-sm .btn {
+    padding: 2px 6px;
+    font-size: 12px;
+}
+
+#planos-table .btn-group {
+    white-space: nowrap;
 }
 </style>
 @endpush

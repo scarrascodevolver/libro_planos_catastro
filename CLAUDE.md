@@ -545,57 +545,126 @@ php artisan serve
 ### 📊 **PROGRESO GENERAL:**
 - ✅ **FASE 1**: Laravel + AdminLTE + Auth (100%)
 - ✅ **FASE 2**: Base de Datos + Seeders (100%)
-- ⏳ **FASE 3**: Backend + Frontend (0%)
+- ✅ **FASE 3**: Backend + Frontend TAB 1 (85% - Ver estado actual abajo)
 - ⏳ **FASE 4**: Importadores + Avanzado (0%)
-
-**📌 LISTO PARA DESARROLLO DE INTERFAZ TAB 1**
 
 ---
 
-## 🎯 **ESTADO ACTUAL - FASE 3 PARCIAL COMPLETADA**
-**Fecha:** 2025-09-29
-**Estado:** ✅ TAB 1 OPERACIONAL + XAMPP CONFIGURADO
+## 🎯 **ESTADO ACTUAL - SESIÓN 2025-09-30**
+**Fecha:** 2025-09-30
+**Estado:** ✅ TAB 1 AVANZADO + GESTIÓN FOLIOS PARCIAL
 
-### ✅ **TAB 1 COMPLETADO:**
-- ✅ **DataTable** con filtros Excel-like (4 filas)
+### ✅ **FUNCIONALIDADES TAB 1 OPERACIONALES:**
+- ✅ **DataTable** con filtros Excel-like (4 filas de filtros)
 - ✅ **Badge inteligente:** "X planos encontrados con Y folios"
-- ✅ **Búsqueda global** + filtros específicos
+- ✅ **Búsqueda global** mejorada (limpia correctamente al borrar)
 - ✅ **Control de roles:** registro/consulta
-- ✅ **Filas expandibles** (pendiente implementar)
-- ✅ **Botón EDITAR** funcional
+- ✅ **Filas expandibles clickeables** (mostrar detalle folios)
+- ✅ **Botón EDITAR** plano completo (todos los campos)
+- ✅ **Botón EDITAR FOLIO** individual (desde expansión)
+- ✅ **Botón REASIGNAR** número de plano
+- ✅ **Botón VER DETALLES** modal completo
+- ✅ **Filtros mejorados:** Se limpian correctamente y muestran todos los registros
 
-### ✅ **XAMPP CONFIGURADO:**
-- ✅ **Puerto 8080** para evitar conflictos
-- ✅ **MySQL** con permisos corregidos
-- ✅ **URL:** http://localhost:8080/libro_planos/public
-- ✅ **Credenciales:** alfonso.norambuena@biobio.cl / alfonso123
+### ✅ **GESTIÓN DE FOLIOS - IMPLEMENTACIÓN PARCIAL:**
 
-### 🔧 **PENDIENTES TAB 1:**
-**⏳ ALTA PRIORIDAD:**
-1. **AGREGAR/QUITAR FOLIOS** en planos existentes
-   - Modal para agregar folios individuales
-   - Modal para quitar folios seleccionados
-   - Recálculo automático hectáreas/m² del plano
+**✅ COMPLETADO: QUITAR FOLIOS**
+- ✅ **Backend:**
+  - Método `getFoliosParaGestion($id)` en PlanoController
+  - Método `quitarFolios(Request, $id)` con validaciones
+  - Recálculo automático de totales (hectáreas, m², cantidad)
+  - Rutas agregadas y ordenadas correctamente
 
-2. **REASIGNAR NÚMERO DE PLANO**
+- ✅ **Frontend:**
+  - Modal con tabs (Quitar/Agregar)
+  - Tab "Quitar Folios" 100% funcional
+  - Lista folios con checkboxes
+  - Validación: mínimo 1 folio debe quedar
+  - Confirmación SweetAlert antes de eliminar
+  - Botón **[+/-]** verde en columna Acciones
+
+- ✅ **Validaciones:**
+  - No permite eliminar TODOS los folios
+  - Si plano tiene 1 solo folio, checkbox deshabilitado
+  - Contador dinámico de folios seleccionados
+  - Verifica que folios pertenecen al plano
+
+**⏳ PENDIENTE: AGREGAR FOLIOS**
+- ⏳ **Backend:** Método `agregarFolio()` NO implementado
+- ⏳ **Frontend:** Tab "Agregar Folio" solo tiene estructura HTML
+- ⏳ **Funcionalidades requeridas:**
+  - Formulario manual de ingreso de folio
+  - Búsqueda opcional en Matrix (autocomplete)
+  - Validaciones de duplicados
+  - Recálculo automático de totales
+
+**📋 ESTRUCTURA MODAL YA CREADA:**
+- `resources/views/admin/planos/modals/gestionar-folios.blade.php`
+- Tab 1: Quitar Folios ✅ FUNCIONAL
+- Tab 2: Agregar Folio ⏳ PENDIENTE IMPLEMENTAR
+
+### 🔧 **PENDIENTES TAB 1 - PRIORIDAD ALTA:**
+
+**1. COMPLETAR AGREGAR FOLIOS** 🔴 MÁS URGENTE
+   - Backend: Método `agregarFolio()` en PlanoController
+   - Ruta POST `/planos/{id}/agregar-folio`
+   - Validaciones:
+     - Verificar que folio no existe en el mismo plano
+     - Campos requeridos: solicitante, tipo_inmueble, m2
+     - Hectáreas solo si tipo_inmueble = HIJUELA
+   - JavaScript para manejar formulario y AJAX
+   - Autocomplete opcional desde Matrix (buscar folio)
+
+**2. REASIGNAR NÚMERO DE PLANO** 🟡 DEPENDE DE CONTROL SESIÓN
    - Generar siguiente correlativo: 0830329271SR → 0830329272SR
    - Mantener tipo (SR/SU/CR/CU) y código región
-   - **REQUIERE:** Sistema control sesión única
+   - **BLOQUEADO:** Requiere Sistema Control Sesión implementado
 
-3. **FILAS EXPANDIBLES**
-   - Mostrar detalle de folios al hacer clic en [+]
-   - Formato: └ Folio 123456 | JUAN | PEREZ | GONZALEZ
+**3. MEJORAS MENORES** 🟢 BAJA PRIORIDAD
+   - Estilos visuales del modal de gestión
+   - Mensajes de éxito más descriptivos
+   - Loading states en botones
 
 ### 🚨 **DEPENDENCIA CRÍTICA:**
 **Sistema Control Sesión Única:**
 - Solo 1 usuario puede generar números correlativos
-- Tabla: `session_control` (ya creada)
-- Necesario para REASIGNAR y TAB 3 (crear planos)
+- Tabla: `session_control` (ya creada en BD)
+- Código parcial existe pero NO está completo
+- Necesario para:
+  - REASIGNAR número de plano
+  - TAB 3 (crear planos nuevos)
 
 ### 📊 **PROGRESO ACTUALIZADO:**
 - ✅ **FASE 1:** Laravel + AdminLTE + Auth (100%)
 - ✅ **FASE 2:** Base de Datos + Seeders (100%)
-- ✅ **FASE 3:** Backend + Frontend (60% - Tab 1 parcial)
+- ✅ **FASE 3:** Backend + Frontend TAB 1 (85%)
+  - ✅ Visualización y filtros (100%)
+  - ✅ Edición planos/folios (100%)
+  - ✅ Quitar folios (100%)
+  - ⏳ Agregar folios (0%)
+  - ⏳ Reasignar números (bloqueado)
 - ⏳ **FASE 4:** Tabs 2, 3 + Control Sesión (0%)
 
-**📌 PRÓXIMO: COMPLETAR FUNCIONALIDADES TAB 1**
+### 🐛 **PROBLEMAS RESUELTOS HOY:**
+- ✅ Rutas 404 por orden incorrecto (rutas específicas antes de genéricas)
+- ✅ URLs AJAX sin prefijo Laravel (`{{ url() }}`)
+- ✅ Error `APP_KEY` por caché corrupto (regenerado con `config:cache`)
+- ✅ Filtros y búsqueda no se limpiaban correctamente (mejorado con timeout y limpieza total)
+- ✅ Dropdown de botones se ocultaba detrás de filas (cambiado a botones horizontales)
+
+### 📝 **ARCHIVOS MODIFICADOS HOY:**
+```
+app/Http/Controllers/Admin/PlanoController.php  - Métodos quitar folios
+routes/web.php                                    - Rutas reordenadas
+resources/views/admin/planos/index.blade.php     - JavaScript mejorado
+resources/views/admin/planos/modals/gestionar-folios.blade.php - NUEVO
+```
+
+### 🎯 **PRÓXIMA SESIÓN - PRIORIDADES:**
+1. **IMPLEMENTAR AGREGAR FOLIOS** (Tab 2 del modal)
+2. Completar Sistema Control Sesión
+3. Desbloquear REASIGNAR números
+4. Comenzar TAB 2: Importación Matrix
+
+**📌 URL PROYECTO:** http://localhost:8080/libro_planos/public
+**📌 USUARIO:** alfonso.norambuena@biobio.cl / alfonso123

@@ -46,9 +46,10 @@ class PlanoController extends Controller
             ->addColumn('acciones', function ($plano) {
                 $acciones = '';
                 if (Auth::user()->isRegistro()) {
-                    $acciones .= '<div class="btn-group">';
-                    $acciones .= '<button class="btn btn-sm btn-primary editar-plano" data-id="'.$plano->id.'" title="Editar"><i class="fas fa-edit"></i></button>';
-                    $acciones .= '<button class="btn btn-sm btn-warning reasignar-plano" data-id="'.$plano->id.'" title="Reasignar N°"><i class="fas fa-exchange-alt"></i></button>';
+                    $acciones .= '<div class="btn-group btn-group-sm" role="group">';
+                    $acciones .= '<button class="btn btn-primary editar-plano" data-id="'.$plano->id.'" title="Editar"><i class="fas fa-edit"></i></button>';
+                    $acciones .= '<button class="btn btn-warning reasignar-plano" data-id="'.$plano->id.'" title="Reasignar"><i class="fas fa-exchange-alt"></i></button>';
+                    $acciones .= '<button class="btn btn-success gestionar-folios" data-id="'.$plano->id.'" title="Agregar/Quitar Folios"><i class="fas fa-plus-minus"></i></button>';
                     $acciones .= '</div>';
                 }
                 return $acciones;
@@ -710,5 +711,104 @@ class PlanoController extends Controller
             'total_m2' => $totalM2,
             'cantidad_folios' => $cantidadFolios
         ]);
+    }
+
+    /**
+     * Obtener folios de un plano para gestión (agregar/quitar)
+     */
+    public function getFoliosParaGestion($id)
+    {
+        if (!Auth::user()->isRegistro()) {
+            abort(403, 'No tienes permisos para gestionar folios');
+        }
+
+        $plano = Plano::with('folios')->findOrFail($id);
+
+        return response()->json([
+            'success' => true,
+            'plano' => [
+                'id' => $plano->id,
+                'numero_plano_completo' => $this->formatNumeroPlanoCompleto($plano),
+                'cantidad_folios' => $plano->cantidad_folios
+            ],
+            'folios' => $plano->folios->map(function($folio) {
+                return [
+                    'id' => $folio->id,
+                    'folio' => $folio->folio ?: 'S/F',
+                    'solicitante' => $folio->solicitante,
+                    'apellido_paterno' => $folio->apellido_paterno,
+                    'apellido_materno' => $folio->apellido_materno,
+                    'tipo_inmueble' => $folio->tipo_inmueble,
+                    'numero_inmueble' => $folio->numero_inmueble,
+                    'hectareas' => $folio->hectareas,
+                    'm2' => $folio->m2,
+                    'nombre_completo' => trim($folio->solicitante . ' ' . $folio->apellido_paterno . ' ' . $folio->apellido_materno)
+                ];
+            })
+        ]);
+    }
+
+    /**
+     * Quitar folios seleccionados de un plano
+     */
+    public function quitarFolios(Request $request, $id)
+    {
+        if (!Auth::user()->isRegistro()) {
+            abort(403, 'No tienes permisos para quitar folios');
+        }
+
+        $request->validate([
+            'folios_ids' => 'required|array|min:1',
+            'folios_ids.*' => 'required|integer|exists:planos_folios,id'
+        ]);
+
+        $plano = Plano::with('folios')->findOrFail($id);
+
+        // Validar que quede al menos 1 folio
+        $foliosAEliminar = count($request->folios_ids);
+        $foliosTotales = $plano->folios->count();
+
+        if ($foliosAEliminar >= $foliosTotales) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Debe quedar al menos 1 folio en el plano. No se pueden eliminar todos.'
+            ], 422);
+        }
+
+        // Validar que los folios pertenecen al plano
+        $foliosValidos = $plano->folios->pluck('id')->toArray();
+        foreach ($request->folios_ids as $folioId) {
+            if (!in_array($folioId, $foliosValidos)) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Uno o más folios no pertenecen a este plano'
+                ], 422);
+            }
+        }
+
+        try {
+            DB::beginTransaction();
+
+            // Eliminar folios
+            PlanoFolio::whereIn('id', $request->folios_ids)->delete();
+
+            // Recalcular totales
+            $this->recalcularTotalesPlano($id);
+
+            DB::commit();
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Folios eliminados correctamente',
+                'folios_eliminados' => $foliosAEliminar
+            ]);
+
+        } catch (\Exception $e) {
+            DB::rollBack();
+            return response()->json([
+                'success' => false,
+                'message' => 'Error al eliminar folios: ' . $e->getMessage()
+            ], 500);
+        }
     }
 }
