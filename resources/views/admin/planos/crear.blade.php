@@ -164,6 +164,9 @@
             </div>
 
             <div class="text-center">
+                <button type="button" class="btn btn-secondary mr-2" id="btn-volver-tipo">
+                    <i class="fas fa-arrow-left"></i> Volver
+                </button>
                 <button type="button" class="btn btn-primary" id="btn-continuar-folios">
                     <i class="fas fa-arrow-right"></i>
                     Continuar a Folios
@@ -210,6 +213,11 @@
                     </label>
                 </div>
             </div>
+        </div>
+        <div class="text-center mt-3">
+            <button type="button" class="btn btn-secondary" id="btn-volver-configuracion">
+                <i class="fas fa-arrow-left"></i> Volver
+            </button>
         </div>
     </div>
 </div>
@@ -373,7 +381,8 @@ function initEventListeners() {
     // Tipo de plano
     $('input[name="tipo_plano"]').on('change', function() {
         tipoPlanoActual = $(this).val();
-        $('#configuracion-card').show();
+        $('#tipo-plano-card').hide(); // Ocultar paso 1
+        $('#configuracion-card').show(); // Mostrar solo paso 2
         resetFormulario();
     });
 
@@ -396,8 +405,18 @@ function initEventListeners() {
         ubicacionActual = $(this).val();
     });
 
-    // Botones
-    $('#btn-volver').on('click', volverPaso);
+    // Botones navegación wizard principal
+    $('#btn-volver-tipo').on('click', function() {
+        $('#configuracion-card').hide();
+        $('#tipo-plano-card').show();
+    });
+
+    $('#btn-volver-configuracion').on('click', function() {
+        $('#cantidad-folios-card').hide();
+        $('#configuracion-card').show();
+    });
+
+    $('#btn-volver').on('click', volverPasoFolios);
     $('#btn-crear-plano').on('click', crearPlano);
 
     // Búsqueda folios
@@ -451,16 +470,19 @@ function guardarConfiguracion() {
 }
 
 function mostrarSiguientePaso() {
+    $('#configuracion-card').hide(); // Ocultar paso 2
+
     if (tipoPlanoActual === 'matrix') {
-        $('#cantidad-folios-card').show();
+        $('#cantidad-folios-card').show(); // Mostrar solo paso 3
     } else {
         cantidadFoliosActual = 'manual';
-        mostrarFormularioFolios();
+        mostrarFormularioFolios(); // Ir directo a paso 4
     }
 }
 
 function mostrarFormularioFolios() {
-    $('#folios-card').show();
+    $('#cantidad-folios-card').hide(); // Ocultar paso 3 (si estaba visible)
+    $('#folios-card').show(); // Mostrar solo paso 4
 
     // Ocultar todos los formularios
     $('.card-body > div[id^="form-"]').hide();
@@ -1033,19 +1055,19 @@ function actualizarContadorFolios() {
 function resetFormulario() {
     configuracionPlano = {};
     foliosData = [];
+    // Ocultar todos los pasos excepto configuración (que ya está visible)
     $('#cantidad-folios-card, #folios-card').hide();
     $('input[name="cantidad_folios"]').prop('checked', false);
 }
 
-function volverPaso() {
-    // Implementar navegación hacia atrás según el paso actual
-    if ($('#folios-card').is(':visible')) {
-        $('#folios-card').hide();
-        if (tipoPlanoActual === 'matrix') {
-            $('#cantidad-folios-card').show();
-        } else {
-            $('#configuracion-card').show();
-        }
+function volverPasoFolios() {
+    // Volver desde la card de folios
+    $('#folios-card').hide();
+
+    if (tipoPlanoActual === 'matrix') {
+        $('#cantidad-folios-card').show(); // Volver a cantidad si es Matrix
+    } else {
+        $('#configuracion-card').show(); // Volver a configuración si es Manual
     }
 }
 
