@@ -117,97 +117,86 @@
                                 </div>
                             </div>
 
-                            <!-- Ubicación (Rural/Urbano) -->
+                            <!-- Tipo Inmueble (Hijuela/Sitio) -->
                             <div class="form-group">
-                                <label>Ubicación <span class="text-danger">*</span></label>
+                                <label>Tipo Inmueble <span class="text-danger">*</span></label>
                                 <div class="form-check">
-                                    <input class="form-check-input" type="radio" name="ubicacion" id="agregar_rural" value="RURAL" required>
-                                    <label class="form-check-label" for="agregar_rural">
-                                        <i class="fas fa-tree text-success"></i> Rural (Hijuela)
+                                    <input class="form-check-input" type="radio" name="tipo_inmueble" id="agregar_hijuela" value="HIJUELA" required>
+                                    <label class="form-check-label" for="agregar_hijuela">
+                                        <i class="fas fa-tree text-success"></i> HIJUELA (Rural - con hectáreas)
                                     </label>
                                 </div>
                                 <div class="form-check">
-                                    <input class="form-check-input" type="radio" name="ubicacion" id="agregar_urbano" value="URBANO">
-                                    <label class="form-check-label" for="agregar_urbano">
-                                        <i class="fas fa-city text-primary"></i> Urbano (Sitio)
+                                    <input class="form-check-input" type="radio" name="tipo_inmueble" id="agregar_sitio" value="SITIO">
+                                    <label class="form-check-label" for="agregar_sitio">
+                                        <i class="fas fa-city text-primary"></i> SITIO (Urbano - solo m²)
                                     </label>
                                 </div>
                             </div>
 
-                            <!-- Número Hijuela (solo Rural) -->
-                            <div class="row" id="div_numero_hijuela" style="display: none;">
+                            <!-- Número Inmueble -->
+                            <div class="row">
                                 <div class="col-md-12">
                                     <div class="form-group">
-                                        <label>Número Hijuela <span class="text-danger">*</span></label>
-                                        <input type="number" class="form-control" id="agregar_numero_hijuela" name="numero_inmueble">
+                                        <label><span id="label_numero_inmueble">Número</span> <span class="text-danger">*</span></label>
+                                        <input type="number" class="form-control" id="agregar_numero_inmueble" name="numero_inmueble" required min="1">
+                                        <small class="text-muted">Número de la hijuela o sitio</small>
                                     </div>
                                 </div>
                             </div>
 
-                            <!-- Número Sitio (solo Urbano) -->
-                            <div class="row" id="div_numero_sitio" style="display: none;">
+                            <!-- Hectáreas (solo HIJUELA) -->
+                            <div class="row" id="div_hectareas" style="display: none;">
+                                <div class="col-md-12">
+                                    <div class="alert alert-info">
+                                        <i class="fas fa-info-circle"></i>
+                                        <small>Ingresa <strong>hectáreas</strong> o <strong>m²</strong>. El otro campo se calculará automáticamente (1 ha = 10.000 m²).</small>
+                                    </div>
+                                </div>
+                                <div class="col-md-6">
+                                    <div class="form-group">
+                                        <label>Hectáreas</label>
+                                        <div class="input-group">
+                                            <input type="text" class="form-control" id="agregar_hectareas" name="hectareas" placeholder="0,0000">
+                                            <div class="input-group-append">
+                                                <span class="input-group-text">ha</span>
+                                            </div>
+                                        </div>
+                                        <small class="text-muted">Formato: 7,2200 (máx 4 decimales)</small>
+                                    </div>
+                                </div>
+                                <div class="col-md-6">
+                                    <div class="form-group">
+                                        <label>M² (calculado)</label>
+                                        <div class="input-group">
+                                            <input type="text" class="form-control" id="agregar_m2_desde_ha" placeholder="0" readonly>
+                                            <div class="input-group-append">
+                                                <span class="input-group-text">m²</span>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- M² (para ambos tipos) -->
+                            <div class="row">
                                 <div class="col-md-12">
                                     <div class="form-group">
-                                        <label>Número Sitio <span class="text-danger">*</span></label>
-                                        <input type="number" class="form-control" id="agregar_numero_sitio" name="numero_inmueble_sitio">
+                                        <label>Metros Cuadrados (m²) <span class="text-danger">*</span></label>
+                                        <div class="input-group">
+                                            <input type="text" class="form-control" id="agregar_m2" name="m2" required placeholder="0,00">
+                                            <div class="input-group-append">
+                                                <span class="input-group-text">m²</span>
+                                            </div>
+                                        </div>
+                                        <small class="text-muted" id="hint_m2">Formato: 72200,00 o 72.200,00 (se guardará con 2 decimales)</small>
                                     </div>
                                 </div>
                             </div>
 
-                            <!-- Hectáreas y M² (solo Rural) -->
-                            <div id="div_hectareas_m2" style="display: none;">
-                                <div class="alert alert-info">
-                                    <i class="fas fa-info-circle"></i>
-                                    <small>Ingresa <strong>hectáreas</strong> o <strong>m²</strong>. El otro campo se calculará automáticamente.</small>
-                                </div>
-                                <div class="row">
-                                    <div class="col-md-6">
-                                        <div class="form-group">
-                                            <label>Hectáreas <span class="text-danger">*</span></label>
-                                            <div class="input-group">
-                                                <input type="text" class="form-control" id="agregar_hectareas" name="hectareas" placeholder="0,00">
-                                                <div class="input-group-append">
-                                                    <span class="input-group-text">ha</span>
-                                                </div>
-                                            </div>
-                                            <small class="text-muted">Formato: 7,22 (con coma)</small>
-                                        </div>
-                                    </div>
-                                    <div class="col-md-6">
-                                        <div class="form-group">
-                                            <label>Metros Cuadrados <span class="text-danger">*</span></label>
-                                            <div class="input-group">
-                                                <input type="text" class="form-control" id="agregar_m2_rural" name="m2_rural" placeholder="0,00">
-                                                <div class="input-group-append">
-                                                    <span class="input-group-text">m²</span>
-                                                </div>
-                                            </div>
-                                            <small class="text-muted">Formato: 72.200,00</small>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-
-                            <!-- M² solo (solo Urbano) -->
-                            <div id="div_m2_urbano" style="display: none;">
-                                <div class="row">
-                                    <div class="col-md-12">
-                                        <div class="form-group">
-                                            <label>Metros Cuadrados <span class="text-danger">*</span></label>
-                                            <div class="input-group">
-                                                <input type="text" class="form-control" id="agregar_m2_urbano" name="m2_urbano" placeholder="0,00">
-                                                <div class="input-group-append">
-                                                    <span class="input-group-text">m²</span>
-                                                </div>
-                                            </div>
-                                            <small class="text-muted">Formato: 6.629,22</small>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-
-                            <input type="hidden" id="agregar_tipo_inmueble" name="tipo_inmueble">
-                            <input type="hidden" id="agregar_m2_final" name="m2">
+                            <!-- Campos ocultos para Matrix -->
+                            <input type="hidden" id="agregar_is_from_matrix" name="is_from_matrix" value="0">
+                            <input type="hidden" id="agregar_matrix_folio" name="matrix_folio">
 
                             <button type="submit" class="btn btn-success">
                                 <i class="fas fa-plus"></i> Agregar Folio

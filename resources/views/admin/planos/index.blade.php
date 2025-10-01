@@ -1614,7 +1614,231 @@ $('#modal-gestionar-folios').on('hidden.bs.modal', function() {
     $('#form-agregar-folio')[0].reset();
     $('.folio-checkbox').prop('checked', false);
     // Ocultar todos los divs de agregar folio
-    $('#div_numero_hijuela, #div_numero_sitio, #div_hectareas_m2, #div_m2_urbano').hide();
+    $('#div_hectareas').hide();
+    $('#agregar_is_from_matrix').val('0');
+    $('#agregar_matrix_folio').val('');
+});
+
+// ========================================
+// TAB 2: AGREGAR FOLIO - Funcionalidad
+// ========================================
+
+// Toggle entre HIJUELA y SITIO
+$('input[name="tipo_inmueble"]').on('change', function() {
+    const tipoInmueble = $(this).val();
+
+    if (tipoInmueble === 'HIJUELA') {
+        // Mostrar sección de hectáreas
+        $('#div_hectareas').slideDown();
+        $('#label_numero_inmueble').text('Número Hijuela');
+        $('#hint_m2').text('O ingresa m² directamente (se calculará hectáreas automáticamente)');
+    } else {
+        // Ocultar hectáreas y limpiar
+        $('#div_hectareas').slideUp();
+        $('#agregar_hectareas').val('');
+        $('#agregar_m2_desde_ha').val('');
+        $('#label_numero_inmueble').text('Número Sitio');
+        $('#hint_m2').text('Formato: 6.629,22 (se guardará con 2 decimales)');
+    }
+});
+
+// Conversión Hectáreas -> M² (1 ha = 10,000 m²)
+$('#agregar_hectareas').on('input', function() {
+    let valor = $(this).val().replace(',', '.'); // Convertir coma a punto
+
+    if (valor && !isNaN(valor)) {
+        const hectareas = parseFloat(valor);
+        const m2 = hectareas * 10000;
+
+        // Mostrar m² calculados (solo lectura)
+        $('#agregar_m2_desde_ha').val(formatearNumero(m2, 2));
+
+        // Actualizar campo m2 principal
+        $('#agregar_m2').val(formatearNumero(m2, 2));
+    } else {
+        $('#agregar_m2_desde_ha').val('');
+    }
+});
+
+// Conversión M² -> Hectáreas (solo si es HIJUELA)
+$('#agregar_m2').on('input', function() {
+    let valor = $(this).val().replace(/\./g, '').replace(',', '.'); // Quitar puntos miles, convertir coma a punto
+
+    if (valor && !isNaN(valor) && $('input[name="tipo_inmueble"]:checked').val() === 'HIJUELA') {
+        const m2 = parseFloat(valor);
+        const hectareas = m2 / 10000;
+
+        // Actualizar hectáreas si está visible
+        if ($('#div_hectareas').is(':visible')) {
+            $('#agregar_hectareas').val(formatearNumero(hectareas, 4));
+            $('#agregar_m2_desde_ha').val(formatearNumero(m2, 2));
+        }
+    }
+});
+
+// Formatear números con separador de miles
+function formatearNumero(numero, decimales) {
+    return numero.toFixed(decimales).replace('.', ',').replace(/\B(?=(\d{3})+(?!\d))/g, '.');
+}
+
+// Buscar folio en Matrix (opcional)
+$('#btn-buscar-matrix').on('click', function() {
+    const folio = $('#buscar-matrix-folio').val().trim();
+
+    if (!folio) {
+        Swal.fire('Atención', 'Ingresa un número de folio para buscar', 'warning');
+        return;
+    }
+
+    const $btn = $(this);
+    const originalText = $btn.html();
+    $btn.prop('disabled', true).html('<i class="fas fa-spinner fa-spin"></i>');
+
+    $.ajax({
+        url: '{{ route("api.matrix.buscar") }}',
+        method: 'GET',
+        data: { folio: folio },
+        success: function(response) {
+            if (response.encontrado) {
+                // Autocompletar datos del formulario
+                $('#agregar_folio').val(response.data.folio || '');
+                $('#agregar_solicitante').val(response.data.nombres || '');
+                $('#agregar_apellido_paterno').val(response.data.apellido_paterno || '');
+                $('#agregar_apellido_materno').val(response.data.apellido_materno || '');
+
+                // Marcar como proveniente de Matrix
+                $('#agregar_is_from_matrix').val('1');
+                $('#agregar_matrix_folio').val(folio);
+
+                Swal.fire({
+                    icon: 'success',
+                    title: '¡Folio encontrado!',
+                    text: 'Datos autocompletados desde Matrix',
+                    timer: 2000,
+                    showConfirmButton: false
+                });
+            } else {
+                Swal.fire({
+                    icon: 'info',
+                    title: 'Folio no encontrado',
+                    text: 'Puedes ingresar los datos manualmente',
+                    confirmButtonText: 'Entendido'
+                });
+            }
+        },
+        error: function() {
+            Swal.fire('Error', 'Error al buscar en Matrix', 'error');
+        },
+        complete: function() {
+            $btn.prop('disabled', false).html(originalText);
+        }
+    });
+});
+
+// Submit formulario agregar folio
+$('#form-agregar-folio').on('submit', function(e) {
+    e.preventDefault();
+
+    const planoId = $('#modal-gestionar-folios').data('plano-id');
+
+    if (!planoId) {
+        Swal.fire('Error', 'No se pudo identificar el plano', 'error');
+        return;
+    }
+
+    // Validaciones básicas
+    const tipoInmueble = $('input[name="tipo_inmueble"]:checked').val();
+    const m2 = $('#agregar_m2').val().trim();
+    const numeroInmueble = $('#agregar_numero_inmueble').val().trim();
+
+    if (!tipoInmueble) {
+        Swal.fire('Atención', 'Selecciona el tipo de inmueble (HIJUELA o SITIO)', 'warning');
+        return;
+    }
+
+    if (!numeroInmueble) {
+        Swal.fire('Atención', 'Ingresa el número de inmueble', 'warning');
+        return;
+    }
+
+    if (!m2) {
+        Swal.fire('Atención', 'Ingresa los metros cuadrados', 'warning');
+        return;
+    }
+
+    // Preparar datos para envío
+    const formData = {
+        folio: $('#agregar_folio').val().trim(),
+        solicitante: $('#agregar_solicitante').val().trim(),
+        apellido_paterno: $('#agregar_apellido_paterno').val().trim(),
+        apellido_materno: $('#agregar_apellido_materno').val().trim(),
+        tipo_inmueble: tipoInmueble,
+        numero_inmueble: numeroInmueble,
+        m2: m2.replace(/\./g, '').replace(',', '.'), // Convertir a formato numérico
+        is_from_matrix: $('#agregar_is_from_matrix').val() === '1',
+        matrix_folio: $('#agregar_matrix_folio').val() || null,
+        _token: '{{ csrf_token() }}'
+    };
+
+    // Solo enviar hectáreas si es HIJUELA
+    if (tipoInmueble === 'HIJUELA') {
+        const hectareas = $('#agregar_hectareas').val().trim();
+        if (hectareas) {
+            formData.hectareas = hectareas.replace(/\./g, '').replace(',', '.');
+        }
+    }
+
+    // Deshabilitar botón submit
+    const $submitBtn = $('#form-agregar-folio button[type="submit"]');
+    const originalText = $submitBtn.html();
+    $submitBtn.prop('disabled', true).html('<i class="fas fa-spinner fa-spin"></i> Agregando...');
+
+    $.ajax({
+        url: `{{ url('/planos') }}/${planoId}/agregar-folio`,
+        method: 'POST',
+        data: formData,
+        success: function(response) {
+            if (response.success) {
+                Swal.fire({
+                    icon: 'success',
+                    title: '¡Folio agregado!',
+                    text: response.message,
+                    timer: 2000,
+                    showConfirmButton: false
+                });
+
+                // Cerrar modal y recargar tabla
+                $('#modal-gestionar-folios').modal('hide');
+                planosTable.draw(false);
+
+                // Limpiar formulario
+                $('#form-agregar-folio')[0].reset();
+                $('#div_hectareas').hide();
+            } else {
+                Swal.fire('Error', response.message, 'error');
+            }
+        },
+        error: function(xhr) {
+            let mensaje = 'Error al agregar folio';
+
+            if (xhr.responseJSON?.message) {
+                mensaje = xhr.responseJSON.message;
+            } else if (xhr.responseJSON?.errors) {
+                // Errores de validación
+                const errores = Object.values(xhr.responseJSON.errors).flat();
+                mensaje = errores.join('<br>');
+            }
+
+            Swal.fire({
+                icon: 'error',
+                title: 'Error',
+                html: mensaje
+            });
+        },
+        complete: function() {
+            $submitBtn.prop('disabled', false).html(originalText);
+        }
+    });
 });
 
 //===========================================
