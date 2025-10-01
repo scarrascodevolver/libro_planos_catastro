@@ -724,12 +724,20 @@ class PlanoController extends Controller
 
         $plano = Plano::with('folios')->findOrFail($id);
 
+        // Determinar si es rural o urbano según tipo_saneamiento
+        $tipoPlano = $plano->tipo_saneamiento;
+        $esRural = in_array($tipoPlano, ['SR', 'CR']);
+        $tipoInmueble = $esRural ? 'HIJUELA' : 'SITIO';
+
         return response()->json([
             'success' => true,
             'plano' => [
                 'id' => $plano->id,
                 'numero_plano_completo' => $this->formatNumeroPlanoCompleto($plano),
-                'cantidad_folios' => $plano->cantidad_folios
+                'cantidad_folios' => $plano->cantidad_folios,
+                'tipo_saneamiento' => $tipoPlano,
+                'es_rural' => $esRural,
+                'tipo_inmueble' => $tipoInmueble
             ],
             'folios' => $plano->folios->map(function($folio) {
                 return [
@@ -813,7 +821,7 @@ class PlanoController extends Controller
     }
 
     /**
-     * Agregar un folio a un plano existente
+     * Agregar uno o múltiples folios (hijuelas/sitios) a un plano existente
      */
     public function agregarFolio(Request $request, $id)
     {
@@ -821,73 +829,75 @@ class PlanoController extends Controller
             abort(403, 'No tienes permisos para agregar folios');
         }
 
+        // Validar datos base del folio
         $validated = $request->validate([
             'folio' => 'nullable|string|max:50',
             'solicitante' => 'required|string|max:255',
             'apellido_paterno' => 'nullable|string|max:255',
             'apellido_materno' => 'nullable|string|max:255',
-            'tipo_inmueble' => 'required|in:HIJUELA,SITIO',
-            'numero_inmueble' => 'required|integer|min:1',
-            'hectareas' => 'nullable|numeric|min:0',
-            'm2' => 'required|numeric|min:0.01',
             'is_from_matrix' => 'nullable|boolean',
-            'matrix_folio' => 'nullable|string|max:50'
+            'matrix_folio' => 'nullable|string|max:50',
+            // Array de inmuebles (hijuelas o sitios)
+            'inmuebles' => 'required|array|min:1|max:20',
+            'inmuebles.*.numero_inmueble' => 'required|integer|min:1',
+            'inmuebles.*.hectareas' => 'nullable|numeric|min:0',
+            'inmuebles.*.m2' => 'required|numeric|min:0.01',
         ]);
 
-        $plano = Plano::findOrFail($id);
+        $plano = Plano::with('folios')->findOrFail($id);
 
-        // Validar que el folio no exista ya en este plano (si viene folio)
-        if (!empty($validated['folio'])) {
-            $existe = PlanoFolio::where('plano_id', $id)
-                ->where('folio', $validated['folio'])
-                ->exists();
-
-            if ($existe) {
-                return response()->json([
-                    'success' => false,
-                    'message' => 'Este folio ya existe en el plano'
-                ], 422);
-            }
-        }
-
-        // Si es SITIO, limpiar hectáreas
-        if ($validated['tipo_inmueble'] === 'SITIO') {
-            $validated['hectareas'] = null;
-        }
+        // Determinar tipo_inmueble según tipo_saneamiento del plano
+        $tipoPlano = $plano->tipo_saneamiento;
+        $tipoInmueble = in_array($tipoPlano, ['SR', 'CR']) ? 'HIJUELA' : 'SITIO';
 
         try {
             DB::beginTransaction();
 
-            // Crear nuevo folio
-            PlanoFolio::create([
-                'plano_id' => $id,
-                'folio' => $validated['folio'],
-                'solicitante' => $validated['solicitante'],
-                'apellido_paterno' => $validated['apellido_paterno'],
-                'apellido_materno' => $validated['apellido_materno'],
-                'tipo_inmueble' => $validated['tipo_inmueble'],
-                'numero_inmueble' => $validated['numero_inmueble'],
-                'hectareas' => $validated['hectareas'],
-                'm2' => $validated['m2'],
-                'is_from_matrix' => $validated['is_from_matrix'] ?? false,
-                'matrix_folio' => $validated['matrix_folio']
-            ]);
+            $foliosCreados = 0;
+
+            // Crear un registro por cada hijuela/sitio
+            foreach ($validated['inmuebles'] as $inmueble) {
+
+                // Si es SITIO, forzar hectareas a null
+                $hectareas = ($tipoInmueble === 'HIJUELA') ? ($inmueble['hectareas'] ?? null) : null;
+
+                PlanoFolio::create([
+                    'plano_id' => $id,
+                    'folio' => $validated['folio'] ?: null,
+                    'solicitante' => $validated['solicitante'],
+                    'apellido_paterno' => $validated['apellido_paterno'] ?? null,
+                    'apellido_materno' => $validated['apellido_materno'] ?? null,
+                    'tipo_inmueble' => $tipoInmueble,
+                    'numero_inmueble' => $inmueble['numero_inmueble'],
+                    'hectareas' => $hectareas,
+                    'm2' => $inmueble['m2'],
+                    'is_from_matrix' => $validated['is_from_matrix'] ?? false,
+                    'matrix_folio' => $validated['matrix_folio'] ?? null
+                ]);
+
+                $foliosCreados++;
+            }
 
             // Recalcular totales del plano
             $this->recalcularTotalesPlano($id);
 
             DB::commit();
 
+            $mensaje = $foliosCreados === 1
+                ? 'Folio agregado exitosamente'
+                : "{$foliosCreados} folios agregados exitosamente";
+
             return response()->json([
                 'success' => true,
-                'message' => 'Folio agregado exitosamente al plano'
+                'message' => $mensaje,
+                'folios_creados' => $foliosCreados
             ]);
 
         } catch (\Exception $e) {
             DB::rollBack();
             return response()->json([
                 'success' => false,
-                'message' => 'Error al agregar folio: ' . $e->getMessage()
+                'message' => 'Error al agregar folios: ' . $e->getMessage()
             ], 500);
         }
     }

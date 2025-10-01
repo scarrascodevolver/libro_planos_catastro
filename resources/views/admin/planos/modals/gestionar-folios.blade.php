@@ -58,13 +58,17 @@
 
                     <!-- TAB 2: AGREGAR FOLIO -->
                     <div class="tab-pane fade" id="agregar-folio-content" role="tabpanel">
+                        <!-- Alert info dinámico -->
                         <div class="alert alert-success">
                             <i class="fas fa-info-circle"></i>
-                            Ingresa los datos del nuevo folio manualmente o búscalo en la base de datos Matrix.
+                            Plano tipo: <strong id="info-tipo-plano">-</strong> |
+                            Este plano solo acepta <strong id="info-tipo-inmueble">-</strong>
                         </div>
 
                         <form id="form-agregar-folio">
                             <input type="hidden" id="agregar_plano_id" name="plano_id">
+                            <input type="hidden" id="agregar_tipo_plano" value="">
+                            <input type="hidden" id="agregar_es_rural" value="">
 
                             <!-- Búsqueda opcional en Matrix -->
                             <div class="card mb-3">
@@ -86,15 +90,16 @@
                                 </div>
                             </div>
 
-                            <!-- Formulario manual -->
+                            <!-- Datos base del folio -->
+                            <h6 class="text-primary mb-2"><i class="fas fa-user"></i> Datos del Folio</h6>
                             <div class="row">
-                                <div class="col-md-6">
+                                <div class="col-md-4">
                                     <div class="form-group">
                                         <label>Folio</label>
-                                        <input type="text" class="form-control" id="agregar_folio" name="folio" placeholder="Número de folio">
+                                        <input type="text" class="form-control" id="agregar_folio" name="folio" placeholder="Número de folio (opcional)">
                                     </div>
                                 </div>
-                                <div class="col-md-6">
+                                <div class="col-md-8">
                                     <div class="form-group">
                                         <label>Solicitante <span class="text-danger">*</span></label>
                                         <input type="text" class="form-control" id="agregar_solicitante" name="solicitante" required>
@@ -117,89 +122,42 @@
                                 </div>
                             </div>
 
-                            <!-- Tipo Inmueble (Hijuela/Sitio) -->
+                            <hr>
+
+                            <!-- Selector de cantidad -->
+                            <h6 class="text-primary mb-2">
+                                <i class="fas fa-list-ol"></i>
+                                ¿Cuántas <span id="label-tipo-cantidad">hijuelas/sitios</span> tiene este folio?
+                            </h6>
                             <div class="form-group">
-                                <label>Tipo Inmueble <span class="text-danger">*</span></label>
-                                <div class="form-check">
-                                    <input class="form-check-input" type="radio" name="tipo_inmueble" id="agregar_hijuela" value="HIJUELA" required>
-                                    <label class="form-check-label" for="agregar_hijuela">
-                                        <i class="fas fa-tree text-success"></i> HIJUELA (Rural - con hectáreas)
-                                    </label>
-                                </div>
-                                <div class="form-check">
-                                    <input class="form-check-input" type="radio" name="tipo_inmueble" id="agregar_sitio" value="SITIO">
-                                    <label class="form-check-label" for="agregar_sitio">
-                                        <i class="fas fa-city text-primary"></i> SITIO (Urbano - solo m²)
-                                    </label>
-                                </div>
+                                <select class="form-control" id="cantidad-inmuebles" required>
+                                    <option value="">Selecciona cantidad...</option>
+                                    <option value="1">1</option>
+                                    <option value="2">2</option>
+                                    <option value="3">3</option>
+                                    <option value="4">4</option>
+                                    <option value="5">5</option>
+                                    <option value="6">6</option>
+                                    <option value="7">7</option>
+                                    <option value="8">8</option>
+                                    <option value="9">9</option>
+                                    <option value="10">10</option>
+                                </select>
                             </div>
 
-                            <!-- Número Inmueble -->
-                            <div class="row">
-                                <div class="col-md-12">
-                                    <div class="form-group">
-                                        <label><span id="label_numero_inmueble">Número</span> <span class="text-danger">*</span></label>
-                                        <input type="number" class="form-control" id="agregar_numero_inmueble" name="numero_inmueble" required min="1">
-                                        <small class="text-muted">Número de la hijuela o sitio</small>
-                                    </div>
-                                </div>
-                            </div>
+                            <hr>
 
-                            <!-- Hectáreas (solo HIJUELA) -->
-                            <div class="row" id="div_hectareas" style="display: none;">
-                                <div class="col-md-12">
-                                    <div class="alert alert-info">
-                                        <i class="fas fa-info-circle"></i>
-                                        <small>Ingresa <strong>hectáreas</strong> o <strong>m²</strong>. El otro campo se calculará automáticamente (1 ha = 10.000 m²).</small>
-                                    </div>
-                                </div>
-                                <div class="col-md-6">
-                                    <div class="form-group">
-                                        <label>Hectáreas</label>
-                                        <div class="input-group">
-                                            <input type="text" class="form-control" id="agregar_hectareas" name="hectareas" placeholder="0,0000">
-                                            <div class="input-group-append">
-                                                <span class="input-group-text">ha</span>
-                                            </div>
-                                        </div>
-                                        <small class="text-muted">Formato: 7,2200 (máx 4 decimales)</small>
-                                    </div>
-                                </div>
-                                <div class="col-md-6">
-                                    <div class="form-group">
-                                        <label>M² (calculado)</label>
-                                        <div class="input-group">
-                                            <input type="text" class="form-control" id="agregar_m2_desde_ha" placeholder="0" readonly>
-                                            <div class="input-group-append">
-                                                <span class="input-group-text">m²</span>
-                                            </div>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-
-                            <!-- M² (para ambos tipos) -->
-                            <div class="row">
-                                <div class="col-md-12">
-                                    <div class="form-group">
-                                        <label>Metros Cuadrados (m²) <span class="text-danger">*</span></label>
-                                        <div class="input-group">
-                                            <input type="text" class="form-control" id="agregar_m2" name="m2" required placeholder="0,00">
-                                            <div class="input-group-append">
-                                                <span class="input-group-text">m²</span>
-                                            </div>
-                                        </div>
-                                        <small class="text-muted" id="hint_m2">Formato: 72200,00 o 72.200,00 (se guardará con 2 decimales)</small>
-                                    </div>
-                                </div>
+                            <!-- Contenedor dinámico para hijuelas/sitios -->
+                            <div id="contenedor-inmuebles">
+                                <!-- Aquí se generarán formularios dinámicamente -->
                             </div>
 
                             <!-- Campos ocultos para Matrix -->
                             <input type="hidden" id="agregar_is_from_matrix" name="is_from_matrix" value="0">
                             <input type="hidden" id="agregar_matrix_folio" name="matrix_folio">
 
-                            <button type="submit" class="btn btn-success">
-                                <i class="fas fa-plus"></i> Agregar Folio
+                            <button type="submit" class="btn btn-success btn-lg btn-block" id="btn-submit-agregar" disabled>
+                                <i class="fas fa-plus"></i> Agregar Folio(s)
                             </button>
                         </form>
                     </div>

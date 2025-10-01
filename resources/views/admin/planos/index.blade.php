@@ -1613,15 +1613,20 @@ $('#modal-gestionar-folios').on('hidden.bs.modal', function() {
     $('#quitar-folios-lista').html('');
     $('#form-agregar-folio')[0].reset();
     $('.folio-checkbox').prop('checked', false);
-    // Ocultar todos los divs de agregar folio
-    $('#div_hectareas').hide();
+    $('#contenedor-inmuebles').html('');
+    $('#btn-submit-agregar').prop('disabled', true);
+    $('#cantidad-inmuebles').val('');
     $('#agregar_is_from_matrix').val('0');
     $('#agregar_matrix_folio').val('');
 });
 
 // ========================================
-// TAB 2: AGREGAR FOLIO - Funcionalidad
+// TAB 2: AGREGAR FOLIO - Nueva lógica múltiples inmuebles
 // ========================================
+
+let tipoPlanoGlobal = '';
+let esRuralGlobal = false;
+let tipoInmuebleGlobal = '';
 
 // Toggle entre HIJUELA y SITIO
 $('input[name="tipo_inmueble"]').on('change', function() {
