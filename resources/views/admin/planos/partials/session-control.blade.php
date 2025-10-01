@@ -74,6 +74,7 @@
     </div>
 </div>
 
+@push('scripts')
 <script>
 $(document).ready(function() {
     initSessionControlWidget();
@@ -208,5 +209,6 @@ setInterval(function() {
     checkSessionStatusWidget();
 }, 60000);
 </script>
+@endpush
 
 @endif
