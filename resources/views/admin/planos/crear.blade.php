@@ -293,10 +293,29 @@
                 <strong>Plano Manual:</strong> Complete todos los campos manualmente.
                 Para casos fiscales use "FISCO DE CHILE" como solicitante sin apellidos.
             </div>
+
+            <!-- Wizard: Indicador de progreso -->
+            <div class="text-center mb-3" id="wizard-indicador" style="display: none;">
+                <h5>
+                    <span class="badge badge-primary" id="wizard-paso-actual">Folio 1 de 1</span>
+                </h5>
+            </div>
+
             <div id="manual-folios-container">
                 <!-- Se genera dinámicamente -->
             </div>
-            <button type="button" class="btn btn-sm btn-secondary" id="agregar-fila-manual">
+
+            <!-- Wizard: Botones de navegación -->
+            <div class="text-center mt-3" id="wizard-navegacion" style="display: none;">
+                <button type="button" class="btn btn-secondary" id="btn-wizard-anterior">
+                    <i class="fas fa-arrow-left"></i> Anterior
+                </button>
+                <button type="button" class="btn btn-primary" id="btn-wizard-siguiente">
+                    Siguiente <i class="fas fa-arrow-right"></i>
+                </button>
+            </div>
+
+            <button type="button" class="btn btn-sm btn-secondary mt-2" id="agregar-fila-manual">
                 <i class="fas fa-plus"></i> Agregar Folio
             </button>
         </div>
@@ -336,6 +355,7 @@ let foliosData = [];
 let tipoPlanoActual = null;
 let cantidadFoliosActual = null;
 let ubicacionActual = null;
+let wizardPasoActual = 0; // Índice del folio actual en wizard (0-based)
 
 function initCrearPlanos() {
     initSelect2();
@@ -387,6 +407,10 @@ function initEventListeners() {
     // Agregar filas
     $('#agregar-fila-folio').on('click', agregarFilaFolio);
     $('#agregar-fila-manual').on('click', agregarFilaManual);
+
+    // Wizard navegación
+    $('#btn-wizard-anterior').on('click', wizardAnterior);
+    $('#btn-wizard-siguiente').on('click', wizardSiguiente);
 }
 
 function validarConfiguracion() {
@@ -715,6 +739,7 @@ function continuarConFoliosMasivos() {
 function inicializarManual() {
     $('#manual-folios-container').empty();
     agregarFilaManual();
+    // inicializarWizard() ya se llama dentro de agregarFilaManual()
 }
 
 function agregarFilaManual() {
@@ -801,11 +826,13 @@ function agregarFilaManual() {
 
     $('#manual-folios-container').append(html);
     actualizarContadorFolios();
+    inicializarWizard(); // Activar wizard después de agregar
 }
 
 function eliminarFilaManual(index) {
     $(`.manual-folio-row:has([data-index="${index}"])`).remove();
     actualizarContadorFolios();
+    inicializarWizard(); // Actualizar wizard después de eliminar
 }
 
 function mostrarFormularioManual(foliosPreCargados = null) {
@@ -896,6 +923,7 @@ function mostrarFormularioManual(foliosPreCargados = null) {
 
     $('#form-manual').show();
     actualizarContadorFolios();
+    inicializarWizard(); // Activar wizard al mostrar formulario
 }
 
 function recopilarFoliosFinales() {
@@ -1030,6 +1058,58 @@ function showProgressModal(title, message) {
 
 function hideProgressModal() {
     $('#progress-modal').modal('hide');
+}
+
+// =====================================================
+// WIZARD: Sistema de navegación paso a paso
+// =====================================================
+
+function mostrarFolioWizard(indice) {
+    const $folios = $('.manual-folio-row');
+    const totalFolios = $folios.length;
+
+    if (totalFolios === 0) return;
+
+    // Validar índice
+    if (indice < 0) indice = 0;
+    if (indice >= totalFolios) indice = totalFolios - 1;
+
+    wizardPasoActual = indice;
+
+    // Ocultar todos los folios
+    $folios.hide();
+
+    // Mostrar solo el folio actual
+    $folios.eq(indice).fadeIn(300);
+
+    // Actualizar indicador
+    $('#wizard-paso-actual').text(`Folio ${indice + 1} de ${totalFolios}`);
+
+    // Mostrar/ocultar wizard si hay más de 1 folio
+    if (totalFolios > 1) {
+        $('#wizard-indicador').show();
+        $('#wizard-navegacion').show();
+
+        // Habilitar/deshabilitar botones según posición
+        $('#btn-wizard-anterior').prop('disabled', indice === 0);
+        $('#btn-wizard-siguiente').prop('disabled', indice === totalFolios - 1);
+    } else {
+        $('#wizard-indicador').hide();
+        $('#wizard-navegacion').hide();
+    }
+}
+
+function wizardAnterior() {
+    mostrarFolioWizard(wizardPasoActual - 1);
+}
+
+function wizardSiguiente() {
+    mostrarFolioWizard(wizardPasoActual + 1);
+}
+
+function inicializarWizard() {
+    wizardPasoActual = 0;
+    mostrarFolioWizard(0);
 }
 </script>
 @endpush
