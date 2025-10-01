@@ -1450,6 +1450,19 @@ function abrirModalGestionFolios(planoId) {
                 $('#modal-gestionar-folios').data('plano-id', planoId);
                 $('#agregar_plano_id').val(planoId);
 
+                // NUEVO: Guardar datos del tipo de plano
+                tipoPlanoGlobal = response.plano.tipo_saneamiento;
+                esRuralGlobal = response.plano.es_rural;
+                tipoInmuebleGlobal = response.plano.tipo_inmueble;
+
+                $('#agregar_tipo_plano').val(tipoPlanoGlobal);
+                $('#agregar_es_rural').val(esRuralGlobal ? '1' : '0');
+
+                // NUEVO: Actualizar textos informativos
+                $('#info-tipo-plano').text(tipoPlanoGlobal);
+                $('#info-tipo-inmueble').text(tipoInmuebleGlobal + 'S');
+                $('#label-tipo-cantidad').text(tipoInmuebleGlobal.toLowerCase() + 's');
+
                 // Renderizar lista de folios
                 renderizarListaFolios(response.folios, response.plano.cantidad_folios);
             }
@@ -1628,24 +1641,7 @@ let tipoPlanoGlobal = '';
 let esRuralGlobal = false;
 let tipoInmuebleGlobal = '';
 
-// Toggle entre HIJUELA y SITIO
-$('input[name="tipo_inmueble"]').on('change', function() {
-    const tipoInmueble = $(this).val();
-
-    if (tipoInmueble === 'HIJUELA') {
-        // Mostrar sección de hectáreas
-        $('#div_hectareas').slideDown();
-        $('#label_numero_inmueble').text('Número Hijuela');
-        $('#hint_m2').text('O ingresa m² directamente (se calculará hectáreas automáticamente)');
-    } else {
-        // Ocultar hectáreas y limpiar
-        $('#div_hectareas').slideUp();
-        $('#agregar_hectareas').val('');
-        $('#agregar_m2_desde_ha').val('');
-        $('#label_numero_inmueble').text('Número Sitio');
-        $('#hint_m2').text('Formato: 6.629,22 (se guardará con 2 decimales)');
-    }
-});
+// BLOQUE 2: Actualizar función abrirModalGestionFolios() con info del plano
 
 // Conversión Hectáreas -> M² (1 ha = 10,000 m²)
 $('#agregar_hectareas').on('input', function() {
