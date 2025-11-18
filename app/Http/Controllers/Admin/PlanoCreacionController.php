@@ -303,9 +303,9 @@ class PlanoCreacionController extends Controller
                 'created_by' => Auth::id()
             ]);
 
-            // Crear folios
+            // Crear folios con sus inmuebles
             foreach ($request->folios as $folioData) {
-                PlanoFolio::create([
+                $planoFolio = PlanoFolio::create([
                     'plano_id' => $plano->id,
                     'folio' => $folioData['folio'],
                     'solicitante' => $folioData['solicitante'],
@@ -318,6 +318,19 @@ class PlanoCreacionController extends Controller
                     'is_from_matrix' => $folioData['is_from_matrix'],
                     'matrix_folio' => $folioData['is_from_matrix'] ? $folioData['folio'] : null
                 ]);
+
+                // Crear inmuebles (desglose de hijuelas/sitios) si existen
+                if (!empty($folioData['inmuebles'])) {
+                    foreach ($folioData['inmuebles'] as $inmuebleData) {
+                        \App\Models\PlanoFolioInmueble::create([
+                            'plano_folio_id' => $planoFolio->id,
+                            'numero_inmueble' => $inmuebleData['numero_inmueble'],
+                            'tipo_inmueble' => $inmuebleData['tipo_inmueble'],
+                            'hectareas' => $inmuebleData['hectareas'] ?? null,
+                            'm2' => $inmuebleData['m2']
+                        ]);
+                    }
+                }
             }
 
             DB::commit();

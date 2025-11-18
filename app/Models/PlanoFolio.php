@@ -27,6 +27,22 @@ class PlanoFolio extends Model
         return $this->belongsTo(Plano::class);
     }
 
+    /**
+     * Relación con los inmuebles (hijuelas/sitios) individuales
+     */
+    public function inmuebles()
+    {
+        return $this->hasMany(PlanoFolioInmueble::class, 'plano_folio_id')->orderBy('numero_inmueble');
+    }
+
+    /**
+     * Verificar si tiene desglose de inmuebles
+     */
+    public function tieneDesglose(): bool
+    {
+        return $this->inmuebles()->count() > 0;
+    }
+
     public function getNombreCompletoAttribute(): string
     {
         return trim($this->solicitante . ' ' . $this->apellido_paterno . ' ' . $this->apellido_materno);

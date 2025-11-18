@@ -462,18 +462,42 @@ class PlanoController extends Controller
 
         foreach ($plano->folios as $folio) {
             $tipoLabel = $folio->tipo_inmueble ?: 'HIJUELA';
-            $numero = $folio->numero_inmueble ? " #{$folio->numero_inmueble}" : '';
             $badgeColor = $tipoLabel == 'HIJUELA' ? 'info' : 'warning';
-
-            $hectareasDisplay = $folio->hectareas
-                ? number_format($folio->hectareas, 4, ',', '.') . ' ha'
-                : '-';
-
-            $m2Display = number_format($folio->m2 ?: 0, 0, ',', '.') . ' m²';
-
             $nombreCompleto = trim(($folio->solicitante ?: '') . ' ' . ($folio->apellido_paterno ?: '') . ' ' . ($folio->apellido_materno ?: ''));
 
-            $html .= '
+            // Verificar si tiene desglose de inmuebles
+            $inmuebles = $folio->inmuebles;
+
+            if ($inmuebles->count() > 0) {
+                // Mostrar cada inmueble por separado
+                foreach ($inmuebles as $inmueble) {
+                    $hectareasDisplay = $inmueble->hectareas
+                        ? number_format($inmueble->hectareas, 4, ',', '.') . ' ha'
+                        : '-';
+                    $m2Display = number_format($inmueble->m2 ?: 0, 0, ',', '.') . ' m²';
+
+                    $html .= '
+                                    <tr>
+                                        <td class="text-center">
+                                            <span class="badge badge-' . $badgeColor . '">
+                                                ' . $inmueble->tipo_inmueble . ' #' . $inmueble->numero_inmueble . '
+                                            </span>
+                                        </td>
+                                        <td><strong>' . ($folio->folio ?: '-') . '</strong></td>
+                                        <td>' . ($nombreCompleto ?: '-') . '</td>
+                                        <td class="text-right">' . $hectareasDisplay . '</td>
+                                        <td class="text-right"><strong>' . $m2Display . '</strong></td>
+                                    </tr>';
+                }
+            } else {
+                // Sin desglose - mostrar solo el folio con totales
+                $numero = $folio->numero_inmueble ? " ({$folio->numero_inmueble})" : '';
+                $hectareasDisplay = $folio->hectareas
+                    ? number_format($folio->hectareas, 4, ',', '.') . ' ha'
+                    : '-';
+                $m2Display = number_format($folio->m2 ?: 0, 0, ',', '.') . ' m²';
+
+                $html .= '
                                     <tr>
                                         <td class="text-center">
                                             <span class="badge badge-' . $badgeColor . '">
@@ -485,6 +509,7 @@ class PlanoController extends Controller
                                         <td class="text-right">' . $hectareasDisplay . '</td>
                                         <td class="text-right"><strong>' . $m2Display . '</strong></td>
                                     </tr>';
+            }
         }
 
         // Fila de totales

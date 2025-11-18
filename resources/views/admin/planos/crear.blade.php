@@ -1495,7 +1495,7 @@ function recolectarFoliosManuales() {
         return false;
     }
 
-    // Recolectar cada folio - CREAR UN REGISTRO POR CADA HIJUELA/SITIO
+    // Recolectar cada folio con sus inmuebles (hijuelas/sitios)
     let errores = [];
     $('.solicitante-manual').each(function(index) {
         const solicitante = $(this).val().trim();
@@ -1508,8 +1508,10 @@ function recolectarFoliosManuales() {
             return;
         }
 
-        // Crear un registro por cada hijuela/sitio de este folio
-        let tieneAlMenosUno = false;
+        // Recolectar inmuebles (hijuelas/sitios) de este folio
+        let inmuebles = [];
+        let totalM2 = 0;
+        let totalHectareas = 0;
 
         $(`.m2-inmueble[data-folio="${index}"]`).each(function(inmuebleIndex) {
             const m2Valor = $(this).val();
@@ -1518,20 +1520,10 @@ function recolectarFoliosManuales() {
             const m2 = parseFloat(m2Valor.replace(/\./g, '').replace(',', '.'));
             if (isNaN(m2) || m2 <= 0) return;
 
-            tieneAlMenosUno = true;
-
-            const folioData = {
-                folio: folio || null,
-                solicitante: solicitante,
-                apellido_paterno: apPaterno || null,
-                apellido_materno: apMaterno || null,
+            const inmuebleData = {
+                numero_inmueble: inmuebleIndex + 1,
                 tipo_inmueble: tipoInmueble,
-                numero_inmueble: inmuebleIndex + 1, // Hijuela #1, #2, #3...
-                m2: m2,
-                is_from_matrix: false,
-                comuna: comuna,
-                responsable: responsable,
-                proyecto: proyecto
+                m2: m2
             };
 
             // Agregar hectáreas si es rural
@@ -1540,17 +1532,39 @@ function recolectarFoliosManuales() {
                 if (haInput) {
                     const ha = parseFloat(haInput.replace(/\./g, '').replace(',', '.'));
                     if (!isNaN(ha) && ha > 0) {
-                        folioData.hectareas = ha;
+                        inmuebleData.hectareas = ha;
+                        totalHectareas += ha;
                     }
                 }
             }
 
-            wizardData.folios.push(folioData);
+            totalM2 += m2;
+            inmuebles.push(inmuebleData);
         });
 
-        if (!tieneAlMenosUno) {
+        if (inmuebles.length === 0) {
             errores.push(`Folio ${index + 1}: Debe ingresar al menos una ${tipoInmueble.toLowerCase()} con M²`);
+            return;
         }
+
+        // Crear el folio con totales e inmuebles
+        const folioData = {
+            folio: folio || null,
+            solicitante: solicitante,
+            apellido_paterno: apPaterno || null,
+            apellido_materno: apMaterno || null,
+            tipo_inmueble: tipoInmueble,
+            numero_inmueble: inmuebles.length, // Cantidad de inmuebles
+            hectareas: totalHectareas > 0 ? totalHectareas : null,
+            m2: totalM2,
+            is_from_matrix: false,
+            comuna: comuna,
+            responsable: responsable,
+            proyecto: proyecto,
+            inmuebles: inmuebles // Array con el desglose
+        };
+
+        wizardData.folios.push(folioData);
     });
 
     if (errores.length > 0) {
