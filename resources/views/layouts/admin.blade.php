@@ -7,23 +7,22 @@
 
     <title>@yield('title', 'Libro de Planos') - Región del Biobío</title>
 
-    <!-- Font Awesome -->
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Font Awesome (Local) -->
+    <link rel="stylesheet" href="{{ asset('vendor/fontawesome/css/all.min.css') }}">
 
-    <!-- AdminLTE CSS -->
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/admin-lte@3.2/dist/css/adminlte.min.css">
+    <!-- AdminLTE CSS (Local) -->
+    <link rel="stylesheet" href="{{ asset('vendor/adminlte/css/adminlte.min.css') }}">
 
-    <!-- DataTables CSS -->
-    <link rel="stylesheet" href="https://cdn.datatables.net/1.13.6/css/dataTables.bootstrap4.min.css">
-    <link rel="stylesheet" href="https://cdn.datatables.net/buttons/2.4.1/css/buttons.bootstrap4.min.css">
-    <link rel="stylesheet" href="https://cdn.datatables.net/responsive/2.5.0/css/responsive.bootstrap4.min.css">
+    <!-- DataTables CSS (Local) -->
+    <link rel="stylesheet" href="{{ asset('vendor/datatables/css/dataTables.bootstrap4.min.css') }}">
+    <link rel="stylesheet" href="{{ asset('vendor/datatables/css/buttons.bootstrap4.min.css') }}">
+    <link rel="stylesheet" href="{{ asset('vendor/datatables/css/responsive.bootstrap4.min.css') }}">
 
-    <!-- Select2 CSS -->
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css">
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@ttskch/select2-bootstrap4-theme@1.5.2/dist/select2-bootstrap4.min.css">
+    <!-- Select2 CSS (Local) -->
+    <link rel="stylesheet" href="{{ asset('vendor/select2/css/select2.min.css') }}">
 
-    <!-- SweetAlert2 CSS -->
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.min.css">
+    <!-- SweetAlert2 CSS (Local) -->
+    <link rel="stylesheet" href="{{ asset('vendor/sweetalert2/sweetalert2.min.css') }}">
 
     <!-- CSS personalizado -->
     <style>
@@ -183,16 +182,6 @@
                         </a>
                     </li>
                     @endif
-
-                    <li class="nav-item">
-                        <a href="#" class="nav-link">
-                            <i class="nav-icon fas fa-chart-bar"></i>
-                            <p>
-                                Reportes
-                                <span class="badge badge-info right">Pronto</span>
-                            </p>
-                        </a>
-                    </li>
                 </ul>
             </nav>
         </div>
@@ -236,37 +225,43 @@
     -->
 </div>
 
-<!-- jQuery -->
-<script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
+<!-- jQuery (Local) -->
+<script src="{{ asset('vendor/jquery/jquery.min.js') }}"></script>
 
-<!-- Bootstrap 4 -->
-<script src="https://cdn.jsdelivr.net/npm/bootstrap@4.6.2/dist/js/bootstrap.bundle.min.js"></script>
+<!-- CSRF Token Setup para todas las peticiones AJAX -->
+<script>
+$.ajaxSetup({
+    headers: {
+        'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content')
+    }
+});
+</script>
 
-<!-- AdminLTE App -->
-<script src="https://cdn.jsdelivr.net/npm/admin-lte@3.2/dist/js/adminlte.min.js"></script>
+<!-- Bootstrap 4 (Local) -->
+<script src="{{ asset('vendor/bootstrap/bootstrap.bundle.min.js') }}"></script>
 
-<!-- DataTables & Plugins -->
-<script src="https://cdn.datatables.net/1.13.6/js/jquery.dataTables.min.js"></script>
-<script src="https://cdn.datatables.net/1.13.6/js/dataTables.bootstrap4.min.js"></script>
-<script src="https://cdn.datatables.net/buttons/2.4.1/js/dataTables.buttons.min.js"></script>
-<script src="https://cdn.datatables.net/buttons/2.4.1/js/buttons.bootstrap4.min.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/pdfmake/0.1.53/pdfmake.min.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/pdfmake/0.1.53/vfs_fonts.js"></script>
-<script src="https://cdn.datatables.net/buttons/2.4.1/js/buttons.html5.min.js"></script>
-<script src="https://cdn.datatables.net/buttons/2.4.1/js/buttons.print.min.js"></script>
-<script src="https://cdn.datatables.net/buttons/2.4.1/js/buttons.colVis.min.js"></script>
-<script src="https://cdn.datatables.net/responsive/2.5.0/js/dataTables.responsive.min.js"></script>
-<script src="https://cdn.datatables.net/responsive/2.5.0/js/responsive.bootstrap4.min.js"></script>
+<!-- AdminLTE App (Local) -->
+<script src="{{ asset('vendor/adminlte/js/adminlte.min.js') }}"></script>
 
-<!-- Select2 -->
-<script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
+<!-- DataTables & Plugins (Local) -->
+<script src="{{ asset('vendor/datatables/js/jquery.dataTables.min.js') }}"></script>
+<script src="{{ asset('vendor/datatables/js/dataTables.bootstrap4.min.js') }}"></script>
+<script src="{{ asset('vendor/datatables/js/dataTables.buttons.min.js') }}"></script>
+<script src="{{ asset('vendor/datatables/js/buttons.bootstrap4.min.js') }}"></script>
+<script src="{{ asset('vendor/jszip/jszip.min.js') }}"></script>
+<script src="{{ asset('vendor/pdfmake/pdfmake.min.js') }}"></script>
+<script src="{{ asset('vendor/pdfmake/vfs_fonts.js') }}"></script>
+<script src="{{ asset('vendor/datatables/js/buttons.html5.min.js') }}"></script>
+<script src="{{ asset('vendor/datatables/js/buttons.print.min.js') }}"></script>
+<script src="{{ asset('vendor/datatables/js/buttons.colVis.min.js') }}"></script>
+<script src="{{ asset('vendor/datatables/js/dataTables.responsive.min.js') }}"></script>
+<script src="{{ asset('vendor/datatables/js/responsive.bootstrap4.min.js') }}"></script>
 
-<!-- SweetAlert2 -->
-<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+<!-- Select2 (Local) -->
+<script src="{{ asset('vendor/select2/js/select2.min.js') }}"></script>
 
-<!-- JSZip (para Excel export) -->
-<script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+<!-- SweetAlert2 (Local) -->
+<script src="{{ asset('vendor/sweetalert2/sweetalert2.all.min.js') }}"></script>
 
 <!-- Session Control JS (solo para registro) -->
 @if(Auth::user()->isRegistro())

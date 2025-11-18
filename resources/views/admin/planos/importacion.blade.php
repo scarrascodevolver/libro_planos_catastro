@@ -10,180 +10,81 @@
 @endsection
 
 @section('content')
-<!-- Sección A: Matrix Importer -->
 <div class="card">
-    <div class="card-header bg-primary">
+    <div class="card-header">
         <h3 class="card-title">
-            <i class="fas fa-file-excel"></i>
-            Matrix Importer (Mensual)
+            <i class="fas fa-file-import"></i>
+            Importación Masiva
         </h3>
     </div>
     <div class="card-body">
         <div class="row">
-            <div class="col-md-8">
-                <h5>Actualización Matrix Mensual</h5>
-                <p class="text-muted mb-3">
-                    Importa datos desde archivo Excel Matrix para auto-completado de folios.
-                    Solo se extraen 8 columnas específicas del archivo original.
-                </p>
+            <!-- Matrix Importer -->
+            <div class="col-md-6">
+                <div class="border rounded p-3 h-100">
+                    <h6 class="mb-3">
+                        <i class="fas fa-file-excel text-success"></i>
+                        Matrix (Mensual)
+                        <i class="fas fa-info-circle text-muted ml-1" data-toggle="tooltip"
+                           title="Extrae: Tipo Inmueble, Comuna, Nombres, Apellidos, Folio, Responsable, Convenio"></i>
+                    </h6>
 
-                <form id="form-matrix-import" enctype="multipart/form-data">
-                    @csrf
-                    <div class="form-group">
-                        <label for="archivo_matrix">Archivo Excel Matrix</label>
-                        <div class="custom-file">
-                            <input type="file" class="custom-file-input" id="archivo_matrix" name="archivo" accept=".xlsx,.xls" required>
-                            <label class="custom-file-label" for="archivo_matrix">Seleccionar archivo MATRIX-YYYY-MM.xlsx</label>
-                        </div>
-                        <small class="form-text text-muted">
-                            Formatos aceptados: .xlsx, .xls (Máx: 10MB)
-                        </small>
-                    </div>
+                    <form id="form-matrix-import" enctype="multipart/form-data">
+                        @csrf
+                        <input type="hidden" id="batch_name" name="batch_name" value="MATRIX-{{ date('Y-m') }}">
+                        <input type="hidden" name="accion_duplicados" value="actualizar">
 
-                    <div class="form-group">
-                        <label for="batch_name">Nombre del Lote</label>
-                        <input type="text" class="form-control" id="batch_name" name="batch_name"
-                               value="MATRIX-{{ date('Y-m') }}" required maxlength="50">
-                        <small class="form-text text-muted">
-                            Identificador único para esta importación
-                        </small>
-                    </div>
-
-                    <div class="form-group">
-                        <label>Acción con Duplicados</label>
-                        <div class="form-check">
-                            <input class="form-check-input" type="radio" name="accion_duplicados" id="actualizar" value="actualizar" checked>
-                            <label class="form-check-label" for="actualizar">
-                                Actualizar registros existentes
-                            </label>
+                        <div class="form-group mb-3">
+                            <div class="custom-file">
+                                <input type="file" class="custom-file-input" id="archivo_matrix" name="archivo" accept=".xlsx,.xls" required>
+                                <label class="custom-file-label" for="archivo_matrix">Seleccionar Excel Matrix (.xlsx)</label>
+                            </div>
                         </div>
-                        <div class="form-check">
-                            <input class="form-check-input" type="radio" name="accion_duplicados" id="mantener" value="mantener">
-                            <label class="form-check-label" for="mantener">
-                                Mantener registros existentes
-                            </label>
+                        <div class="d-flex justify-content-between align-items-center">
+                            <small class="text-muted">
+                                {{ $ultimoBatch ?? 'Sin importar' }} | <span id="total-matrix">{{ number_format($totalMatrix) }}</span> folios
+                            </small>
+                            <div>
+                                <button type="button" class="btn btn-sm btn-outline-info" id="preview-matrix">
+                                    <i class="fas fa-eye"></i> Vista Previa
+                                </button>
+                                <button type="submit" class="btn btn-sm btn-primary" id="import-matrix" disabled>
+                                    <i class="fas fa-upload"></i> Importar
+                                </button>
+                            </div>
                         </div>
-                    </div>
-
-                    <div class="btn-group">
-                        <button type="button" class="btn btn-info" id="preview-matrix">
-                            <i class="fas fa-eye"></i> Vista Previa
-                        </button>
-                        <button type="submit" class="btn btn-primary" id="import-matrix" disabled>
-                            <i class="fas fa-file-import"></i> Importar
-                        </button>
-                    </div>
-                </form>
-            </div>
-            <div class="col-md-4">
-                <div class="card bg-light">
-                    <div class="card-header">
-                        <h6 class="card-title mb-0">
-                            <i class="fas fa-info-circle"></i>
-                            Estado Actual
-                        </h6>
-                    </div>
-                    <div class="card-body">
-                        <div class="info-box-content">
-                            <span class="info-box-text">Último Lote:</span>
-                            <span class="info-box-number">{{ $ultimoBatch ?? 'Ninguno' }}</span>
-                        </div>
-                        <hr>
-                        <div class="info-box-content">
-                            <span class="info-box-text">Total Registros:</span>
-                            <span class="info-box-number" id="total-matrix">{{ number_format($totalMatrix) }}</span>
-                        </div>
-                        <hr>
-                        <small class="text-muted">
-                            <strong>Columnas extraídas:</strong><br>
-                            • Tipo Inmueble<br>
-                            • Comuna<br>
-                            • Nombres<br>
-                            • Apellidos<br>
-                            • Folio<br>
-                            • Responsable<br>
-                            • Convenio-Financiamiento
-                        </small>
-                    </div>
+                    </form>
                 </div>
             </div>
-        </div>
-    </div>
-</div>
 
-<!-- Sección B: Historical Importer -->
-<div class="card">
-    <div class="card-header bg-warning">
-        <h3 class="card-title">
-            <i class="fas fa-history"></i>
-            Historical Importer (Una vez)
-        </h3>
-    </div>
-    <div class="card-body">
-        <div class="row">
-            <div class="col-md-8">
-                <h5>Importación Planos Históricos</h5>
-                <p class="text-muted mb-3">
-                    Importa planos del sistema anterior (21 columnas completas).
-                    Esta importación se realiza una sola vez para migrar datos históricos.
-                </p>
+            <!-- Historical Importer -->
+            <div class="col-md-6">
+                <div class="border rounded p-3 h-100 border-warning">
+                    <h6 class="mb-3">
+                        <i class="fas fa-history text-warning"></i>
+                        Históricos (Una vez)
+                        <i class="fas fa-info-circle text-muted ml-1" data-toggle="tooltip"
+                           title="21 columnas: N° Plano, Comuna, Responsable, Proyecto, Folios, Datos personales, Hectáreas, M², Fechas, Archivos"></i>
+                        <span class="badge badge-danger ml-1">Irreversible</span>
+                    </h6>
 
-                <div class="alert alert-warning">
-                    <h6><i class="fas fa-exclamation-triangle"></i> ATENCIÓN</h6>
-                    <ul class="mb-0">
-                        <li>Esta importación crea registros directamente en las tablas principales</li>
-                        <li>Los números de plano deben ser únicos</li>
-                        <li>Se recomienda hacer respaldo antes de ejecutar</li>
-                        <li>Proceso irreversible - usar con precaución</li>
-                    </ul>
-                </div>
-
-                <form id="form-historicos-import" enctype="multipart/form-data">
-                    @csrf
-                    <div class="form-group">
-                        <label for="archivo_historicos">Archivo Excel Históricos</label>
-                        <div class="custom-file">
-                            <input type="file" class="custom-file-input" id="archivo_historicos" name="archivo" accept=".xlsx,.xls" required>
-                            <label class="custom-file-label" for="archivo_historicos">Seleccionar archivo PLANOS-HISTORICOS.xlsx</label>
+                    <form id="form-historicos-import" enctype="multipart/form-data">
+                        @csrf
+                        <div class="form-group mb-3">
+                            <div class="custom-file">
+                                <input type="file" class="custom-file-input" id="archivo_historicos" name="archivo" accept=".xlsx,.xls" required>
+                                <label class="custom-file-label" for="archivo_historicos">Seleccionar PLANOS-HISTORICOS.xlsx</label>
+                            </div>
                         </div>
-                        <small class="form-text text-muted">
-                            Formatos aceptados: .xlsx, .xls (Máx: 20MB)
-                        </small>
-                    </div>
-
-                    <div class="btn-group">
-                        <button type="button" class="btn btn-info" id="preview-historicos">
-                            <i class="fas fa-eye"></i> Vista Previa
-                        </button>
-                        <button type="button" class="btn btn-warning" id="import-historicos" disabled>
-                            <i class="fas fa-file-import"></i> Importar
-                        </button>
-                    </div>
-                </form>
-            </div>
-            <div class="col-md-4">
-                <div class="card bg-light">
-                    <div class="card-header">
-                        <h6 class="card-title mb-0">
-                            <i class="fas fa-list"></i>
-                            Estructura Esperada
-                        </h6>
-                    </div>
-                    <div class="card-body">
-                        <small class="text-muted">
-                            <strong>21 columnas requeridas:</strong><br>
-                            • Número Plano<br>
-                            • Comuna<br>
-                            • Responsable<br>
-                            • Proyecto<br>
-                            • Folios (múltiples)<br>
-                            • Datos personales<br>
-                            • Hectáreas y M²<br>
-                            • Fechas<br>
-                            • Archivos<br>
-                            • ... y más campos específicos
-                        </small>
-                    </div>
+                        <div class="d-flex justify-content-end">
+                            <button type="button" class="btn btn-sm btn-outline-info mr-1" id="preview-historicos">
+                                <i class="fas fa-eye"></i> Vista Previa
+                            </button>
+                            <button type="button" class="btn btn-sm btn-warning" id="import-historicos" disabled>
+                                <i class="fas fa-upload"></i> Importar
+                            </button>
+                        </div>
+                    </form>
                 </div>
             </div>
         </div>
@@ -225,6 +126,7 @@
 @push('scripts')
 <script>
 $(document).ready(function() {
+    $('[data-toggle="tooltip"]').tooltip();
     initImportForms();
     loadEstadisticas();
 });
@@ -348,20 +250,7 @@ function initImportForms() {
     // Matrix Import
     $('#form-matrix-import').on('submit', function(e) {
         e.preventDefault();
-
-        Swal.fire({
-            title: '¿Confirmar importación?',
-            html: 'Se procesarán <strong>' + $('#batch_name').val() + '</strong><br>' +
-                  'Acción con duplicados: <strong>' + $('input[name="accion_duplicados"]:checked').next().text() + '</strong>',
-            icon: 'question',
-            showCancelButton: true,
-            confirmButtonText: 'Sí, importar',
-            cancelButtonText: 'Cancelar'
-        }).then((result) => {
-            if (result.isConfirmed) {
-                executeMatrixImport();
-            }
-        });
+        executeMatrixImport();
     });
 
     // File input labels
@@ -374,47 +263,90 @@ function initImportForms() {
 function showPreview(data, type) {
     currentPreviewType = type;
 
-    let html = '<div class="alert alert-success">';
-    html += '<h6><i class="fas fa-check-circle"></i> Archivo válido</h6>';
-    html += '<p class="mb-1">' + data.mensaje + '</p>';
-    html += '</div>';
+    let html = '';
 
-    // Headers encontrados
-    if (data.headersEncontrados) {
-        html += '<h6>Columnas Detectadas:</h6>';
-        html += '<div class="row mb-3">';
-        Object.keys(data.headersEncontrados).forEach(function(key) {
-            html += '<div class="col-md-6"><small><strong>' + key + ':</strong> ' + data.headersEncontrados[key] + '</small></div>';
+    // Mensaje principal según si hay errores
+    if (data.registrosConErrores > 0) {
+        html += '<div class="alert alert-warning mb-3">';
+        html += '<h5 class="mb-2"><i class="fas fa-exclamation-triangle"></i> ' + data.totalFilas + ' folios a importar</h5>';
+        html += '<p class="mb-0">Válidos: <strong class="text-success">' + data.registrosValidos + '</strong> | ';
+        html += 'Con campos vacíos: <strong class="text-danger">' + data.registrosConErrores + '</strong></p>';
+        html += '</div>';
+
+        // Resumen de errores por campo
+        if (data.erroresPorCampo && Object.keys(data.erroresPorCampo).length > 0) {
+            html += '<p class="mb-2"><strong>Campos faltantes:</strong> ';
+            let camposList = [];
+            Object.keys(data.erroresPorCampo).forEach(function(campo) {
+                let nombreCampo = campo.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
+                camposList.push(nombreCampo + ' (' + data.erroresPorCampo[campo] + ')');
+            });
+            html += camposList.join(', ') + '</p>';
+        }
+
+        // Tabla detallada de folios con errores
+        html += '<div class="table-responsive" style="max-height: 300px; overflow-y: auto;">';
+        html += '<table class="table table-sm table-bordered table-striped mb-0">';
+        html += '<thead class="thead-dark"><tr>';
+        html += '<th>Fila</th><th>Folio</th><th>Campos Faltantes</th>';
+        html += '</tr></thead><tbody>';
+
+        data.detalleErrores.forEach(function(error) {
+            html += '<tr>';
+            html += '<td>' + error.fila + '</td>';
+            html += '<td><strong>' + error.folio + '</strong></td>';
+            html += '<td class="text-danger">' + error.campos.join(', ') + '</td>';
+            html += '</tr>';
         });
+
+        html += '</tbody></table></div>';
+
+        // Botón descargar CSV
+        html += '<div class="mt-2">';
+        html += '<button type="button" class="btn btn-sm btn-outline-secondary" onclick="descargarErroresCSV()"><i class="fas fa-download"></i> Descargar CSV</button>';
+        html += '</div>';
+
+        // Guardar errores para descarga
+        window.erroresMatrix = data.detalleErrores;
+
+    } else {
+        html += '<div class="alert alert-success mb-0">';
+        html += '<h5 class="mb-0"><i class="fas fa-check-circle"></i> ' + data.totalFilas + ' folios listos para importar</h5>';
         html += '</div>';
     }
 
-    // Tabla preview
-    html += '<h6>Vista Previa (primeras ' + Math.min(data.preview.length, 10) + ' filas):</h6>';
-    html += '<div class="table-responsive">';
-    html += '<table class="table table-sm table-bordered">';
-
-    // Headers
-    html += '<thead class="thead-light"><tr>';
-    data.headers.forEach(function(header) {
-        html += '<th style="min-width: 100px;">' + (header || 'Sin nombre') + '</th>';
-    });
-    html += '</tr></thead>';
-
-    // Data rows
-    html += '<tbody>';
-    data.preview.forEach(function(row) {
-        html += '<tr>';
-        row.forEach(function(cell) {
-            html += '<td>' + (cell || '') + '</td>';
-        });
-        html += '</tr>';
-    });
-    html += '</tbody></table></div>';
-
     $('#preview-content').html(html);
+
+    // Mostrar/ocultar botón importar según errores
+    if (data.registrosConErrores > 0) {
+        $('#confirm-import').html('<i class="fas fa-exclamation-triangle"></i> Importar de todos modos').removeClass('btn-primary').addClass('btn-warning');
+    } else {
+        $('#confirm-import').html('<i class="fas fa-check"></i> Confirmar Importación').removeClass('btn-warning').addClass('btn-primary');
+    }
     $('#confirm-import').show();
     $('#preview-modal').modal('show');
+}
+
+function descargarErroresCSV() {
+    if (!window.erroresMatrix || window.erroresMatrix.length === 0) {
+        Swal.fire('Info', 'No hay errores para descargar', 'info');
+        return;
+    }
+
+    let csv = 'Fila,Folio,Campos Faltantes\n';
+    window.erroresMatrix.forEach(function(error) {
+        csv += error.fila + ',"' + error.folio + '","' + error.campos.join(', ') + '"\n';
+    });
+
+    let blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+    let link = document.createElement('a');
+    let url = URL.createObjectURL(blob);
+    link.setAttribute('href', url);
+    link.setAttribute('download', 'errores_matrix_' + new Date().toISOString().slice(0,10) + '.csv');
+    link.style.visibility = 'hidden';
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
 }
 
 function executeMatrixImport() {

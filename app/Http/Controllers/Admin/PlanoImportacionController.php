@@ -87,7 +87,16 @@ class PlanoImportacionController extends Controller
                 ]);
             }
 
-            // Leer primeras 10 filas para preview
+            // Mapear columnas para validación
+            $columnMap = $this->mapMatrixColumns($headers);
+            if (!$columnMap) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'No se pudieron mapear las columnas requeridas'
+                ]);
+            }
+
+            // Leer primeras 10 filas para preview visual
             $highestRow = $worksheet->getHighestRow();
             $maxPreview = min(11, $highestRow); // Fila 1 = headers, filas 2-11 = datos
 
@@ -102,13 +111,89 @@ class PlanoImportacionController extends Controller
 
             $totalFilas = $highestRow - 1; // -1 porque no contamos headers
 
+            // Validar TODOS los campos obligatorios en TODAS las filas
+            $camposObligatorios = [
+                'folio' => 'Folio',
+                'tipo_inmueble' => 'Tipo Inmueble',
+                'comuna' => 'Comuna',
+                'nombres' => 'Nombres',
+                'apellido_paterno' => 'Apellido Paterno',
+                'apellido_materno' => 'Apellido Materno',
+                'responsable' => 'Responsable',
+                'convenio_financiamiento' => 'Convenio/Financiamiento'
+            ];
+
+            $erroresPorCampo = array_fill_keys(array_keys($camposObligatorios), 0);
+            $detalleErrores = [];
+            $registrosValidos = 0;
+
+            $filasVaciasIgnoradas = 0;
+
+            for ($row = 2; $row <= $highestRow; $row++) {
+                // Primero verificar si la fila está completamente vacía
+                $filaVacia = true;
+                $valoresFila = [];
+
+                foreach ($columnMap as $campo => $colIndex) {
+                    $coordinate = \PhpOffice\PhpSpreadsheet\Cell\Coordinate::stringFromColumnIndex($colIndex) . $row;
+                    $valor = trim($worksheet->getCell($coordinate)->getValue() ?? '');
+                    $valoresFila[$campo] = $valor;
+
+                    if (!empty($valor)) {
+                        $filaVacia = false;
+                    }
+                }
+
+                // Si la fila está completamente vacía, ignorarla
+                if ($filaVacia) {
+                    $filasVaciasIgnoradas++;
+                    continue;
+                }
+
+                // Validar campos vacíos en filas con datos
+                $camposVacios = [];
+                $folio = $valoresFila['folio'] ?? '';
+
+                foreach ($valoresFila as $campo => $valor) {
+                    if (empty($valor)) {
+                        $camposVacios[] = $camposObligatorios[$campo];
+                        $erroresPorCampo[$campo]++;
+                    }
+                }
+
+                if (empty($camposVacios)) {
+                    $registrosValidos++;
+                } else {
+                    $detalleErrores[] = [
+                        'fila' => $row,
+                        'folio' => $folio ?: '(vacío)',
+                        'campos' => $camposVacios
+                    ];
+                }
+            }
+
+            // Ajustar total de filas reales (sin filas vacías)
+            $totalFilasReales = $totalFilas - $filasVaciasIgnoradas;
+
+            $registrosConErrores = count($detalleErrores);
+
+            // Limpiar contadores en cero
+            $erroresPorCampo = array_filter($erroresPorCampo);
+
             return response()->json([
                 'success' => true,
                 'headers' => $headers,
                 'headersEncontrados' => $headersEncontrados,
                 'preview' => $preview,
-                'totalFilas' => $totalFilas,
-                'mensaje' => "Archivo válido. {$totalFilas} registros listos para importar."
+                'totalFilas' => $totalFilasReales,
+                'filasVaciasIgnoradas' => $filasVaciasIgnoradas,
+                'registrosValidos' => $registrosValidos,
+                'registrosConErrores' => $registrosConErrores,
+                'erroresPorCampo' => $erroresPorCampo,
+                'detalleErrores' => $detalleErrores,
+                'mensaje' => $registrosConErrores > 0
+                    ? "Archivo con {$totalFilasReales} registros. {$registrosConErrores} tienen campos vacíos."
+                    : "Archivo válido. {$totalFilasReales} registros listos para importar."
             ]);
 
         } catch (ReaderException $e) {

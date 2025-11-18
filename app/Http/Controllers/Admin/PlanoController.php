@@ -37,7 +37,8 @@ class PlanoController extends Controller
     {
         $query = Plano::with(['folios' => function($query) {
             $query->orderBy('id');
-        }]);
+        }])
+        ->orderBy('numero_correlativo', 'desc'); // Ordenar por correlativo descendente (más reciente primero)
 
         // Aplicar filtros
         $this->applyFilters($query, $request);

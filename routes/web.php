@@ -48,6 +48,7 @@ Route::middleware('auth')->group(function () {
 
     // TAB 3: Crear Planos - PlanoCreacionController
     Route::get('/planos/crear/index', [PlanoCreacionController::class, 'index'])->name('planos.crear.index');
+    Route::get('/planos/crear/ultimo-correlativo', [PlanoCreacionController::class, 'getUltimoCorrelativo'])->name('planos.crear.ultimo-correlativo');
     Route::post('/planos/crear/buscar-folio', [PlanoCreacionController::class, 'buscarFolio'])->name('planos.crear.buscar-folio');
     Route::post('/planos/crear/buscar-folios-masivos', [PlanoCreacionController::class, 'buscarFoliosMasivos'])->name('planos.crear.buscar-folios-masivos');
     Route::post('/planos/crear/validar-folios', [PlanoCreacionController::class, 'validarFolios'])->name('planos.crear.validar-folios');

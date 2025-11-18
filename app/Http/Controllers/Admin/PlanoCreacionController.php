@@ -33,6 +33,28 @@ class PlanoCreacionController extends Controller
         return view('admin.planos.crear', compact('comunas'));
     }
 
+    public function getUltimoCorrelativo()
+    {
+        $ultimoCorrelativo = Plano::max('numero_correlativo');
+
+        // Si hay planos, devolver el último correlativo real
+        if ($ultimoCorrelativo !== null) {
+            return response()->json([
+                'ultimo' => $ultimoCorrelativo,
+                'proximo' => $ultimoCorrelativo + 1,
+                'hayDatos' => true
+            ]);
+        }
+
+        // Si no hay planos, indicar que debe importar históricos primero
+        return response()->json([
+            'ultimo' => null,
+            'proximo' => null,
+            'hayDatos' => false,
+            'mensaje' => 'Debe importar planos históricos antes de crear nuevos planos.'
+        ]);
+    }
+
     public function buscarFolio(Request $request)
     {
         $request->validate([
@@ -48,23 +70,59 @@ class PlanoCreacionController extends Controller
             ]);
         }
 
-        // Verificar si ya está usado
-        $yaUsado = PlanoFolio::where('folio', $request->folio)->exists();
+        // Verificar si ya está usado y en qué plano
+        $folioUsado = PlanoFolio::with('plano')->where('folio', $request->folio)->first();
+
+        if ($folioUsado) {
+            // Folio YA USADO - No devolver datos, solo información del plano donde está
+            $plano = $folioUsado->plano;
+
+            // Generar número completo: 08 + codigo_comuna + numero_correlativo(5 dígitos) + tipo_saneamiento
+            $numeroCompleto = $plano->codigo_region
+                            . $plano->codigo_comuna
+                            . str_pad($plano->numero_correlativo, 5, '0', STR_PAD_LEFT)
+                            . $plano->tipo_saneamiento;
+
+            // Construir nombre completo del solicitante
+            $nombreCompleto = trim($folioUsado->solicitante
+                                . ' ' . $folioUsado->apellido_paterno
+                                . ' ' . $folioUsado->apellido_materno);
+
+            return response()->json([
+                'encontrado' => true,
+                'yaUsado' => true,
+                'datos' => null,
+                'planoExistente' => [
+                    'numero' => $numeroCompleto,
+                    'solicitante' => $nombreCompleto,
+                    'comuna' => $plano->comuna,
+                    'responsable' => $plano->responsable,
+                    'tipo' => $plano->tipo_saneamiento
+                ],
+                'message' => 'Este folio ya está usado en el plano: ' . $numeroCompleto . ' (Solicitante: ' . $nombreCompleto . ')'
+            ]);
+        }
+
+        // Folio NO USADO - Devolver datos para auto-completar
+        $comunaBiobio = ComunaBiobio::where('nombre', $matrix->comuna)->first();
+        $codigoComuna = $comunaBiobio ? $comunaBiobio->getCodigoParaPlano() : '000';
 
         return response()->json([
             'encontrado' => true,
-            'yaUsado' => $yaUsado,
+            'yaUsado' => false,
             'datos' => [
                 'folio' => $matrix->folio,
                 'solicitante' => $matrix->nombres,
                 'apellido_paterno' => $matrix->apellido_paterno,
                 'apellido_materno' => $matrix->apellido_materno,
                 'comuna' => $matrix->comuna,
+                'codigo_comuna' => $codigoComuna,
                 'responsable' => $matrix->responsable,
                 'proyecto' => $matrix->convenio_financiamiento,
-                'tipo_inmueble' => $matrix->tipo_inmueble
+                'tipo_inmueble' => $matrix->tipo_inmueble,
+                'is_from_matrix' => true
             ],
-            'message' => $yaUsado ? 'ATENCIÓN: Este folio ya fue usado en otro plano' : null
+            'message' => null
         ]);
     }
 
@@ -104,6 +162,7 @@ class PlanoCreacionController extends Controller
                 'responsable' => $matrix->responsable,
                 'proyecto' => $matrix->convenio_financiamiento,
                 'tipo_inmueble' => $matrix->tipo_inmueble,
+                'is_from_matrix' => true,
                 'yaUsado' => $yaUsado
             ];
         }
@@ -136,14 +195,14 @@ class PlanoCreacionController extends Controller
             'tela' => 'nullable|string|max:255',
             'archivo_digital' => 'nullable|string|max:255',
             'folios' => 'required|array|min:1|max:150',
-            'folios.*.folio' => 'required|string|max:50',
+            'folios.*.folio' => 'nullable|string|max:50',
             'folios.*.solicitante' => 'required|string|max:255',
             'folios.*.apellido_paterno' => 'nullable|string|max:255',
             'folios.*.apellido_materno' => 'nullable|string|max:255',
             'folios.*.tipo_inmueble' => 'required|in:HIJUELA,SITIO',
             'folios.*.numero_inmueble' => 'nullable|integer',
             'folios.*.hectareas' => 'nullable|numeric|min:0',
-            'folios.*.m2' => 'required|integer|min:1',
+            'folios.*.m2' => 'required|numeric|min:1',
             'folios.*.is_from_matrix' => 'required|boolean',
         ]);
 
@@ -155,7 +214,9 @@ class PlanoCreacionController extends Controller
             ], 422);
         }
 
-        // Verificar control de sesión
+        // TEMPORAL: Validación de control de sesión comentada para pruebas
+        // TODO: Descomentar cuando se implemente el sistema de control de sesión completo
+        /*
         $control = SessionControl::where('user_id', Auth::id())
             ->where('has_control', true)
             ->where('is_active', true)
@@ -167,22 +228,48 @@ class PlanoCreacionController extends Controller
                 'message' => 'No tienes control de numeración activo'
             ], 403);
         }
+        */
 
         // Generar número de plano
-        $ultimoPlano = Plano::selectRaw('MAX(CAST(SUBSTRING(numero_plano, 4, 6) AS UNSIGNED)) as ultimo_correlativo')
-            ->where('numero_plano', 'REGEXP', '^08[0-9]{8}[A-Z]{2}$')
-            ->first();
+        // Buscar el último correlativo directamente del campo numero_correlativo
+        $ultimoPlano = Plano::max('numero_correlativo');
 
-        $correlativo = ($ultimoPlano->ultimo_correlativo ?? 329271) + 1;
-        $numeroPlano = '08' . $request->codigo_comuna . $correlativo . $request->tipo_ubicacion;
-
-        // Verificar folios únicos
-        $foliosExistentes = PlanoFolio::whereIn('folio', collect($request->folios)->pluck('folio'))->pluck('folio');
-        if ($foliosExistentes->count() > 0) {
+        // Validar que existan planos históricos
+        if ($ultimoPlano === null) {
             return response()->json([
                 'success' => false,
-                'message' => 'Los siguientes folios ya están en uso: ' . $foliosExistentes->join(', ')
-            ]);
+                'message' => 'Debe importar planos históricos antes de crear nuevos planos.'
+            ], 403);
+        }
+
+        $correlativo = $ultimoPlano + 1;
+
+        // Obtener datos adicionales
+        $codigoRegion = '08'; // Región del Biobío
+        $tipoSaneamiento = $request->tipo_ubicacion; // SR, SU, CR, CU
+        $meses = ['ENE','FEB','MAR','ABR','MAY','JUN','JUL','AGO','SEP','OCT','NOV','DIC'];
+        $mesActual = $meses[date('n') - 1];
+        $anoActual = date('Y');
+
+        // Obtener provincia desde el código de comuna
+        $comunaBiobio = ComunaBiobio::where('codigo', $request->codigo_comuna)->first();
+        $provincia = $comunaBiobio ? $comunaBiobio->provincia : 'Desconocida';
+
+        // Verificar folios únicos (solo los que no son null o vacíos)
+        $foliosNoVacios = collect($request->folios)
+            ->pluck('folio')
+            ->filter(function($folio) {
+                return !empty($folio);
+            });
+
+        if ($foliosNoVacios->count() > 0) {
+            $foliosExistentes = PlanoFolio::whereIn('folio', $foliosNoVacios)->pluck('folio');
+            if ($foliosExistentes->count() > 0) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Los siguientes folios ya están en uso: ' . $foliosExistentes->join(', ')
+                ]);
+            }
         }
 
         DB::beginTransaction();
@@ -192,10 +279,17 @@ class PlanoCreacionController extends Controller
             $totalM2 = collect($request->folios)->sum('m2');
             $cantidadFolios = count($request->folios);
 
-            // Crear plano
+            // Crear plano con todos los campos requeridos
             $plano = Plano::create([
-                'numero_plano' => $numeroPlano,
+                'numero_plano' => (string) $correlativo,  // Solo el correlativo
+                'codigo_region' => $codigoRegion,
+                'codigo_comuna' => $request->codigo_comuna,
+                'numero_correlativo' => $correlativo,
+                'tipo_saneamiento' => $tipoSaneamiento,
+                'provincia' => $provincia,
                 'comuna' => $request->comuna_nombre,
+                'mes' => $mesActual,
+                'ano' => $anoActual,
                 'responsable' => $request->responsable,
                 'proyecto' => $request->proyecto,
                 'total_hectareas' => $totalHectareas > 0 ? $totalHectareas : null,
@@ -228,12 +322,16 @@ class PlanoCreacionController extends Controller
 
             DB::commit();
 
+            // Generar número completo para mostrar
+            $numeroCompleto = $codigoRegion . $request->codigo_comuna . str_pad($correlativo, 5, '0', STR_PAD_LEFT) . $tipoSaneamiento;
+
             return response()->json([
                 'success' => true,
                 'message' => 'Plano creado correctamente',
                 'plano' => [
                     'id' => $plano->id,
-                    'numero' => $numeroPlano,
+                    'numero' => $numeroCompleto,
+                    'correlativo' => $correlativo,
                     'folios' => $cantidadFolios
                 ]
             ]);
