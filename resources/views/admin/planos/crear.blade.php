@@ -1426,13 +1426,23 @@ function mostrarConfirmacion() {
     $('#confirm-responsable').text(wizardData.folios[0].responsable || $('#responsable-manual').val());
     $('#confirm-proyecto').text(wizardData.folios[0].proyecto || $('#proyecto-manual').val());
 
+    // Contar total de inmuebles
+    let totalInmuebles = 0;
+    wizardData.folios.forEach(folio => {
+        if (folio.inmuebles && folio.inmuebles.length > 0) {
+            totalInmuebles += folio.inmuebles.length;
+        } else {
+            totalInmuebles += 1;
+        }
+    });
+
     // Mostrar cantidad con etiqueta apropiada
     const tipoInmuebleLabel = wizardData.tipoPlano.includes('R') ? 'hijuelas' : 'sitios';
-    $('#confirm-total-folios').text(wizardData.folios.length + ' ' + tipoInmuebleLabel);
+    $('#confirm-total-folios').text(totalInmuebles + ' ' + tipoInmuebleLabel);
     $('#confirm-total-ha').text(totalHectareas > 0 ? formatNumber(totalHectareas, 4) + ' ha' : '-');
     $('#confirm-total-m2').text(formatNumber(totalM2, 2) + ' m²');
 
-    // Generar lista de folios
+    // Generar lista de inmuebles
     let listaHTML = '<table class="table table-sm table-hover">';
     listaHTML += '<thead><tr>';
     listaHTML += '<th>#</th><th>Folio</th><th>Solicitante</th><th>Tipo</th>';
@@ -1441,17 +1451,39 @@ function mostrarConfirmacion() {
     }
     listaHTML += '<th>M²</th></tr></thead><tbody>';
 
-    wizardData.folios.forEach((folio, index) => {
-        listaHTML += '<tr>';
-        listaHTML += '<td>' + (index + 1) + '</td>';
-        listaHTML += '<td>' + (folio.folio || '-') + '</td>';
-        listaHTML += '<td>' + folio.solicitante + ' ' + (folio.apellido_paterno || '') + ' ' + (folio.apellido_materno || '') + '</td>';
-        listaHTML += '<td>' + (folio.tipo_inmueble || (wizardData.ubicacionManual === 'R' ? 'HIJUELA' : 'SITIO')) + ' #' + (folio.numero_inmueble || (index + 1)) + '</td>';
-        if (wizardData.tipoPlano.includes('R')) {
-            listaHTML += '<td>' + (folio.hectareas ? formatNumber(parseFloat(folio.hectareas), 4) : '-') + '</td>';
+    let contador = 1;
+    wizardData.folios.forEach((folio) => {
+        const nombreCompleto = folio.solicitante + ' ' + (folio.apellido_paterno || '') + ' ' + (folio.apellido_materno || '');
+
+        if (folio.inmuebles && folio.inmuebles.length > 0) {
+            // Mostrar cada inmueble por separado
+            folio.inmuebles.forEach((inmueble) => {
+                listaHTML += '<tr>';
+                listaHTML += '<td>' + contador + '</td>';
+                listaHTML += '<td>' + (folio.folio || '-') + '</td>';
+                listaHTML += '<td>' + nombreCompleto + '</td>';
+                listaHTML += '<td>' + inmueble.tipo_inmueble + ' #' + inmueble.numero_inmueble + '</td>';
+                if (wizardData.tipoPlano.includes('R')) {
+                    listaHTML += '<td>' + (inmueble.hectareas ? formatNumber(parseFloat(inmueble.hectareas), 4) : '-') + '</td>';
+                }
+                listaHTML += '<td>' + formatNumber(parseFloat(inmueble.m2), 0) + '</td>';
+                listaHTML += '</tr>';
+                contador++;
+            });
+        } else {
+            // Sin desglose - mostrar folio con totales
+            listaHTML += '<tr>';
+            listaHTML += '<td>' + contador + '</td>';
+            listaHTML += '<td>' + (folio.folio || '-') + '</td>';
+            listaHTML += '<td>' + nombreCompleto + '</td>';
+            listaHTML += '<td>' + (folio.tipo_inmueble || 'HIJUELA') + '</td>';
+            if (wizardData.tipoPlano.includes('R')) {
+                listaHTML += '<td>' + (folio.hectareas ? formatNumber(parseFloat(folio.hectareas), 4) : '-') + '</td>';
+            }
+            listaHTML += '<td>' + formatNumber(parseFloat(folio.m2), 0) + '</td>';
+            listaHTML += '</tr>';
+            contador++;
         }
-        listaHTML += '<td>' + formatNumber(parseFloat(folio.m2), 2) + '</td>';
-        listaHTML += '</tr>';
     });
 
     listaHTML += '</tbody></table>';
