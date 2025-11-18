@@ -9,6 +9,52 @@
     <li class="breadcrumb-item active">Agregar Planos</li>
 @endsection
 
+@push('styles')
+<style>
+/* Cards de selección de cantidad de folios */
+.card-seleccion {
+    cursor: pointer;
+    transition: all 0.3s ease;
+    border: 2px solid #dee2e6;
+}
+
+.card-seleccion:hover {
+    border-color: #007bff;
+    transform: translateY(-3px);
+    box-shadow: 0 4px 15px rgba(0, 123, 255, 0.15);
+}
+
+.card-seleccion.selected {
+    border-color: #007bff;
+    background-color: #e7f3ff;
+    box-shadow: 0 4px 15px rgba(0, 123, 255, 0.3);
+}
+
+.card-seleccion.selected .icon-cantidad i {
+    transform: scale(1.1);
+}
+
+.card-seleccion.disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+    pointer-events: none;
+}
+
+.icon-cantidad {
+    transition: transform 0.3s ease;
+}
+
+.card-seleccion h6 {
+    font-size: 0.9rem;
+    color: #343a40;
+}
+
+.card-seleccion.selected h6 {
+    color: #007bff;
+}
+</style>
+@endpush
+
 @section('content')
 
 <!-- PASO 1: Numeración Correlativa (SIEMPRE VISIBLE) -->
@@ -55,34 +101,43 @@
             Paso 1: ¿Cuántos folios tendrá el plano?
         </h3>
     </div>
-    <div class="card-body text-center">
-        <div class="row">
-            <div class="col-md-4">
-                <div class="form-check form-check-lg">
-                    <input class="form-check-input cantidad-radio" type="radio" name="cantidad_folios" id="cantidad_1" value="1">
-                    <label class="form-check-label" for="cantidad_1">
-                        <h4>1 FOLIO</h4>
-                        <small class="text-muted">Formulario simple</small>
-                    </label>
+    <div class="card-body">
+        <div class="row justify-content-center">
+            <div class="col-md-3 col-sm-4 mb-2">
+                <div class="card card-seleccion h-100" data-value="1" id="btn-cantidad-1">
+                    <div class="card-body text-center py-3 px-2">
+                        <div class="icon-cantidad mb-2">
+                            <i class="fas fa-file-alt fa-2x" style="color: #17a2b8;"></i>
+                        </div>
+                        <h6 class="mb-1 font-weight-bold">1 FOLIO</h6>
+                        <small class="text-muted">Simple</small>
+                    </div>
                 </div>
+                <input class="cantidad-radio d-none" type="radio" name="cantidad_folios" id="cantidad_1" value="1">
             </div>
-            <div class="col-md-4">
-                <div class="form-check form-check-lg">
-                    <input class="form-check-input cantidad-radio" type="radio" name="cantidad_folios" id="cantidad_multiple" value="multiple">
-                    <label class="form-check-label" for="cantidad_multiple">
-                        <h4>2-10 FOLIOS</h4>
-                        <small class="text-muted">Paso a paso</small>
-                    </label>
+            <div class="col-md-3 col-sm-4 mb-2">
+                <div class="card card-seleccion h-100" data-value="multiple" id="btn-cantidad-multiple">
+                    <div class="card-body text-center py-3 px-2">
+                        <div class="icon-cantidad mb-2">
+                            <i class="fas fa-copy fa-2x" style="color: #28a745;"></i>
+                        </div>
+                        <h6 class="mb-1 font-weight-bold">2-10 FOLIOS</h6>
+                        <small class="text-muted">Múltiple</small>
+                    </div>
                 </div>
+                <input class="cantidad-radio d-none" type="radio" name="cantidad_folios" id="cantidad_multiple" value="multiple">
             </div>
-            <div class="col-md-4">
-                <div class="form-check form-check-lg">
-                    <input class="form-check-input cantidad-radio" type="radio" name="cantidad_folios" id="cantidad_masiva" value="masivo">
-                    <label class="form-check-label" for="cantidad_masiva">
-                        <h4>11-150 FOLIOS</h4>
-                        <small class="text-muted">Importación masiva</small>
-                    </label>
+            <div class="col-md-3 col-sm-4 mb-2">
+                <div class="card card-seleccion h-100" data-value="masivo" id="btn-cantidad-masivo">
+                    <div class="card-body text-center py-3 px-2">
+                        <div class="icon-cantidad mb-2">
+                            <i class="fas fa-layer-group fa-2x" style="color: #fd7e14;"></i>
+                        </div>
+                        <h6 class="mb-1 font-weight-bold">11+ FOLIOS</h6>
+                        <small class="text-muted">Masivo</small>
+                    </div>
                 </div>
+                <input class="cantidad-radio d-none" type="radio" name="cantidad_folios" id="cantidad_masiva" value="masivo">
             </div>
         </div>
     </div>
@@ -96,29 +151,35 @@
             Paso 2: ¿De dónde vienen los folios?
         </h3>
     </div>
-    <div class="card-body text-center">
-        <div class="row">
-            <div class="col-md-6">
-                <div class="form-check form-check-lg">
-                    <input class="form-check-input origen-radio" type="radio" name="origen_folios" id="origen_matrix" value="matrix">
-                    <label class="form-check-label" for="origen_matrix">
-                        <h4><i class="fas fa-database"></i> MATRIX</h4>
-                        <small class="text-muted">Buscar folios en base de datos<br>(Saneamiento automático)</small>
-                    </label>
+    <div class="card-body">
+        <div class="row justify-content-center">
+            <div class="col-md-4 col-sm-6 mb-2">
+                <div class="card card-seleccion card-origen h-100" data-value="matrix" id="btn-origen-matrix">
+                    <div class="card-body text-center py-3 px-2">
+                        <div class="icon-cantidad mb-2">
+                            <i class="fas fa-database fa-2x" style="color: #007bff;"></i>
+                        </div>
+                        <h6 class="mb-1 font-weight-bold">MATRIX</h6>
+                        <small class="text-muted">Buscar en BD</small>
+                    </div>
                 </div>
+                <input class="origen-radio d-none" type="radio" name="origen_folios" id="origen_matrix" value="matrix">
             </div>
-            <div class="col-md-6">
-                <div class="form-check form-check-lg">
-                    <input class="form-check-input origen-radio" type="radio" name="origen_folios" id="origen_manual" value="manual">
-                    <label class="form-check-label" for="origen_manual">
-                        <h4><i class="fas fa-edit"></i> MANUAL</h4>
-                        <small class="text-muted">Ingreso libre de datos<br>(Fiscales y otros)</small>
-                    </label>
+            <div class="col-md-4 col-sm-6 mb-2">
+                <div class="card card-seleccion card-origen h-100" data-value="manual" id="btn-origen-manual">
+                    <div class="card-body text-center py-3 px-2">
+                        <div class="icon-cantidad mb-2">
+                            <i class="fas fa-edit fa-2x" style="color: #6c757d;"></i>
+                        </div>
+                        <h6 class="mb-1 font-weight-bold">MANUAL</h6>
+                        <small class="text-muted">Ingreso libre</small>
+                    </div>
                 </div>
+                <input class="origen-radio d-none" type="radio" name="origen_folios" id="origen_manual" value="manual">
             </div>
         </div>
         <div class="text-center mt-3">
-            <button type="button" class="btn btn-secondary" id="btn-volver-cantidad">
+            <button type="button" class="btn btn-secondary btn-sm" id="btn-volver-cantidad">
                 <i class="fas fa-arrow-left"></i> Volver
             </button>
         </div>
@@ -171,11 +232,10 @@
             </div>
         </div>
 
-        <!-- Previsualización tipo plano -->
-        <div class="alert alert-info" id="preview-tipo-manual" style="display: none;">
-            <h5><i class="fas fa-eye"></i> Tipo de plano a crear:</h5>
-            <h3 id="preview-tipo-text">--</h3>
-            <small id="preview-tipo-desc">--</small>
+        <!-- Previsualización tipo plano (oculto, info ya se muestra en display superior) -->
+        <div id="preview-tipo-manual" style="display: none;">
+            <span id="preview-tipo-text"></span>
+            <span id="preview-tipo-desc"></span>
         </div>
 
         <div class="text-center mt-3">
@@ -366,14 +426,14 @@ function cargarNumeracionCorrelativa() {
                 $('#proximo-correlativo-display').text(response.proximo);
 
                 // Habilitar el wizard
-                $('.cantidad-radio').prop('disabled', false);
+                $('.card-seleccion').removeClass('disabled');
             } else {
                 // NO HAY DATOS: Mostrar mensaje y bloquear
                 $('#ultimo-correlativo-display').html('<span class="text-muted">(Ninguno)</span>');
                 $('#proximo-correlativo-display').html('<span class="text-danger">(No disponible)</span>');
 
                 // Deshabilitar el wizard
-                $('.cantidad-radio').prop('disabled', true);
+                $('.card-seleccion').addClass('disabled');
 
                 // Mostrar alerta
                 $('#card-cantidad').prepend(`
@@ -398,7 +458,7 @@ function cargarNumeracionCorrelativa() {
 
             $('#ultimo-correlativo-display').text('Error al cargar');
             $('#proximo-correlativo-display').text('Error al cargar');
-            $('.cantidad-radio').prop('disabled', true);
+            $('.card-seleccion').addClass('disabled');
         }
     });
 }
@@ -407,9 +467,19 @@ function cargarNumeracionCorrelativa() {
 // LISTENERS DEL WIZARD
 // =====================================================
 function initWizardListeners() {
-    // PASO 2: Cantidad de folios (usar .off().on() para evitar doble binding)
-    $('.cantidad-radio').off('change').on('change', function() {
-        wizardData.cantidadTipo = $(this).val();
+    // PASO 2: Cantidad de folios - Click en cards de selección
+    $('.card-seleccion').off('click').on('click', function() {
+        if ($(this).hasClass('disabled')) return;
+
+        // Quitar selección anterior y agregar a la nueva
+        $('.card-seleccion').removeClass('selected');
+        $(this).addClass('selected');
+
+        // Obtener valor y marcar radio oculto (convertir a string para comparaciones)
+        const value = String($(this).data('value'));
+        $('input.cantidad-radio[value="' + value + '"]').prop('checked', true);
+
+        wizardData.cantidadTipo = value;
 
         if (wizardData.cantidadTipo === '1') {
             wizardData.cantidadFolios = 1;
@@ -419,33 +489,48 @@ function initWizardListeners() {
             // Validar cantidad después
         }
 
-        // Mostrar siguiente paso
-        $('#card-cantidad').hide();
-        $('#card-origen').show();
+        // Pequeño delay para mostrar la selección antes de avanzar
+        setTimeout(function() {
+            $('#card-cantidad').hide();
+            $('#card-origen').show();
+        }, 200);
     });
 
     // Volver a cantidad
     $('#btn-volver-cantidad').off('click').on('click', function() {
         $('#card-origen').hide();
         $('#card-cantidad').show();
-        // Limpiar selección y rehabilitar radios
-        $('.cantidad-radio').prop('checked', false).prop('disabled', false);
+        // Limpiar selección visual y radios
+        $('.card-seleccion').removeClass('selected');
+        $('.card-origen').removeClass('selected');
+        $('.cantidad-radio').prop('checked', false);
         $('.origen-radio').prop('checked', false);
     });
 
-    // PASO 3: Origen (usar .off().on() para evitar doble binding)
-    $('.origen-radio').off('change').on('change', function() {
-        wizardData.origenFolios = $(this).val();
+    // PASO 3: Origen - Click en cards de selección
+    $('.card-origen').off('click').on('click', function() {
+        // Quitar selección anterior y agregar a la nueva
+        $('.card-origen').removeClass('selected');
+        $(this).addClass('selected');
 
-        $('#card-origen').hide();
+        // Obtener valor y marcar radio oculto
+        const value = $(this).data('value');
+        $('input.origen-radio[value="' + value + '"]').prop('checked', true);
 
-        if (wizardData.origenFolios === 'manual') {
-            // Ir a configuración manual
-            $('#card-config-manual').show();
-        } else {
-            // Ir directo a búsqueda Matrix
-            mostrarFormularioFolios();
-        }
+        wizardData.origenFolios = value;
+
+        // Pequeño delay para mostrar la selección antes de avanzar
+        setTimeout(function() {
+            $('#card-origen').hide();
+
+            if (wizardData.origenFolios === 'manual') {
+                // Ir a configuración manual
+                $('#card-config-manual').show();
+            } else {
+                // Ir directo a búsqueda Matrix
+                mostrarFormularioFolios();
+            }
+        }, 200);
     });
 
     // Volver a origen
@@ -499,14 +584,26 @@ function actualizarPreviewTipoManual() {
             'CU': 'Fiscal Urbano / Catastro Urbano - SITIOS'
         };
 
-        $('#preview-tipo-text').text(tipoPlano);
-        $('#preview-tipo-desc').text(descripciones[tipoPlano]);
-        $('#preview-tipo-manual').show();
         $('#btn-continuar-config').prop('disabled', false);
+
+        // Actualizar display superior con número parcial (sin comuna aún)
+        actualizarDisplayCorrelativo(null, tipoPlano);
     } else {
-        $('#preview-tipo-manual').hide();
         $('#btn-continuar-config').prop('disabled', true);
     }
+}
+
+// =====================================================
+// ACTUALIZAR DISPLAY CORRELATIVO SUPERIOR
+// =====================================================
+function actualizarDisplayCorrelativo(codigoComuna, tipoPlano) {
+    if (!wizardData.proximoCorrelativo) return;
+
+    const tipo = tipoPlano || wizardData.tipoPlano || '';
+    const comuna = codigoComuna || '---';
+
+    const numeroCompleto = '08' + comuna + wizardData.proximoCorrelativo + tipo;
+    $('#proximo-correlativo-display').text(numeroCompleto);
 }
 
 // =====================================================
@@ -1032,12 +1129,114 @@ function generarFormularioManual() {
             }
         });
     }
+
+    // Listener para actualizar display superior cuando se seleccione comuna
+    $('#comuna-manual').on('change', function() {
+        const codigoComuna = $(this).val();
+        actualizarDisplayCorrelativo(codigoComuna || null, wizardData.tipoPlano);
+    });
+
+    // Listener para mostrar input personalizado y generar campos de medidas
+    $('.cantidad-inmuebles-manual').on('change', function() {
+        const index = $(this).data('index');
+        const value = $(this).val();
+        const esRuralLocal = wizardData.ubicacionManual === 'R';
+        const tipoInmuebleLocal = esRuralLocal ? 'HIJUELA' : 'SITIO';
+
+        if (value === 'custom') {
+            $(`#cantidad-custom-container-${index}`).show();
+            $(`.cantidad-custom-manual[data-index="${index}"]`).prop('required', true).focus();
+            $(`#medidas-inmuebles-container-${index}`).html('');
+        } else if (value) {
+            $(`#cantidad-custom-container-${index}`).hide();
+            $(`.cantidad-custom-manual[data-index="${index}"]`).prop('required', false).val('');
+            generarCamposMedidas(index, parseInt(value), esRuralLocal, tipoInmuebleLocal);
+        } else {
+            $(`#cantidad-custom-container-${index}`).hide();
+            $(`#medidas-inmuebles-container-${index}`).html('');
+        }
+    });
+
+    // Listener para input personalizado de cantidad
+    $('.cantidad-custom-manual').on('change', function() {
+        const index = $(this).data('index');
+        const cantidad = parseInt($(this).val());
+        const esRuralLocal = wizardData.ubicacionManual === 'R';
+        const tipoInmuebleLocal = esRuralLocal ? 'HIJUELA' : 'SITIO';
+
+        if (cantidad >= 6) {
+            generarCamposMedidas(index, cantidad, esRuralLocal, tipoInmuebleLocal);
+        }
+    });
+}
+
+// Generar campos de medidas para cada hijuela/sitio
+function generarCamposMedidas(folioIndex, cantidad, esRural, tipoInmueble) {
+    let html = '<div class="border rounded p-3 bg-light">';
+    html += '<h6 class="text-secondary mb-3"><i class="fas fa-ruler-combined"></i> Medidas de cada ' + tipoInmueble.toLowerCase() + '</h6>';
+
+    for (let i = 0; i < cantidad; i++) {
+        html += '<div class="row align-items-end mb-2">';
+        html += '<div class="col-md-2">';
+        html += '<strong>' + tipoInmueble + ' #' + (i + 1) + '</strong>';
+        html += '</div>';
+
+        if (esRural) {
+            html += '<div class="col-md-4">';
+            html += '<div class="form-group mb-0">';
+            html += '<label class="small">Hectáreas</label>';
+            html += '<input type="text" class="form-control form-control-sm hectareas-inmueble" data-folio="' + folioIndex + '" data-inmueble="' + i + '" placeholder="0,0000">';
+            html += '</div>';
+            html += '</div>';
+            html += '<div class="col-md-4">';
+        } else {
+            html += '<div class="col-md-8">';
+        }
+
+        html += '<div class="form-group mb-0">';
+        html += '<label class="small">M² <span class="text-danger">*</span></label>';
+        html += '<input type="text" class="form-control form-control-sm m2-inmueble" data-folio="' + folioIndex + '" data-inmueble="' + i + '" placeholder="0" required>';
+        html += '</div>';
+        html += '</div>';
+        html += '</div>';
+    }
+
+    html += '</div>';
+    $(`#medidas-inmuebles-container-${folioIndex}`).html(html);
 }
 
 function generarFormularioFolioManual(index, esRural, tipoInmueble) {
     let html = '<div class="card mb-3 folio-manual-card" data-index="' + index + '">';
     html += '<div class="card-body">';
-    html += '<h6 class="text-primary mb-3">' + tipoInmueble + ' #' + (index + 1) + '</h6>';
+    html += '<h6 class="text-primary mb-3">Folio #' + (index + 1) + '</h6>';
+
+    // Selector de cantidad de hijuelas/sitios
+    const labelCantidad = esRural ? 'hijuelas' : 'sitios';
+    html += '<div class="row mb-3">';
+    html += '<div class="col-md-4">';
+    html += '<div class="form-group mb-0">';
+    html += '<label>¿Cuántas ' + labelCantidad + '? <span class="text-danger">*</span></label>';
+    html += '<select class="form-control cantidad-inmuebles-manual" data-index="' + index + '" required>';
+    html += '<option value="">Seleccionar...</option>';
+    html += '<option value="1">1 ' + tipoInmueble.toLowerCase() + '</option>';
+    html += '<option value="2">2 ' + labelCantidad + '</option>';
+    html += '<option value="3">3 ' + labelCantidad + '</option>';
+    html += '<option value="4">4 ' + labelCantidad + '</option>';
+    html += '<option value="5">5 ' + labelCantidad + '</option>';
+    html += '<option value="custom">Más...</option>';
+    html += '</select>';
+    html += '</div>';
+    html += '</div>';
+    html += '<div class="col-md-3" id="cantidad-custom-container-' + index + '" style="display: none;">';
+    html += '<div class="form-group mb-0">';
+    html += '<label>Cantidad exacta</label>';
+    html += '<input type="number" class="form-control cantidad-custom-manual" data-index="' + index + '" min="6" placeholder="6+">';
+    html += '</div>';
+    html += '</div>';
+    html += '</div>';
+
+    // Contenedor para los campos de medidas de cada hijuela/sitio
+    html += '<div id="medidas-inmuebles-container-' + index + '" class="mb-3"></div>';
 
     // Fila 1: Folio y Solicitante
     html += '<div class="row">';
@@ -1063,39 +1262,6 @@ function generarFormularioFolioManual(index, esRural, tipoInmueble) {
     html += '<div class="form-group">';
     html += '<label>Ap. Materno</label>';
     html += '<input type="text" class="form-control ap-materno-manual" data-index="' + index + '">';
-    html += '</div>';
-    html += '</div>';
-
-    // Número de inmueble
-    html += '<div class="col-md-2">';
-    html += '<div class="form-group">';
-    html += '<label>N° ' + tipoInmueble + '</label>';
-    html += '<input type="number" class="form-control num-inmueble-manual" data-index="' + index + '" value="' + (index + 1) + '">';
-    html += '</div>';
-    html += '</div>';
-    html += '</div>';
-
-    // Fila 2: Medidas (hectáreas y m²)
-    html += '<div class="row">';
-
-    if (esRural) {
-        html += '<div class="col-md-4">';
-        html += '<div class="form-group">';
-        html += '<label>Hectáreas</label>';
-        html += '<input type="text" class="form-control hectareas-manual" data-index="' + index + '" placeholder="0,0000" inputmode="decimal" onkeypress="return validarNumeroDecimal(event)">';
-        html += '<small class="text-muted">Formato: 2,5000</small>';
-        html += '</div>';
-        html += '</div>';
-
-        html += '<div class="col-md-4">';
-    } else {
-        html += '<div class="col-md-8">';
-    }
-
-    html += '<div class="form-group">';
-    html += '<label>M² <span class="text-danger">*</span></label>';
-    html += '<input type="text" class="form-control m2-manual" data-index="' + index + '" placeholder="0" required inputmode="numeric" onkeypress="return validarNumeroEntero(event)">';
-    html += '<small class="text-muted">Solo números enteros</small>';
     html += '</div>';
     html += '</div>';
     html += '</div>';
