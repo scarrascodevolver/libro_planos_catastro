@@ -568,7 +568,7 @@ class PlanoController extends Controller
 
     public function getDetallesCompletos($planoId)
     {
-        $plano = Plano::with(['folios', 'creator'])->findOrFail($planoId);
+        $plano = Plano::with(['folios.inmuebles', 'creator'])->findOrFail($planoId);
 
         $html = $this->generarHtmlDetallesCompletos($plano);
 
