@@ -1425,7 +1425,10 @@ function mostrarConfirmacion() {
     $('#confirm-comuna').text(wizardData.folios[0].comuna || $('#comuna-manual option:selected').text());
     $('#confirm-responsable').text(wizardData.folios[0].responsable || $('#responsable-manual').val());
     $('#confirm-proyecto').text(wizardData.folios[0].proyecto || $('#proyecto-manual').val());
-    $('#confirm-total-folios').text(wizardData.folios.length);
+
+    // Mostrar cantidad con etiqueta apropiada
+    const tipoInmuebleLabel = wizardData.tipoPlano.includes('R') ? 'hijuelas' : 'sitios';
+    $('#confirm-total-folios').text(wizardData.folios.length + ' ' + tipoInmuebleLabel);
     $('#confirm-total-ha').text(totalHectareas > 0 ? formatNumber(totalHectareas, 4) + ' ha' : '-');
     $('#confirm-total-m2').text(formatNumber(totalM2, 2) + ' m²');
 
@@ -1492,7 +1495,7 @@ function recolectarFoliosManuales() {
         return false;
     }
 
-    // Recolectar cada folio
+    // Recolectar cada folio - CREAR UN REGISTRO POR CADA HIJUELA/SITIO
     let errores = [];
     $('.solicitante-manual').each(function(index) {
         const solicitante = $(this).val().trim();
@@ -1505,60 +1508,49 @@ function recolectarFoliosManuales() {
             return;
         }
 
-        // Sumar M² de todas las hijuelas/sitios de este folio
-        let totalM2 = 0;
-        let totalHectareas = 0;
-        let cantidadInmuebles = 0;
+        // Crear un registro por cada hijuela/sitio de este folio
+        let tieneAlMenosUno = false;
 
-        $(`.m2-inmueble[data-folio="${index}"]`).each(function() {
-            const valor = $(this).val();
-            if (valor) {
-                const m2 = parseFloat(valor.replace(/\./g, '').replace(',', '.'));
-                if (!isNaN(m2) && m2 > 0) {
-                    totalM2 += m2;
-                    cantidadInmuebles++;
-                }
-            }
-        });
+        $(`.m2-inmueble[data-folio="${index}"]`).each(function(inmuebleIndex) {
+            const m2Valor = $(this).val();
+            if (!m2Valor) return;
 
-        // Sumar hectáreas si es rural
-        if (esRural) {
-            $(`.hectareas-inmueble[data-folio="${index}"]`).each(function() {
-                const valor = $(this).val();
-                if (valor) {
-                    const ha = parseFloat(valor.replace(/\./g, '').replace(',', '.'));
+            const m2 = parseFloat(m2Valor.replace(/\./g, '').replace(',', '.'));
+            if (isNaN(m2) || m2 <= 0) return;
+
+            tieneAlMenosUno = true;
+
+            const folioData = {
+                folio: folio || null,
+                solicitante: solicitante,
+                apellido_paterno: apPaterno || null,
+                apellido_materno: apMaterno || null,
+                tipo_inmueble: tipoInmueble,
+                numero_inmueble: inmuebleIndex + 1, // Hijuela #1, #2, #3...
+                m2: m2,
+                is_from_matrix: false,
+                comuna: comuna,
+                responsable: responsable,
+                proyecto: proyecto
+            };
+
+            // Agregar hectáreas si es rural
+            if (esRural) {
+                const haInput = $(`.hectareas-inmueble[data-folio="${index}"][data-inmueble="${inmuebleIndex}"]`).val();
+                if (haInput) {
+                    const ha = parseFloat(haInput.replace(/\./g, '').replace(',', '.'));
                     if (!isNaN(ha) && ha > 0) {
-                        totalHectareas += ha;
+                        folioData.hectareas = ha;
                     }
                 }
-            });
+            }
+
+            wizardData.folios.push(folioData);
+        });
+
+        if (!tieneAlMenosUno) {
+            errores.push(`Folio ${index + 1}: Debe ingresar al menos una ${tipoInmueble.toLowerCase()} con M²`);
         }
-
-        if (totalM2 <= 0) {
-            errores.push(`Folio ${index + 1}: M² es obligatorio (debe ingresar medidas)`);
-            return;
-        }
-
-        const folioData = {
-            folio: folio || null,
-            solicitante: solicitante,
-            apellido_paterno: apPaterno || null,
-            apellido_materno: apMaterno || null,
-            tipo_inmueble: tipoInmueble,
-            numero_inmueble: cantidadInmuebles,
-            m2: totalM2,
-            is_from_matrix: false,
-            comuna: comuna,
-            responsable: responsable,
-            proyecto: proyecto
-        };
-
-        // Agregar hectáreas si es rural
-        if (esRural && totalHectareas > 0) {
-            folioData.hectareas = totalHectareas;
-        }
-
-        wizardData.folios.push(folioData);
     });
 
     if (errores.length > 0) {
