@@ -1210,34 +1210,6 @@ function generarFormularioFolioManual(index, esRural, tipoInmueble) {
     html += '<div class="card-body">';
     html += '<h6 class="text-primary mb-3">Folio #' + (index + 1) + '</h6>';
 
-    // Selector de cantidad de hijuelas/sitios
-    const labelCantidad = esRural ? 'hijuelas' : 'sitios';
-    html += '<div class="row mb-3">';
-    html += '<div class="col-md-4">';
-    html += '<div class="form-group mb-0">';
-    html += '<label>¿Cuántas ' + labelCantidad + '? <span class="text-danger">*</span></label>';
-    html += '<select class="form-control cantidad-inmuebles-manual" data-index="' + index + '" required>';
-    html += '<option value="">Seleccionar...</option>';
-    html += '<option value="1">1 ' + tipoInmueble.toLowerCase() + '</option>';
-    html += '<option value="2">2 ' + labelCantidad + '</option>';
-    html += '<option value="3">3 ' + labelCantidad + '</option>';
-    html += '<option value="4">4 ' + labelCantidad + '</option>';
-    html += '<option value="5">5 ' + labelCantidad + '</option>';
-    html += '<option value="custom">Más...</option>';
-    html += '</select>';
-    html += '</div>';
-    html += '</div>';
-    html += '<div class="col-md-3" id="cantidad-custom-container-' + index + '" style="display: none;">';
-    html += '<div class="form-group mb-0">';
-    html += '<label>Cantidad exacta</label>';
-    html += '<input type="number" class="form-control cantidad-custom-manual" data-index="' + index + '" min="6" placeholder="6+">';
-    html += '</div>';
-    html += '</div>';
-    html += '</div>';
-
-    // Contenedor para los campos de medidas de cada hijuela/sitio
-    html += '<div id="medidas-inmuebles-container-' + index + '" class="mb-3"></div>';
-
     // Fila 1: Folio y Solicitante
     html += '<div class="row">';
     html += '<div class="col-md-2">';
@@ -1296,6 +1268,35 @@ function generarFormularioFolioManual(index, esRural, tipoInmueble) {
         html += '</div>';
         html += '</div>';
     }
+
+    // Selector de cantidad de hijuelas/sitios (al final del formulario)
+    const labelCantidad = esRural ? 'hijuelas' : 'sitios';
+    html += '<hr><h6>Cantidad de ' + labelCantidad + '</h6>';
+    html += '<div class="row mb-3">';
+    html += '<div class="col-md-4">';
+    html += '<div class="form-group mb-0">';
+    html += '<label>¿Cuántas ' + labelCantidad + '? <span class="text-danger">*</span></label>';
+    html += '<select class="form-control cantidad-inmuebles-manual" data-index="' + index + '" required>';
+    html += '<option value="">Seleccionar...</option>';
+    html += '<option value="1">1 ' + tipoInmueble.toLowerCase() + '</option>';
+    html += '<option value="2">2 ' + labelCantidad + '</option>';
+    html += '<option value="3">3 ' + labelCantidad + '</option>';
+    html += '<option value="4">4 ' + labelCantidad + '</option>';
+    html += '<option value="5">5 ' + labelCantidad + '</option>';
+    html += '<option value="custom">Más...</option>';
+    html += '</select>';
+    html += '</div>';
+    html += '</div>';
+    html += '<div class="col-md-3" id="cantidad-custom-container-' + index + '" style="display: none;">';
+    html += '<div class="form-group mb-0">';
+    html += '<label>Cantidad exacta</label>';
+    html += '<input type="number" class="form-control cantidad-custom-manual" data-index="' + index + '" min="6" placeholder="6+">';
+    html += '</div>';
+    html += '</div>';
+    html += '</div>';
+
+    // Contenedor para los campos de medidas de cada hijuela/sitio
+    html += '<div id="medidas-inmuebles-container-' + index + '" class="mb-3"></div>';
 
     html += '</div></div>';
     return html;
