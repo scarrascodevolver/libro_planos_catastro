@@ -1185,7 +1185,8 @@ function generarCamposMedidas(folioIndex, cantidad, esRural, tipoInmueble) {
             html += '<div class="col-md-4">';
             html += '<div class="form-group mb-0">';
             html += '<label class="small">Hectáreas</label>';
-            html += '<input type="text" class="form-control form-control-sm hectareas-inmueble" data-folio="' + folioIndex + '" data-inmueble="' + i + '" placeholder="0,0000">';
+            html += '<input type="text" class="form-control form-control-sm hectareas-inmueble" data-folio="' + folioIndex + '" data-inmueble="' + i + '" placeholder="0,0000" inputmode="decimal" onkeypress="return validarNumeroDecimal(event)">';
+            html += '<small class="text-muted">Auto-convierte a M²</small>';
             html += '</div>';
             html += '</div>';
             html += '<div class="col-md-4">';
@@ -1195,7 +1196,10 @@ function generarCamposMedidas(folioIndex, cantidad, esRural, tipoInmueble) {
 
         html += '<div class="form-group mb-0">';
         html += '<label class="small">M² <span class="text-danger">*</span></label>';
-        html += '<input type="text" class="form-control form-control-sm m2-inmueble" data-folio="' + folioIndex + '" data-inmueble="' + i + '" placeholder="0" required>';
+        html += '<input type="text" class="form-control form-control-sm m2-inmueble" data-folio="' + folioIndex + '" data-inmueble="' + i + '" placeholder="0" required inputmode="numeric" onkeypress="return validarNumeroEntero(event)">';
+        if (esRural) {
+            html += '<small class="text-muted">Calculado desde Ha</small>';
+        }
         html += '</div>';
         html += '</div>';
         html += '</div>';
@@ -1203,6 +1207,29 @@ function generarCamposMedidas(folioIndex, cantidad, esRural, tipoInmueble) {
 
     html += '</div>';
     $(`#medidas-inmuebles-container-${folioIndex}`).html(html);
+
+    // Agregar listeners de conversión hectáreas -> m² si es rural
+    if (esRural) {
+        attachConversionListenersInmuebles(folioIndex, cantidad);
+    }
+}
+
+// Conversión hectáreas -> m² para inmuebles individuales (hijuelas/sitios)
+function attachConversionListenersInmuebles(folioIndex, cantidad) {
+    for (let i = 0; i < cantidad; i++) {
+        // Hectáreas -> M² (conversión automática)
+        $(document).off('input', `.hectareas-inmueble[data-folio="${folioIndex}"][data-inmueble="${i}"]`);
+        $(document).on('input', `.hectareas-inmueble[data-folio="${folioIndex}"][data-inmueble="${i}"]`, function() {
+            let valor = $(this).val().replace(/\./g, '').replace(',', '.');
+            if (valor && !isNaN(valor)) {
+                const ha = parseFloat(valor);
+                const m2 = Math.round(ha * 10000); // 1 ha = 10,000 m²
+                $(`.m2-inmueble[data-folio="${folioIndex}"][data-inmueble="${i}"]`).val(m2);
+            } else {
+                $(`.m2-inmueble[data-folio="${folioIndex}"][data-inmueble="${i}"]`).val('');
+            }
+        });
+    }
 }
 
 function generarFormularioFolioManual(index, esRural, tipoInmueble) {
