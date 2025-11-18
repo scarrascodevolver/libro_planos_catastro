@@ -438,51 +438,70 @@ class PlanoController extends Controller
                 </div>
             </div>
 
-            <!-- Sección FOLIOS -->
+            <!-- Sección FOLIOS/HIJUELAS/SITIOS -->
             <div class="col-md-6">
                 <div class="card">
                     <div class="card-header bg-success">
                         <h5 class="card-title mb-0">
-                            <i class="fas fa-list"></i> Folios (' . $plano->cantidad_folios . ')
+                            <i class="fas fa-list"></i> Detalle de Inmuebles (' . $plano->cantidad_folios . ')
                         </h5>
                     </div>
-                    <div class="card-body">
+                    <div class="card-body p-0">
                         <div class="table-responsive">
-                            <table class="table table-sm table-striped">
-                                <thead>
+                            <table class="table table-sm table-hover mb-0">
+                                <thead class="thead-light">
                                     <tr>
+                                        <th class="text-center" style="width: 120px;">Tipo</th>
                                         <th>Folio</th>
                                         <th>Solicitante</th>
-                                        <th>Ap. Paterno</th>
-                                        <th>Ap. Materno</th>
-                                        <th>Tipo</th>
-                                        <th>N°</th>
-                                        <th>Hectáreas</th>
-                                        <th>M²</th>
+                                        <th class="text-right">Hectáreas</th>
+                                        <th class="text-right">M²</th>
                                     </tr>
                                 </thead>
                                 <tbody>';
 
         foreach ($plano->folios as $folio) {
+            $tipoLabel = $folio->tipo_inmueble ?: 'HIJUELA';
+            $numero = $folio->numero_inmueble ? " #{$folio->numero_inmueble}" : '';
+            $badgeColor = $tipoLabel == 'HIJUELA' ? 'info' : 'warning';
+
+            $hectareasDisplay = $folio->hectareas
+                ? number_format($folio->hectareas, 4, ',', '.') . ' ha'
+                : '-';
+
+            $m2Display = number_format($folio->m2 ?: 0, 0, ',', '.') . ' m²';
+
+            $nombreCompleto = trim(($folio->solicitante ?: '') . ' ' . ($folio->apellido_paterno ?: '') . ' ' . ($folio->apellido_materno ?: ''));
+
             $html .= '
                                     <tr>
-                                        <td>' . ($folio->folio ?: '-') . '</td>
-                                        <td>' . ($folio->solicitante ?: '-') . '</td>
-                                        <td>' . ($folio->apellido_paterno ?: '-') . '</td>
-                                        <td>' . ($folio->apellido_materno ?: '-') . '</td>
-                                        <td>
-                                            <span class="badge badge-' . ($folio->tipo_inmueble == 'HIJUELA' ? 'info' : 'warning') . '">
-                                                ' . $folio->tipo_inmueble . '
+                                        <td class="text-center">
+                                            <span class="badge badge-' . $badgeColor . '">
+                                                ' . $tipoLabel . $numero . '
                                             </span>
                                         </td>
-                                        <td>' . ($folio->numero_inmueble ?: '-') . '</td>
-                                        <td>' . ($folio->hectareas ? number_format($folio->hectareas, 2, ',', '') : '-') . '</td>
-                                        <td>' . number_format($folio->m2 ?: 0, 2, ',', '.') . '</td>
+                                        <td><strong>' . ($folio->folio ?: '-') . '</strong></td>
+                                        <td>' . ($nombreCompleto ?: '-') . '</td>
+                                        <td class="text-right">' . $hectareasDisplay . '</td>
+                                        <td class="text-right"><strong>' . $m2Display . '</strong></td>
                                     </tr>';
         }
 
+        // Fila de totales
+        $totalHa = $plano->total_hectareas
+            ? number_format($plano->total_hectareas, 4, ',', '.') . ' ha'
+            : '-';
+        $totalM2 = number_format($plano->total_m2 ?: 0, 0, ',', '.') . ' m²';
+
         $html .= '
                                 </tbody>
+                                <tfoot class="bg-light">
+                                    <tr>
+                                        <th colspan="3" class="text-right">TOTALES:</th>
+                                        <th class="text-right">' . $totalHa . '</th>
+                                        <th class="text-right"><strong>' . $totalM2 . '</strong></th>
+                                    </tr>
+                                </tfoot>
                             </table>
                         </div>
                     </div>
