@@ -506,28 +506,16 @@ class PlanoController extends Controller
             } else {
                 $html .= '<td></td>';
             }
-
-            // Mostrar tipo de inmueble y número
-            $tipoInmueble = $folio->tipo_inmueble ?: 'HIJUELA';
-            $numeroInmueble = $folio->numero_inmueble ? " #{$folio->numero_inmueble}" : '';
-            $html .= '<td class="pl-4"><span class="badge badge-secondary">└ ' . $tipoInmueble . $numeroInmueble . '</span></td>';
-
-            $html .= '<td>' . ($folio->folio ?: '-') . '</td>'; // Folio
-            $html .= '<td>' . ($folio->solicitante ?: '-') . '</td>'; // Solicitante
-            $html .= '<td>' . ($folio->apellido_paterno ?: '-') . '</td>'; // Apellido paterno
-            $html .= '<td>' . ($folio->apellido_materno ?: '-') . '</td>'; // Apellido materno
-            $html .= '<td></td>'; // Vacía
-            $html .= '<td></td>'; // Vacía
-
-            // Hectáreas con formato
-            $hectareas = $folio->hectareas ? number_format($folio->hectareas, 4, ',', '.') . ' ha' : '-';
-            $html .= '<td>' . $hectareas . '</td>';
-
-            // M² con formato
-            $m2 = number_format($folio->m2 ?: 0, 0, ',', '.') . ' m²';
-            $html .= '<td>' . $m2 . '</td>';
-
-            $html .= '<td colspan="12"></td>'; // Resto vacío
+            $html .= '<td class="pl-4">└ Folio</td>'; // Columna REASIGNAR -> muestra "└ Folio"
+            $html .= '<td>' . $folio->folio . '</td>'; // Columna N° PLANO -> muestra folio individual
+            $html .= '<td>' . ($folio->solicitante ?: '-') . '</td>'; // Columna FOLIOS -> muestra solicitante
+            $html .= '<td>' . ($folio->apellido_paterno ?: '-') . '</td>'; // Columna SOLICITANTE -> muestra apellido paterno
+            $html .= '<td>' . ($folio->apellido_materno ?: '-') . '</td>'; // Columna APELLIDO PATERNO -> muestra apellido materno
+            $html .= '<td></td>'; // Columna APELLIDO MATERNO -> vacía
+            $html .= '<td></td>'; // Columna COMUNA -> vacía
+            $html .= '<td>' . ($folio->hectareas ? number_format($folio->hectareas, 2, ',', '') : '-') . '</td>'; // Columna HECTÁREAS
+            $html .= '<td>' . number_format($folio->m2 ?: 0, 2, ',', '.') . '</td>'; // Columna M²
+            $html .= '<td colspan="12"></td>'; // Resto vacío - ajustado para las nuevas columnas
             $html .= '</tr>';
         }
 
