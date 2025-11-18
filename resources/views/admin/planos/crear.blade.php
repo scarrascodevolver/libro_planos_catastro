@@ -1682,7 +1682,8 @@ function crearPlano() {
                 numero_inmueble: folio.numero_inmueble || null,
                 hectareas: folio.hectareas || null,
                 m2: folio.m2,
-                is_from_matrix: wizardData.origenFolios === 'matrix'
+                is_from_matrix: wizardData.origenFolios === 'matrix',
+                inmuebles: folio.inmuebles || [] // Array con desglose de hijuelas/sitios
             };
         })
     };
