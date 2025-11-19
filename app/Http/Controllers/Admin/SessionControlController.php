@@ -184,7 +184,15 @@ class SessionControlController extends Controller
             ]);
         }
 
-        $correlativo = $this->getProximoCorrelativo();
+        $correlativo = SessionControl::getProximoCorrelativo();
+
+        if ($correlativo === 0) {
+            return response()->json([
+                'success' => false,
+                'message' => 'No hay correlativos disponibles. Importe datos históricos primero.'
+            ]);
+        }
+
         $numeroCompleto = $this->generarProximoNumero(
             $correlativo,
             $request->codigo_comuna,
@@ -202,6 +210,7 @@ class SessionControlController extends Controller
         return response()->json([
             'success' => true,
             'numeroPlano' => $numeroCompleto,
+            'numeroCompleto' => $numeroCompleto,
             'correlativo' => $correlativo
         ]);
     }

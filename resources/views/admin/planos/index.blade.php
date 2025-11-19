@@ -991,29 +991,52 @@ function reasignarPlano(id) {
                 return;
             }
 
-            // Si tiene control, proceder con reasignación
-            $('#reasignar-modal #reasignar_id').val(id);
+            // Si tiene control, obtener datos del plano original
+            $.get('{{ url("/planos") }}/' + id + '/detalles-completos')
+                .done(function(planoData) {
+                    // Extraer código comuna y tipo del número actual
+                    // Formato: 08 + codigo_comuna(3) + correlativo + tipo(2)
+                    const numeroActual = planoData.plano.numero_plano || '';
+                    let codigoComuna = '303'; // Default
+                    let tipoPlano = 'SU';     // Default
 
-            // Generar automáticamente el próximo número
-            $('#nuevo_numero').val('Generando...');
-            $.post('{{ route("session-control.generar-numero") }}', {
-                codigo_comuna: '303', // Valor por defecto, se puede hacer dinámico después
-                tipo_plano: 'SU'      // Valor por defecto, se puede hacer dinámico después
-            })
-            .done(function(response) {
-                if (response.success) {
-                    $('#nuevo_numero').val(response.numeroCompleto);
-                } else {
-                    $('#nuevo_numero').val('Error al generar');
-                    Swal.fire('Error', 'No se pudo generar el número automático', 'error');
-                }
-            })
-            .fail(function() {
-                $('#nuevo_numero').val('Error al generar');
-                Swal.fire('Error', 'No se pudo generar el número automático', 'error');
-            });
+                    if (numeroActual.length >= 7) {
+                        codigoComuna = numeroActual.substring(2, 5);
+                        tipoPlano = numeroActual.slice(-2);
+                    }
 
-            $('#reasignar-modal').modal('show');
+                    $('#reasignar-modal #reasignar_id').val(id);
+                    $('#nuevo_numero').val('Generando...');
+
+                    // Generar automáticamente el próximo número
+                    $.ajax({
+                        url: '{{ route("session-control.generar-numero") }}',
+                        method: 'POST',
+                        data: {
+                            _token: '{{ csrf_token() }}',
+                            codigo_comuna: codigoComuna,
+                            tipo_plano: tipoPlano
+                        },
+                        success: function(response) {
+                            if (response.success) {
+                                $('#nuevo_numero').val(response.numeroCompleto);
+                            } else {
+                                $('#nuevo_numero').val('Error al generar');
+                                Swal.fire('Error', response.message || 'No se pudo generar el número automático', 'error');
+                            }
+                        },
+                        error: function(xhr) {
+                            $('#nuevo_numero').val('Error al generar');
+                            const errorMsg = xhr.responseJSON?.message || 'No se pudo generar el número automático';
+                            Swal.fire('Error', errorMsg, 'error');
+                        }
+                    });
+
+                    $('#reasignar-modal').modal('show');
+                })
+                .fail(function() {
+                    Swal.fire('Error', 'No se pudieron obtener los datos del plano', 'error');
+                });
         })
         .fail(function() {
             Swal.fire({

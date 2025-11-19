@@ -669,13 +669,28 @@ class PlanoController extends Controller
         ]);
 
         $plano = Plano::findOrFail($id);
+        $numeroAnterior = $plano->numero_plano;
+
+        // Extraer el nuevo correlativo del número (posición 5 hasta -2)
+        $nuevoNumero = $request->nuevo_numero;
+        $nuevoCorrelativo = null;
+
+        // Formato: 08 + codigo_comuna(3) + correlativo + tipo(2)
+        // Ejemplo: 0830329896SU -> correlativo = 29896
+        if (strlen($nuevoNumero) >= 7) {
+            $sinPrefijo = substr($nuevoNumero, 5); // Quitar "08" + codigo_comuna
+            $sinTipo = substr($sinPrefijo, 0, -2);  // Quitar tipo (SU, SR, etc)
+            $nuevoCorrelativo = intval($sinTipo);
+        }
+
         $plano->update([
-            'numero_plano' => $request->nuevo_numero
+            'numero_plano' => $nuevoNumero,
+            'numero_correlativo' => $nuevoCorrelativo
         ]);
 
         return response()->json([
             'success' => true,
-            'message' => 'Número de plano reasignado correctamente'
+            'message' => "Número reasignado de {$numeroAnterior} a {$nuevoNumero}"
         ]);
     }
 
