@@ -57,6 +57,18 @@
             color: white;
             border-color: #007bff #007bff #fff;
         }
+        /* Animación parpadeo para notificaciones */
+        .animate-pulse {
+            animation: pulse 1.5s ease-in-out infinite;
+        }
+        @keyframes pulse {
+            0%, 100% { opacity: 1; transform: scale(1); }
+            50% { opacity: 0.5; transform: scale(1.2); }
+        }
+        .btn-xs {
+            padding: 0.15rem 0.35rem;
+            font-size: 0.75rem;
+        }
     </style>
 
     @stack('styles')
@@ -82,31 +94,42 @@
                 <a class="nav-link" data-toggle="dropdown" href="#" id="session-status-btn">
                     <i class="fas fa-lock text-danger" id="session-status-icon"></i>
                     <span class="badge badge-danger navbar-badge" id="session-status-text">Sin Control</span>
+                    <span class="badge badge-warning navbar-badge animate-pulse" id="pending-requests-count" style="display: none; margin-left: -8px;">0</span>
                 </a>
-                <div class="dropdown-menu dropdown-menu-lg dropdown-menu-right">
-                    <div class="dropdown-item" id="session-control-info">
-                        <div class="media">
-                            <div class="media-body">
-                                <h3 class="dropdown-item-title" id="control-status-title">
-                                    Control de Numeración
-                                </h3>
-                                <p class="text-sm" id="control-status-message">
-                                    Sin control activo
-                                </p>
-                                <p class="text-sm text-muted" id="control-next-number">
-                                    <i class="far fa-clock mr-1"></i> Próximo: --
-                                </p>
+                <div class="dropdown-menu dropdown-menu-lg dropdown-menu-right" style="width: 320px;">
+                    <!-- Estado actual -->
+                    <div class="dropdown-item bg-light">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <div>
+                                <strong id="control-status-title">Sin Control</strong>
+                                <p class="text-sm mb-0" id="control-status-message">Verificando...</p>
                             </div>
+                            <span class="text-sm text-muted" id="control-next-number"></span>
                         </div>
                     </div>
-                    <div class="dropdown-divider"></div>
-                    <div class="dropdown-item">
-                        <button class="btn btn-sm btn-primary" id="request-control-btn" style="display: none;">
-                            Solicitar Control
+
+                    <!-- Botones de acción -->
+                    <div class="dropdown-item" id="control-actions">
+                        <button class="btn btn-sm btn-success btn-block" id="request-control-btn" style="display: none;">
+                            <i class="fas fa-key"></i> Solicitar Control
                         </button>
-                        <button class="btn btn-sm btn-warning" id="release-control-btn" style="display: none;">
-                            Liberar Control
+                        <button class="btn btn-sm btn-info btn-block" id="send-request-btn" style="display: none;">
+                            <i class="fas fa-bell"></i> Pedir a Usuario
                         </button>
+                        <button class="btn btn-sm btn-warning btn-block" id="release-control-btn" style="display: none;">
+                            <i class="fas fa-unlock"></i> Liberar Control
+                        </button>
+                    </div>
+
+                    <!-- Solicitudes pendientes -->
+                    <div id="pending-requests-section" style="display: none;">
+                        <div class="dropdown-divider"></div>
+                        <div class="dropdown-item bg-warning-light">
+                            <strong><i class="fas fa-inbox"></i> Solicitudes Pendientes</strong>
+                        </div>
+                        <div id="pending-requests-list">
+                            <!-- Se llena dinámicamente -->
+                        </div>
                     </div>
                 </div>
             </li>
@@ -263,22 +286,64 @@ $.ajaxSetup({
 <!-- SweetAlert2 (Local) -->
 <script src="{{ asset('vendor/sweetalert2/sweetalert2.all.min.js') }}"></script>
 
+<!-- Toastr-like functions using SweetAlert2 -->
+<script>
+const Toast = Swal.mixin({
+    toast: true,
+    position: 'top-end',
+    showConfirmButton: false,
+    timer: 5000,
+    timerProgressBar: true
+});
+
+const toastr = {
+    success: function(message, title = '') {
+        Toast.fire({ icon: 'success', title: title || message, text: title ? message : '' });
+    },
+    error: function(message, title = '') {
+        Toast.fire({ icon: 'error', title: title || message, text: title ? message : '' });
+    },
+    warning: function(message, title = '', options = {}) {
+        Toast.fire({
+            icon: 'warning',
+            title: title || 'Aviso',
+            html: message,
+            timer: options.timeOut || 5000
+        });
+    },
+    info: function(message, title = '') {
+        Toast.fire({ icon: 'info', title: title || message, text: title ? message : '' });
+    }
+};
+</script>
+
 <!-- Session Control JS (solo para registro) -->
 @if(Auth::user()->isRegistro())
 <script>
-// Session Control Management
-let sessionControlInterval;
-
+// Session Control Management - Centralizado en Navbar
 $(document).ready(function() {
     initSessionControl();
-    startSessionControlHeartbeat();
 });
 
 function initSessionControl() {
-    checkSessionStatus();
+    console.log('🔄 Inicializando control de sesión...');
 
+    // Verificar estado inicial
+    checkSessionStatus();
+    checkPendingRequests();
+
+    // Bind eventos
     $('#request-control-btn').on('click', requestControl);
     $('#release-control-btn').on('click', releaseControl);
+    $('#send-request-btn').on('click', sendControlRequest);
+
+    // Polling cada 5 segundos
+    setInterval(function() {
+        checkSessionStatus();
+        checkPendingRequests();
+    }, 5000);
+
+    console.log('✅ Control de sesión inicializado');
 }
 
 function checkSessionStatus() {
@@ -299,70 +364,206 @@ function updateSessionUI(status) {
     const nextNumber = $('#control-next-number');
     const requestBtn = $('#request-control-btn');
     const releaseBtn = $('#release-control-btn');
+    const sendRequestBtn = $('#send-request-btn');
 
     if (status.hasControl) {
+        // Tiene control
         icon.removeClass('text-danger fa-lock').addClass('text-success fa-unlock');
-        text.removeClass('badge-danger').addClass('badge-success').text('Con Control');
+        text.removeClass('badge-danger badge-warning').addClass('badge-success').text('Con Control');
         title.text('Tienes Control');
-        message.text('Puedes crear números correlativos');
-        nextNumber.html('<i class="fas fa-arrow-right mr-1"></i> Próximo: ' + (status.proximoNumero || 'Cargando...'));
+        message.text('Puedes crear planos');
+        nextNumber.text(status.proximoCorrelativo || '');
+
         requestBtn.hide();
+        sendRequestBtn.hide();
         releaseBtn.show();
+
+        // Disparar evento para otras páginas
+        $(document).trigger('sessionControl:changed', [true]);
     } else {
+        // No tiene control
         icon.removeClass('text-success fa-unlock').addClass('text-danger fa-lock');
-        text.removeClass('badge-success').addClass('badge-danger').text('Sin Control');
+        text.removeClass('badge-success badge-warning').addClass('badge-danger').text('Sin Control');
         title.text('Sin Control');
+        nextNumber.text('');
+
+        releaseBtn.hide();
 
         if (status.whoHasControl) {
+            // Otro usuario tiene control
             message.text(status.whoHasControl + ' tiene el control');
             requestBtn.hide();
-        } else {
-            message.text('Ningún usuario tiene control');
+            sendRequestBtn.show();
+        } else if (status.canRequest) {
+            // Nadie tiene control
+            message.text('Control disponible');
             requestBtn.show();
+            sendRequestBtn.hide();
+        } else {
+            message.text('No disponible');
+            requestBtn.hide();
+            sendRequestBtn.hide();
         }
 
-        nextNumber.html('<i class="far fa-clock mr-1"></i> Próximo: --');
-        releaseBtn.hide();
+        // Disparar evento para otras páginas
+        $(document).trigger('sessionControl:changed', [false]);
     }
 }
 
-function requestControl() {
-    $.post('{{ route("session-control.request") }}')
+let lastPendingCount = 0;
+
+function checkPendingRequests() {
+    $.get('{{ route("session-control.pending-requests") }}')
         .done(function(response) {
-            if (response.success) {
-                Swal.fire('¡Éxito!', response.message, 'success');
-                checkSessionStatus();
+            console.log('📬 Solicitudes pendientes:', response);
+
+            const section = $('#pending-requests-section');
+            const list = $('#pending-requests-list');
+            const countBadge = $('#pending-requests-count');
+
+            if (response.count > 0) {
+                // Notificar si hay nuevas solicitudes - abrir dropdown automáticamente
+                if (response.count > lastPendingCount) {
+                    // Abrir el dropdown para mostrar la solicitud
+                    $('#session-status-btn').dropdown('show');
+                }
+                lastPendingCount = response.count;
+
+                // Mostrar contador en badge
+                countBadge.text(response.count).show();
+
+                // Construir lista de solicitudes
+                let html = '';
+                response.requests.forEach(function(req) {
+                    html += `
+                        <div class="dropdown-item py-2" style="white-space: normal;">
+                            <div class="d-flex justify-content-between align-items-start">
+                                <div>
+                                    <strong>${req.from_user_name}</strong>
+                                    <small class="d-block text-muted">${req.message || 'Solicita control'}</small>
+                                </div>
+                                <div class="btn-group btn-group-sm ml-2">
+                                    <button class="btn btn-success btn-xs" onclick="respondRequest(${req.id}, 'accept')">
+                                        <i class="fas fa-check"></i>
+                                    </button>
+                                    <button class="btn btn-danger btn-xs" onclick="respondRequest(${req.id}, 'reject')">
+                                        <i class="fas fa-times"></i>
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    `;
+                });
+
+                list.html(html);
+                section.show();
             } else {
-                Swal.fire('Error', response.message, 'error');
+                lastPendingCount = 0;
+                countBadge.hide();
+                section.hide();
             }
         })
         .fail(function() {
-            Swal.fire('Error', 'No se pudo solicitar control', 'error');
+            $('#pending-requests-count').hide();
+            $('#pending-requests-section').hide();
+        });
+}
+
+function requestControl() {
+    const btn = $('#request-control-btn');
+    btn.html('<i class="fas fa-spinner fa-spin"></i>').prop('disabled', true);
+
+    $.post('{{ route("session-control.request") }}')
+        .done(function(response) {
+            if (response.success) {
+                checkSessionStatus();
+                // Mantener dropdown abierto para mostrar el nuevo estado
+                setTimeout(function() {
+                    $('#session-status-btn').dropdown('show');
+                }, 100);
+            } else {
+                toastr.error(response.message);
+            }
+        })
+        .fail(function() {
+            toastr.error('No se pudo solicitar control');
+        })
+        .always(function() {
+            btn.html('<i class="fas fa-key"></i> Solicitar Control').prop('disabled', false);
         });
 }
 
 function releaseControl() {
-    Swal.fire({
-        title: '¿Liberar control?',
-        text: 'Otros usuarios podrán solicitar control después',
-        icon: 'warning',
-        showCancelButton: true,
-        confirmButtonText: 'Sí, liberar',
-        cancelButtonText: 'Cancelar'
-    }).then((result) => {
-        if (result.isConfirmed) {
-            $.post('{{ route("session-control.release") }}')
-                .done(function(response) {
-                    if (response.success) {
-                        Swal.fire('Liberado', response.message, 'success');
-                        checkSessionStatus();
-                    } else {
-                        Swal.fire('Error', response.message, 'error');
-                    }
-                })
-                .fail(function() {
-                    Swal.fire('Error', 'No se pudo liberar control', 'error');
-                });
+    const btn = $('#release-control-btn');
+    btn.html('<i class="fas fa-spinner fa-spin"></i>').prop('disabled', true);
+
+    $.post('{{ route("session-control.release") }}')
+        .done(function(response) {
+            if (response.success) {
+                toastr.success(response.message);
+                checkSessionStatus();
+            } else {
+                toastr.error(response.message);
+            }
+        })
+        .fail(function() {
+            toastr.error('No se pudo liberar control');
+        })
+        .always(function() {
+            btn.html('<i class="fas fa-unlock"></i> Liberar Control').prop('disabled', false);
+        });
+}
+
+function sendControlRequest() {
+    const btn = $('#send-request-btn');
+    btn.html('<i class="fas fa-spinner fa-spin"></i>').prop('disabled', true);
+
+    $.ajax({
+        url: '{{ route("session-control.send-request") }}',
+        method: 'POST',
+        data: {
+            _token: '{{ csrf_token() }}',
+            message: 'Necesito el control de numeración'
+        },
+        success: function(response) {
+            if (response.success) {
+                toastr.success(response.message);
+            } else {
+                toastr.warning(response.message);
+            }
+        },
+        error: function() {
+            toastr.error('Error al enviar solicitud');
+        },
+        complete: function() {
+            btn.html('<i class="fas fa-bell"></i> Pedir a Usuario').prop('disabled', false);
+        }
+    });
+}
+
+function respondRequest(requestId, action) {
+    $.ajax({
+        url: '{{ url("session-control/respond-request") }}/' + requestId,
+        method: 'POST',
+        data: {
+            _token: '{{ csrf_token() }}',
+            action: action
+        },
+        success: function(response) {
+            if (response.success) {
+                if (action === 'accept') {
+                    toastr.success(response.message);
+                } else {
+                    toastr.info('Solicitud rechazada');
+                }
+                checkSessionStatus();
+                checkPendingRequests();
+            } else {
+                toastr.error(response.message);
+            }
+        },
+        error: function() {
+            toastr.error('Error al procesar respuesta');
         }
     });
 }

@@ -223,9 +223,7 @@ class PlanoCreacionController extends Controller
             ], 422);
         }
 
-        // TEMPORAL: Validación de control de sesión comentada para pruebas
-        // TODO: Descomentar cuando se implemente el sistema de control de sesión completo
-        /*
+        // Validar que el usuario tenga control de sesión activo
         $control = SessionControl::where('user_id', Auth::id())
             ->where('has_control', true)
             ->where('is_active', true)
@@ -234,10 +232,9 @@ class PlanoCreacionController extends Controller
         if (!$control) {
             return response()->json([
                 'success' => false,
-                'message' => 'No tienes control de numeración activo'
+                'message' => 'No tienes control de numeración activo. Debes solicitar control antes de crear planos.'
             ], 403);
         }
-        */
 
         // Generar número de plano
         // Buscar el último correlativo directamente del campo numero_correlativo

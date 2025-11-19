@@ -44,14 +44,9 @@
                             <small class="text-muted">
                                 {{ $ultimoBatch ?? 'Sin importar' }} | <span id="total-matrix">{{ number_format($totalMatrix) }}</span> folios
                             </small>
-                            <div>
-                                <button type="button" class="btn btn-sm btn-outline-info" id="preview-matrix">
-                                    <i class="fas fa-eye"></i> Vista Previa
-                                </button>
-                                <button type="submit" class="btn btn-sm btn-primary" id="import-matrix" disabled>
-                                    <i class="fas fa-upload"></i> Importar
-                                </button>
-                            </div>
+                            <button type="button" class="btn btn-sm btn-primary" id="btn-importar-matrix">
+                                <i class="fas fa-upload"></i> Importar
+                            </button>
                         </div>
                     </form>
                 </div>
@@ -77,10 +72,7 @@
                             </div>
                         </div>
                         <div class="d-flex justify-content-end">
-                            <button type="button" class="btn btn-sm btn-outline-info mr-1" id="preview-historicos">
-                                <i class="fas fa-eye"></i> Vista Previa
-                            </button>
-                            <button type="button" class="btn btn-sm btn-warning" id="import-historicos" disabled>
+                            <button type="button" class="btn btn-sm btn-warning" id="btn-importar-historicos">
                                 <i class="fas fa-upload"></i> Importar
                             </button>
                         </div>
@@ -134,8 +126,8 @@ $(document).ready(function() {
 let currentPreviewType = null;
 
 function initImportForms() {
-    // Matrix Preview
-    $('#preview-matrix').on('click', function() {
+    // Matrix Import - Un solo botón que hace preview + confirmar
+    $('#btn-importar-matrix').on('click', function() {
         const formData = new FormData();
         const archivo = $('#archivo_matrix')[0].files[0];
 
@@ -172,7 +164,6 @@ function initImportForms() {
 
                 if (response.success) {
                     showPreview(response, 'matrix');
-                    $('#import-matrix').prop('disabled', false);
                 } else {
                     Swal.fire('Error', response.message, 'error');
                     if (response.errores) {
@@ -198,8 +189,8 @@ function initImportForms() {
         });
     });
 
-    // Históricos Preview
-    $('#preview-historicos').on('click', function() {
+    // Históricos Import - Un solo botón que hace preview + confirmar
+    $('#btn-importar-historicos').on('click', function() {
         const formData = new FormData();
         const archivo = $('#archivo_historicos')[0].files[0];
 
@@ -235,7 +226,6 @@ function initImportForms() {
 
                 if (response.success) {
                     showPreview(response, 'historicos');
-                    $('#import-historicos').prop('disabled', false);
                 } else {
                     Swal.fire('Error', response.message, 'error');
                 }
@@ -245,12 +235,6 @@ function initImportForms() {
                 Swal.fire('Error', 'No se pudo procesar el archivo', 'error');
             }
         });
-    });
-
-    // Matrix Import
-    $('#form-matrix-import').on('submit', function(e) {
-        e.preventDefault();
-        executeMatrixImport();
     });
 
     // File input labels
@@ -404,8 +388,7 @@ function executeMatrixImport() {
 
                 // Reset form
                 $('#form-matrix-import')[0].reset();
-                $('.custom-file-label').html('Seleccionar archivo MATRIX-YYYY-MM.xlsx');
-                $('#import-matrix').prop('disabled', true);
+                $('.custom-file-label').first().html('Seleccionar Excel Matrix (.xlsx)');
 
                 // Reload estadísticas
                 loadEstadisticas();
@@ -492,8 +475,7 @@ function executeHistoricosImport() {
 
                 // Reset form
                 $('#form-historicos-import')[0].reset();
-                $('.custom-file-label').eq(1).html('Seleccionar archivo PLANOS-HISTORICOS.xlsx');
-                $('#import-historicos').prop('disabled', true);
+                $('.custom-file-label').eq(1).html('Seleccionar PLANOS-HISTORICOS.xlsx');
 
             } else {
                 let errorHtml = '<p>' + response.message + '</p>';
@@ -537,7 +519,7 @@ $('#confirm-import').on('click', function() {
     $('#preview-modal').modal('hide');
 
     if (currentPreviewType === 'matrix') {
-        $('#form-matrix-import').submit();
+        executeMatrixImport();
     } else if (currentPreviewType === 'historicos') {
         executeHistoricosImport();
     }

@@ -57,17 +57,20 @@
 
 @section('content')
 
-<!-- PASO 1: Numeración Correlativa (SIEMPRE VISIBLE) -->
-<div class="card">
+<!-- PASO 1: Control de Numeración Correlativa (SIEMPRE VISIBLE) -->
+<div class="card" id="card-control-sesion">
     <div class="card-header bg-primary">
         <h3 class="card-title">
             <i class="fas fa-hashtag"></i>
-            Numeración Correlativa
+            Control de Numeración Correlativa
         </h3>
+        <div class="card-tools">
+            <span class="badge badge-danger" id="control-badge">Sin Control</span>
+        </div>
     </div>
     <div class="card-body">
         <div class="row">
-            <div class="col-md-6">
+            <div class="col-md-4">
                 <div class="info-box bg-light">
                     <div class="info-box-icon">
                         <i class="fas fa-arrow-left text-info"></i>
@@ -78,7 +81,7 @@
                     </div>
                 </div>
             </div>
-            <div class="col-md-6">
+            <div class="col-md-4">
                 <div class="info-box bg-light">
                     <div class="info-box-icon">
                         <i class="fas fa-arrow-right text-success"></i>
@@ -86,6 +89,18 @@
                     <div class="info-box-content">
                         <span class="info-box-text">Próximo a Crear</span>
                         <span class="info-box-number" id="proximo-correlativo-display">---</span>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="info-box mb-0" id="control-info-box">
+                    <div class="info-box-icon bg-secondary" id="control-icon-box">
+                        <i class="fas fa-lock"></i>
+                    </div>
+                    <div class="info-box-content">
+                        <span class="info-box-text">Control de Sesión</span>
+                        <span class="info-box-number" id="control-status-display">Sin Control</span>
+                        <small class="text-muted">Usa el badge <i class="fas fa-lock"></i> en la barra superior</small>
                     </div>
                 </div>
             </div>
@@ -404,7 +419,45 @@ function validarNumeroDecimal(event) {
 $(document).ready(function() {
     cargarNumeracionCorrelativa();
     initWizardListeners();
+    initControlSesion();
 });
+
+// =====================================================
+// CONTROL DE SESIÓN (Escucha eventos del navbar)
+// =====================================================
+let tieneControl = false;
+
+function initControlSesion() {
+    // Escuchar evento del layout cuando cambia el estado de control
+    $(document).on('sessionControl:changed', function(e, hasControl) {
+        tieneControl = hasControl;
+        actualizarUIControlLocal(hasControl);
+    });
+
+    // Verificar estado inicial
+    $.get('{{ route("session-control.status") }}')
+        .done(function(response) {
+            tieneControl = response.hasControl;
+            actualizarUIControlLocal(response.hasControl);
+        });
+}
+
+function actualizarUIControlLocal(hasControl) {
+    const iconBox = $('#control-icon-box');
+    const statusDisplay = $('#control-status-display');
+
+    if (hasControl) {
+        iconBox.removeClass('bg-secondary bg-danger').addClass('bg-success');
+        iconBox.find('i').removeClass('fa-lock').addClass('fa-unlock');
+        statusDisplay.text('Con Control');
+        $('.card-seleccion').removeClass('disabled');
+    } else {
+        iconBox.removeClass('bg-secondary bg-success').addClass('bg-danger');
+        iconBox.find('i').removeClass('fa-unlock').addClass('fa-lock');
+        statusDisplay.text('Sin Control');
+        $('.card-seleccion').addClass('disabled');
+    }
+}
 
 // =====================================================
 // CARGAR NUMERACIÓN CORRELATIVA

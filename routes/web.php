@@ -69,5 +69,8 @@ Route::middleware('auth')->group(function () {
     Route::post('/session-control/consume', [SessionControlController::class, 'consumeCorrelativo'])->name('session-control.consume');
     Route::post('/session-control/generar-numero', [SessionControlController::class, 'generarNumeroPlano'])->name('session-control.generar-numero');
     Route::get('/session-control/heartbeat', [SessionControlController::class, 'heartbeat'])->name('session-control.heartbeat');
+    Route::post('/session-control/send-request', [SessionControlController::class, 'sendRequest'])->name('session-control.send-request');
+    Route::get('/session-control/pending-requests', [SessionControlController::class, 'getPendingRequests'])->name('session-control.pending-requests');
+    Route::post('/session-control/respond-request/{requestId}', [SessionControlController::class, 'respondRequest'])->name('session-control.respond-request');
 
 });

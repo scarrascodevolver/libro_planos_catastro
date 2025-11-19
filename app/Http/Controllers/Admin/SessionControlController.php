@@ -224,4 +224,169 @@ class SessionControlController extends Controller
             'proximoCorrelativo' => $control ? $this->getProximoCorrelativo() : null
         ]);
     }
+
+    /**
+     * Enviar solicitud de control a quien lo tiene actualmente
+     */
+    public function sendRequest(Request $request)
+    {
+        $user = Auth::user();
+
+        if (!$user->isRegistro()) {
+            return response()->json([
+                'success' => false,
+                'message' => 'No tienes permisos'
+            ], 403);
+        }
+
+        // Verificar quién tiene el control
+        $controlHolder = SessionControl::quienTieneControl();
+
+        if (!$controlHolder) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Nadie tiene el control actualmente. Puedes solicitarlo directamente.'
+            ]);
+        }
+
+        if ($controlHolder->id === $user->id) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Ya tienes el control'
+            ]);
+        }
+
+        // Verificar si ya hay una solicitud pendiente
+        $existingRequest = \DB::table('session_control_requests')
+            ->where('from_user_id', $user->id)
+            ->where('to_user_id', $controlHolder->id)
+            ->where('status', 'pending')
+            ->first();
+
+        if ($existingRequest) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Ya tienes una solicitud pendiente'
+            ]);
+        }
+
+        // Crear solicitud
+        $requestId = \DB::table('session_control_requests')->insertGetId([
+            'from_user_id' => $user->id,
+            'to_user_id' => $controlHolder->id,
+            'status' => 'pending',
+            'message' => $request->input('message', 'Necesito el control de numeración'),
+            'created_at' => now(),
+            'updated_at' => now()
+        ]);
+
+        // Nota: No usamos broadcasting, el polling se encarga de notificar
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Solicitud enviada a ' . $controlHolder->name
+        ]);
+    }
+
+    /**
+     * Obtener solicitudes pendientes para el usuario actual
+     */
+    public function getPendingRequests()
+    {
+        $user = Auth::user();
+
+        $requests = \DB::table('session_control_requests')
+            ->join('users', 'session_control_requests.from_user_id', '=', 'users.id')
+            ->where('session_control_requests.to_user_id', $user->id)
+            ->where('session_control_requests.status', 'pending')
+            ->select(
+                'session_control_requests.id',
+                'session_control_requests.message',
+                'session_control_requests.created_at',
+                'users.name as from_user_name',
+                'users.id as from_user_id'
+            )
+            ->orderBy('session_control_requests.created_at', 'desc')
+            ->get();
+
+        return response()->json([
+            'requests' => $requests,
+            'count' => $requests->count()
+        ]);
+    }
+
+    /**
+     * Responder a una solicitud (aceptar = liberar control, rechazar = mantener)
+     */
+    public function respondRequest(Request $request, $requestId)
+    {
+        $user = Auth::user();
+        $action = $request->input('action'); // 'accept' o 'reject'
+
+        $controlRequest = \DB::table('session_control_requests')
+            ->where('id', $requestId)
+            ->where('to_user_id', $user->id)
+            ->where('status', 'pending')
+            ->first();
+
+        if (!$controlRequest) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Solicitud no encontrada'
+            ]);
+        }
+
+        if ($action === 'accept') {
+            // Liberar el control del usuario actual
+            SessionControl::where('user_id', $user->id)
+                ->where('has_control', true)
+                ->where('is_active', true)
+                ->update([
+                    'has_control' => false,
+                    'is_active' => false,
+                    'released_at' => now()
+                ]);
+
+            // Dar control al usuario que lo solicitó
+            SessionControl::create([
+                'user_id' => $controlRequest->from_user_id,
+                'session_id' => 'transferred-' . now()->timestamp,
+                'has_control' => true,
+                'requested_at' => now(),
+                'granted_at' => now(),
+                'is_active' => true
+            ]);
+
+            // Actualizar solicitud
+            \DB::table('session_control_requests')
+                ->where('id', $requestId)
+                ->update([
+                    'status' => 'accepted',
+                    'responded_at' => now(),
+                    'updated_at' => now()
+                ]);
+
+            // Obtener nombre del solicitante
+            $solicitante = \App\Models\User::find($controlRequest->from_user_id);
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Control transferido a ' . ($solicitante ? $solicitante->name : 'usuario')
+            ]);
+        } else {
+            // Rechazar solicitud
+            \DB::table('session_control_requests')
+                ->where('id', $requestId)
+                ->update([
+                    'status' => 'rejected',
+                    'responded_at' => now(),
+                    'updated_at' => now()
+                ]);
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Solicitud rechazada'
+            ]);
+        }
+    }
 }
