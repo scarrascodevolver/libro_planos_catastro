@@ -35,13 +35,21 @@ class PlanoCreacionController extends Controller
 
     public function getUltimoCorrelativo()
     {
-        $ultimoCorrelativo = Plano::max('numero_correlativo');
+        // Buscar el último plano por número correlativo
+        $ultimoPlano = Plano::orderBy('numero_correlativo', 'desc')->first();
 
-        // Si hay planos, devolver el último correlativo real
-        if ($ultimoCorrelativo !== null) {
+        // Si hay planos, devolver el número completo del último
+        if ($ultimoPlano !== null) {
+            // Generar número completo: 08 + codigo_comuna + correlativo(5 dígitos) + tipo_saneamiento
+            $numeroCompleto = $ultimoPlano->codigo_region
+                            . $ultimoPlano->codigo_comuna
+                            . str_pad($ultimoPlano->numero_correlativo, 5, '0', STR_PAD_LEFT)
+                            . $ultimoPlano->tipo_saneamiento;
+
             return response()->json([
-                'ultimo' => $ultimoCorrelativo,
-                'proximo' => $ultimoCorrelativo + 1,
+                'ultimo' => $numeroCompleto,
+                'ultimoCorrelativo' => $ultimoPlano->numero_correlativo,
+                'proximo' => $ultimoPlano->numero_correlativo + 1,
                 'hayDatos' => true
             ]);
         }
@@ -49,6 +57,7 @@ class PlanoCreacionController extends Controller
         // Si no hay planos, indicar que debe importar históricos primero
         return response()->json([
             'ultimo' => null,
+            'ultimoCorrelativo' => null,
             'proximo' => null,
             'hayDatos' => false,
             'mensaje' => 'Debe importar planos históricos antes de crear nuevos planos.'

@@ -251,9 +251,7 @@
             <table id="planos-table" class="table table-bordered table-striped table-hover table-nowrap">
                 <thead>
                     <tr>
-                        @if(Auth::user()->isRegistro())
-                        <th width="80">Acciones</th>
-                        @endif
+                        <th width="100">Acciones</th>
                         <th>N° Plano</th>
                         <th>Folios</th>
                         <th>Solicitante</th>
@@ -272,7 +270,6 @@
                         <th>Tela</th>
                         <th>Archivo Digital</th>
                         <th>Fecha Creación</th>
-                        <th width="80">Detalles</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -342,23 +339,15 @@ let expandedRows = {};
 
 function initPlanosTable() {
     const columnDefs = [
-        @if(Auth::user()->isRegistro())
         { "orderable": false, "targets": [0] }, // Acciones
-        { "orderable": false, "targets": [-1, -2] }, // Expandir y Detalles
-        { "className": "no-export", "targets": [0, -1, -2] }, // No exportar acciones, expandir y detalles
-        @else
-        { "orderable": false, "targets": [-1, -2] }, // Expandir y Detalles
-        { "className": "no-export", "targets": [-1, -2] }, // No exportar expandir y detalles
-        @endif
-        { "className": "text-center", "targets": [0, -1, -2] },
+        { "className": "no-export", "targets": [0] }, // No exportar acciones
+        { "className": "text-center", "targets": [0] },
         { "className": "nowrap", "targets": "_all" }, // No wrap para mejor visualización
         { "visible": false, "targets": [12, 13, 14, 15, 16] } // Ocultar por defecto las nuevas columnas
     ];
 
     const columns = [
-        @if(Auth::user()->isRegistro())
         { "data": "acciones", "name": "acciones" },
-        @endif
         { "data": "numero_plano_completo", "name": "numero_plano_completo" },
         { "data": "folios_display", "name": "folios_display" },
         { "data": "solicitante_display", "name": "solicitante_display" },
@@ -376,8 +365,7 @@ function initPlanosTable() {
         { "data": "tubo_display", "name": "tubo_display" },
         { "data": "tela_display", "name": "tela_display" },
         { "data": "archivo_digital_display", "name": "archivo_digital_display" },
-        { "data": "created_at_display", "name": "created_at_display" },
-        { "data": "detalles", "name": "detalles" }
+        { "data": "created_at_display", "name": "created_at_display" }
     ];
 
     planosTable = $('#planos-table').DataTable({
@@ -719,7 +707,7 @@ function setupExpandibleRows() {
             $row.addClass('expandible-row');
 
             // Obtener ID del data attribute o de los botones
-            const id = $row.find('.editar-plano').data('id') || $row.find('.ver-detalles').data('id');
+            const id = $row.find('.ver-detalles').data('id') || $row.find('.editar-plano').data('id');
             $row.attr('data-id', id);
 
             // Agregar event listener para toda la fila EXCEPTO botones
@@ -1965,8 +1953,36 @@ $('#form-agregar-folio').on('submit', function(e) {
 }
 
 /* Columnas específicas */
-#planos-table td:nth-child(1) { max-width: 80px; } /* Acciones */
+#planos-table td:nth-child(1) { max-width: 100px; } /* Acciones */
 #planos-table td:nth-child(2) { max-width: 130px; } /* N° Plano Completo */
+
+/* Dropdown de acciones */
+#planos-table .dropdown-menu {
+    min-width: 160px;
+    font-size: 0.875rem;
+    z-index: 1050;
+}
+
+#planos-table .dropdown {
+    position: static;
+}
+
+#planos-table tbody tr {
+    position: relative;
+}
+
+#planos-table .dropdown-menu.show {
+    position: absolute;
+    z-index: 1050 !important;
+}
+
+#planos-table .dropdown-item {
+    padding: 0.5rem 1rem;
+}
+
+#planos-table .dropdown-item i {
+    width: 16px;
+}
 #planos-table td:nth-child(3) { max-width: 120px; } /* Folios */
 #planos-table td:nth-child(4) { max-width: 120px; } /* Solicitante */
 #planos-table td:nth-child(5) { max-width: 100px; } /* Ap. Paterno */

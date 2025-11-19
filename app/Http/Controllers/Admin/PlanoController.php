@@ -45,14 +45,21 @@ class PlanoController extends Controller
 
         return DataTables::of($query)
             ->addColumn('acciones', function ($plano) {
-                $acciones = '';
+                $acciones = '<div class="dropdown">';
+                $acciones .= '<button class="btn btn-secondary btn-sm dropdown-toggle" type="button" data-toggle="dropdown" data-boundary="viewport" aria-expanded="false">';
+                $acciones .= '<i class="fas fa-cog"></i> Acciones';
+                $acciones .= '</button>';
+                $acciones .= '<div class="dropdown-menu">';
+                $acciones .= '<a class="dropdown-item ver-detalles" href="#" data-id="'.$plano->id.'"><i class="fas fa-eye mr-2 text-info"></i>Ver Detalles</a>';
+
                 if (Auth::user()->isRegistro()) {
-                    $acciones .= '<div class="btn-group btn-group-sm" role="group">';
-                    $acciones .= '<button class="btn btn-primary editar-plano" data-id="'.$plano->id.'" title="Editar"><i class="fas fa-edit"></i></button>';
-                    $acciones .= '<button class="btn btn-warning reasignar-plano" data-id="'.$plano->id.'" title="Reasignar"><i class="fas fa-exchange-alt"></i></button>';
-                    $acciones .= '<button class="btn btn-success gestionar-folios" data-id="'.$plano->id.'" title="Agregar/Quitar Folios"><i class="fas fa-plus-minus"></i></button>';
-                    $acciones .= '</div>';
+                    $acciones .= '<a class="dropdown-item editar-plano" href="#" data-id="'.$plano->id.'"><i class="fas fa-edit mr-2 text-primary"></i>Editar Plano</a>';
+                    $acciones .= '<a class="dropdown-item reasignar-plano" href="#" data-id="'.$plano->id.'"><i class="fas fa-exchange-alt mr-2 text-warning"></i>Reasignar N°</a>';
+                    $acciones .= '<div class="dropdown-divider"></div>';
+                    $acciones .= '<a class="dropdown-item gestionar-folios" href="#" data-id="'.$plano->id.'"><i class="fas fa-folder-plus mr-2 text-success"></i>Gestionar Folios</a>';
                 }
+
+                $acciones .= '</div></div>';
                 return $acciones;
             })
             ->addColumn('folios_display', function ($plano) {
@@ -100,11 +107,6 @@ class PlanoController extends Controller
             ->addColumn('created_at_display', function ($plano) {
                 return $plano->created_at ? $plano->created_at->format('d/m/Y') : '-';
             })
-            ->addColumn('detalles', function ($plano) {
-                return '<button class="btn btn-sm btn-primary ver-detalles" data-id="'.$plano->id.'" title="Ver todos los detalles">
-                    <i class="fas fa-eye"></i>
-                </button>';
-            })
             // Configurar búsqueda global personalizada
             ->filter(function ($query) use ($request) {
                 if ($request->has('search') && !empty($request->search['value'])) {
@@ -140,7 +142,7 @@ class PlanoController extends Controller
                     });
                 }
             })
-            ->rawColumns(['acciones', 'detalles'])
+            ->rawColumns(['acciones'])
             ->make(true);
     }
 
@@ -559,7 +561,7 @@ class PlanoController extends Controller
             $html .= '<td></td>'; // Columna COMUNA -> vacía
             $html .= '<td>' . ($folio->hectareas ? number_format($folio->hectareas, 2, ',', '') : '-') . '</td>'; // Columna HECTÁREAS
             $html .= '<td>' . number_format($folio->m2 ?: 0, 2, ',', '.') . '</td>'; // Columna M²
-            $html .= '<td colspan="12"></td>'; // Resto vacío - ajustado para las nuevas columnas
+            $html .= '<td colspan="11"></td>'; // Resto vacío - ajustado para columnas (sin detalles)
             $html .= '</tr>';
         }
 

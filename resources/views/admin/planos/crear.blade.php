@@ -265,12 +265,12 @@
             <!-- Aquí se generará dinámicamente el formulario según origen -->
         </div>
 
-        <div class="text-center mt-3">
+        <div class="text-center mt-3" id="botones-folios-principales">
             <button type="button" class="btn btn-secondary" id="btn-volver-folios">
                 <i class="fas fa-arrow-left"></i> Volver
             </button>
             <button type="button" class="btn btn-success" id="btn-continuar-confirmacion" disabled>
-                Continuar <i class="fas fa-arrow-right"></i>
+                Continuar a Confirmación <i class="fas fa-arrow-right"></i>
             </button>
         </div>
     </div>
@@ -417,11 +417,11 @@ function cargarNumeracionCorrelativa() {
         success: function(response) {
             console.log('✅ Respuesta recibida:', response);
 
-            wizardData.ultimoCorrelativo = response.ultimo;
+            wizardData.ultimoCorrelativo = response.ultimoCorrelativo;
             wizardData.proximoCorrelativo = response.proximo;
 
             if (response.hayDatos) {
-                // HAY DATOS: Mostrar normalmente
+                // HAY DATOS: Mostrar número completo del último plano
                 $('#ultimo-correlativo-display').text(response.ultimo);
                 $('#proximo-correlativo-display').text(response.proximo);
 
@@ -600,10 +600,19 @@ function actualizarDisplayCorrelativo(codigoComuna, tipoPlano) {
     if (!wizardData.proximoCorrelativo) return;
 
     const tipo = tipoPlano || wizardData.tipoPlano || '';
-    const comuna = codigoComuna || '---';
+    const comuna = codigoComuna || '';
 
-    const numeroCompleto = '08' + comuna + wizardData.proximoCorrelativo + tipo;
+    // Formatear número completo: 0810129524SU (sin espacios)
+    const correlativoPadded = String(wizardData.proximoCorrelativo).padStart(5, '0');
+    const numeroCompleto = '08' + comuna + correlativoPadded + tipo;
     $('#proximo-correlativo-display').text(numeroCompleto);
+
+    // También actualizar el último correlativo con formato completo
+    if (wizardData.ultimoCorrelativo) {
+        const ultimoPadded = String(wizardData.ultimoCorrelativo).padStart(5, '0');
+        const ultimoCompleto = '08' + comuna + ultimoPadded + tipo;
+        $('#ultimo-correlativo-display').text(ultimoCompleto);
+    }
 }
 
 // =====================================================
@@ -713,20 +722,404 @@ function generarInputMatrix(index) {
 }
 
 function generarInputsMultiples(cantidad) {
+    // Inicializar tracking de folio actual
+    wizardData.folioActualIndex = 0;
+    wizardData.foliosCompletados = [];
+
+    // Ocultar botones principales durante el wizard
+    $('#botones-folios-principales').hide();
+
+    // Mostrar el primer folio
+    mostrarFolioActualMultiple();
+}
+
+function mostrarFolioActualMultiple() {
+    const index = wizardData.folioActualIndex;
+    const total = wizardData.cantidadFolios;
+    const progreso = Math.round(((index) / total) * 100);
+
     let html = '';
-    for (let i = 0; i < cantidad; i++) {
-        html += generarInputMatrix(i);
+
+    // Barra de progreso
+    html += '<div class="mb-3">';
+    html += '<div class="d-flex justify-content-between align-items-center mb-2">';
+    html += '<span class="font-weight-bold text-primary"><i class="fas fa-file-alt"></i> Folio ' + (index + 1) + ' de ' + total + '</span>';
+    html += '<span class="badge badge-info">' + progreso + '% completado</span>';
+    html += '</div>';
+    html += '<div class="progress" style="height: 8px;">';
+    html += '<div class="progress-bar bg-success" style="width: ' + progreso + '%"></div>';
+    html += '</div>';
+    html += '</div>';
+
+    // Resumen de folios completados
+    if (wizardData.foliosCompletados.length > 0) {
+        html += '<div class="mb-3">';
+        html += '<small class="text-muted font-weight-bold">Folios completados:</small>';
+        html += '<div class="list-group list-group-flush mt-1">';
+        wizardData.foliosCompletados.forEach((completado, i) => {
+            const cantidadInm = completado.cantidadInmuebles || 1;
+            const tipoLabel = completado.tipo === 'HIJUELA' ? 'hijuela' : 'sitio';
+            const tipoPlural = cantidadInm > 1 ? (completado.tipo === 'HIJUELA' ? 'hijuelas' : 'sitios') : tipoLabel;
+            html += '<div class="list-group-item list-group-item-success py-2 px-3">';
+            html += '<div class="d-flex justify-content-between align-items-center">';
+            html += '<span><i class="fas fa-check-circle text-success mr-2"></i>';
+            html += '<strong>Folio #' + (i + 1) + ':</strong> ' + completado.folio + ' - ' + completado.solicitante + '</span>';
+            html += '<span class="badge badge-light">' + cantidadInm + ' ' + tipoPlural + '</span>';
+            html += '</div>';
+            html += '</div>';
+        });
+        html += '</div>';
+        html += '</div>';
     }
+
+    // Card del folio actual
+    html += '<div class="card border-primary">';
+    html += '<div class="card-header bg-primary text-white">';
+    html += '<h6 class="mb-0"><i class="fas fa-search"></i> Buscando Folio #' + (index + 1) + '</h6>';
+    html += '</div>';
+    html += '<div class="card-body">';
+
+    // Input de búsqueda
+    html += '<div class="form-group">';
+    html += '<label>Número de Folio <span class="text-danger">*</span></label>';
+    html += '<input type="text" class="form-control form-control-lg folio-input-multiple" data-index="' + index + '" ';
+    html += 'placeholder="Escribe el folio y presiona Tab" required autofocus>';
+    html += '<small class="text-muted">Presiona <kbd>Tab</kbd> o <kbd>Enter</kbd> para buscar en Matrix</small>';
+    html += '</div>';
+
+    // Contenedor de resultados
+    html += '<div class="resultado-folio-multiple" id="resultado-multiple-' + index + '"></div>';
+
+    html += '</div>';
+    html += '</div>';
+
+    // Botones de navegación
+    html += '<div class="d-flex justify-content-between mt-3">';
+    if (index > 0) {
+        html += '<button type="button" class="btn btn-secondary" id="btn-folio-anterior">';
+        html += '<i class="fas fa-arrow-left"></i> Anterior</button>';
+    } else {
+        html += '<div></div>';
+    }
+    html += '<button type="button" class="btn btn-success" id="btn-folio-siguiente" disabled>';
+    if (index < total - 1) {
+        html += 'Siguiente <i class="fas fa-arrow-right"></i></button>';
+    } else {
+        html += 'Finalizar <i class="fas fa-check"></i></button>';
+    }
+    html += '</div>';
+
     $('#inputs-multiples').html(html);
 
-    // Agregar listeners de búsqueda
-    $('.folio-input').on('keydown', function(e) {
+    // Si ya hay datos de este folio, restaurarlos
+    if (wizardData.folios[index]) {
+        const folio = wizardData.folios[index];
+        $(`.folio-input-multiple[data-index="${index}"]`).val(folio.folio);
+        // Mostrar resultado guardado
+        mostrarResultadoMatrixMultiple(index, folio);
+    }
+
+    // Event listeners
+    $('.folio-input-multiple').on('keydown', function(e) {
         if (e.key === 'Tab' || e.key === 'Enter') {
             e.preventDefault();
-            const index = $(this).data('index');
-            buscarFolioMatrix(index);
+            const idx = $(this).data('index');
+            buscarFolioMatrixMultiple(idx);
         }
     });
+
+    $('#btn-folio-anterior').on('click', retrocederFolioMultiple);
+    $('#btn-folio-siguiente').on('click', avanzarSiguienteFolioMultiple);
+
+    // Focus en el input
+    setTimeout(() => {
+        $(`.folio-input-multiple[data-index="${index}"]`).focus();
+    }, 100);
+}
+
+function buscarFolioMatrixMultiple(index) {
+    const folio = $(`.folio-input-multiple[data-index="${index}"]`).val().trim();
+    const $resultado = $(`#resultado-multiple-${index}`);
+
+    if (!folio) {
+        $resultado.html('<small class="text-danger">Ingrese un número de folio</small>');
+        return;
+    }
+
+    $resultado.html('<div class="text-center py-3"><i class="fas fa-spinner fa-spin fa-2x"></i><p class="mt-2">Buscando...</p></div>');
+
+    $.ajax({
+        url: '{{ route("planos.crear.buscar-folio") }}',
+        method: 'POST',
+        headers: { 'X-CSRF-TOKEN': '{{ csrf_token() }}' },
+        data: { folio: folio },
+        success: function(response) {
+            if (!response.encontrado) {
+                $resultado.html('<div class="alert alert-danger"><i class="fas fa-times-circle"></i> ' + response.message + '</div>');
+                $('#btn-folio-siguiente').prop('disabled', true);
+                return;
+            }
+
+            if (response.yaUsado) {
+                $resultado.html('<div class="alert alert-warning"><i class="fas fa-exclamation-triangle"></i> ' + response.message + '</div>');
+                $('#btn-folio-siguiente').prop('disabled', true);
+                return;
+            }
+
+            // Normalizar tipo_inmueble
+            const datos = response.datos;
+            const tipoOriginal = (datos.tipo_inmueble || '').toUpperCase();
+            if (tipoOriginal.includes('HIJUELA') || tipoOriginal.includes('RURAL')) {
+                datos.tipo_inmueble = 'HIJUELA';
+            } else {
+                datos.tipo_inmueble = 'SITIO';
+            }
+
+            mostrarResultadoMatrixMultiple(index, datos);
+            wizardData.folios[index] = datos;
+        },
+        error: function() {
+            $resultado.html('<div class="alert alert-danger"><i class="fas fa-times-circle"></i> Error de conexión</div>');
+            $('#btn-folio-siguiente').prop('disabled', true);
+        }
+    });
+}
+
+function mostrarResultadoMatrixMultiple(index, data) {
+    const esRural = data.tipo_inmueble === 'HIJUELA';
+    const tipoLabel = esRural ? 'Hijuela' : 'Sitio';
+
+    let html = '<div class="alert alert-success py-2 mb-3">';
+    html += '<i class="fas fa-check-circle"></i> <strong>Encontrado:</strong> ' + tipoLabel;
+    html += '</div>';
+
+    // Datos personales (editables)
+    html += '<div class="row">';
+    html += '<div class="col-md-4">';
+    html += '<div class="form-group">';
+    html += '<label>Solicitante <span class="text-danger">*</span></label>';
+    html += '<input type="text" class="form-control solicitante-matrix" data-index="' + index + '" value="' + (data.solicitante || '') + '" required>';
+    html += '</div></div>';
+
+    html += '<div class="col-md-4">';
+    html += '<div class="form-group">';
+    html += '<label>Ap. Paterno</label>';
+    html += '<input type="text" class="form-control ap-paterno-matrix" data-index="' + index + '" value="' + (data.apellido_paterno || '') + '">';
+    html += '</div></div>';
+
+    html += '<div class="col-md-4">';
+    html += '<div class="form-group">';
+    html += '<label>Ap. Materno</label>';
+    html += '<input type="text" class="form-control ap-materno-matrix" data-index="' + index + '" value="' + (data.apellido_materno || '') + '">';
+    html += '</div></div>';
+    html += '</div>';
+
+    // Datos del plano (solo en primer folio) - ANTES del selector
+    if (index === 0) {
+        html += '<hr><h6>Datos del Plano (aplican a todos los folios)</h6>';
+        html += '<div class="row">';
+        html += '<div class="col-md-4">';
+        html += '<div class="form-group">';
+        html += '<label>Comuna</label>';
+        html += '<input type="text" class="form-control comuna-matrix" data-index="' + index + '" value="' + (data.comuna || '') + '" readonly>';
+        html += '</div></div>';
+
+        html += '<div class="col-md-4">';
+        html += '<div class="form-group">';
+        html += '<label>Responsable <span class="text-danger">*</span></label>';
+        html += '<input type="text" class="form-control responsable-matrix" data-index="' + index + '" value="' + (data.responsable || '') + '" required>';
+        html += '</div></div>';
+
+        html += '<div class="col-md-4">';
+        html += '<div class="form-group">';
+        html += '<label>Proyecto <span class="text-danger">*</span></label>';
+        html += '<input type="text" class="form-control proyecto-matrix" data-index="' + index + '" value="' + (data.proyecto || '') + '" required>';
+        html += '</div></div>';
+        html += '</div>';
+    }
+
+    // Selector de cantidad (AL FINAL del formulario)
+    const labelCantidad = esRural ? 'hijuelas' : 'sitios';
+    html += '<hr><h6>Cantidad de ' + labelCantidad + '</h6>';
+    html += '<div class="row mb-3">';
+    html += '<div class="col-md-4">';
+    html += '<div class="form-group mb-0">';
+    html += '<label>¿Cuántas ' + labelCantidad + '? <span class="text-danger">*</span></label>';
+    html += '<select class="form-control cantidad-inmuebles-matrix" data-index="' + index + '" required>';
+    html += '<option value="">Seleccionar...</option>';
+    html += '<option value="1">1 ' + tipoLabel.toLowerCase() + '</option>';
+    html += '<option value="2">2 ' + labelCantidad + '</option>';
+    html += '<option value="3">3 ' + labelCantidad + '</option>';
+    html += '<option value="4">4 ' + labelCantidad + '</option>';
+    html += '<option value="5">5 ' + labelCantidad + '</option>';
+    html += '<option value="custom">Más...</option>';
+    html += '</select>';
+    html += '</div></div>';
+    html += '<div class="col-md-3" id="cantidad-custom-container-matrix-' + index + '" style="display: none;">';
+    html += '<div class="form-group mb-0">';
+    html += '<label>Cantidad exacta</label>';
+    html += '<input type="number" class="form-control cantidad-custom-matrix" data-index="' + index + '" min="6" placeholder="6+">';
+    html += '</div></div>';
+    html += '</div>';
+
+    // Contenedor para medidas
+    html += '<div id="medidas-inmuebles-container-matrix-' + index + '" class="mb-3"></div>';
+
+    $(`#resultado-multiple-${index}`).html(html);
+
+    // Listeners para el selector
+    attachCantidadListenersMatrix(index, esRural, tipoLabel);
+
+    // Habilitar botón siguiente cuando se complete
+    validarFolioActualMultiple(index);
+}
+
+function validarFolioActualMultiple(index) {
+    // Listener para validar cuando cambia la cantidad o los m²
+    $(document).off('change input', `.cantidad-inmuebles-matrix[data-index="${index}"], .m2-inmueble-matrix[data-folio="${index}"]`);
+    $(document).on('change input', `.cantidad-inmuebles-matrix[data-index="${index}"], .m2-inmueble-matrix[data-folio="${index}"]`, function() {
+        verificarCompletitudFolioMultiple(index);
+    });
+}
+
+function verificarCompletitudFolioMultiple(index) {
+    const folio = wizardData.folios[index];
+    if (!folio) {
+        $('#btn-folio-siguiente').prop('disabled', true);
+        return;
+    }
+
+    // Verificar cantidad seleccionada
+    const cantidadSelector = $(`.cantidad-inmuebles-matrix[data-index="${index}"]`).val();
+    if (!cantidadSelector) {
+        $('#btn-folio-siguiente').prop('disabled', true);
+        return;
+    }
+
+    // Obtener cantidad real
+    let cantidad;
+    if (cantidadSelector === 'custom') {
+        cantidad = parseInt($(`.cantidad-custom-matrix[data-index="${index}"]`).val());
+    } else {
+        cantidad = parseInt(cantidadSelector);
+    }
+
+    if (!cantidad || cantidad < 1) {
+        $('#btn-folio-siguiente').prop('disabled', true);
+        return;
+    }
+
+    // Verificar que todos los m² estén llenos
+    let todosCompletos = true;
+    for (let i = 0; i < cantidad; i++) {
+        const m2 = $(`.m2-inmueble-matrix[data-folio="${index}"][data-inmueble="${i}"]`).val();
+        if (!m2) {
+            todosCompletos = false;
+            break;
+        }
+    }
+
+    $('#btn-folio-siguiente').prop('disabled', !todosCompletos);
+}
+
+function avanzarSiguienteFolioMultiple() {
+    const index = wizardData.folioActualIndex;
+    const folio = wizardData.folios[index];
+
+    // Recolectar datos del folio actual
+    const solicitante = $(`.solicitante-matrix[data-index="${index}"]`).val()?.trim();
+    const apPaterno = $(`.ap-paterno-matrix[data-index="${index}"]`).val()?.trim();
+    const apMaterno = $(`.ap-materno-matrix[data-index="${index}"]`).val()?.trim();
+
+    // Obtener cantidad de inmuebles
+    const cantidadSelector = $(`.cantidad-inmuebles-matrix[data-index="${index}"]`).val();
+    let cantidad;
+    if (cantidadSelector === 'custom') {
+        cantidad = parseInt($(`.cantidad-custom-matrix[data-index="${index}"]`).val());
+    } else {
+        cantidad = parseInt(cantidadSelector);
+    }
+
+    // Recolectar inmuebles
+    const inmuebles = [];
+    let totalM2 = 0;
+    let totalHa = 0;
+    const esRural = folio.tipo_inmueble === 'HIJUELA';
+
+    for (let i = 0; i < cantidad; i++) {
+        const m2Input = $(`.m2-inmueble-matrix[data-folio="${index}"][data-inmueble="${i}"]`).val();
+        const m2 = parseFloat(m2Input.replace(/\./g, '').replace(',', '.'));
+
+        const inmueble = {
+            numero_inmueble: i + 1,
+            tipo_inmueble: folio.tipo_inmueble,
+            m2: m2
+        };
+
+        if (esRural) {
+            const haInput = $(`.hectareas-inmueble-matrix[data-folio="${index}"][data-inmueble="${i}"]`).val();
+            if (haInput) {
+                const ha = parseFloat(haInput.replace(/\./g, '').replace(',', '.'));
+                inmueble.hectareas = ha;
+                totalHa += ha;
+            }
+        }
+
+        inmuebles.push(inmueble);
+        totalM2 += m2;
+    }
+
+    // Actualizar folio
+    folio.solicitante = solicitante;
+    folio.apellido_paterno = apPaterno || null;
+    folio.apellido_materno = apMaterno || null;
+    folio.m2 = totalM2;
+    folio.hectareas = esRural ? totalHa : null;
+    folio.inmuebles = inmuebles;
+
+    // Datos del plano (solo primer folio)
+    if (index === 0) {
+        folio.comuna = $(`.comuna-matrix[data-index="${index}"]`).val()?.trim();
+        folio.responsable = $(`.responsable-matrix[data-index="${index}"]`).val()?.trim();
+        folio.proyecto = $(`.proyecto-matrix[data-index="${index}"]`).val()?.trim();
+    }
+
+    // Guardar en completados para mostrar resumen
+    wizardData.foliosCompletados[index] = {
+        folio: folio.folio,
+        solicitante: solicitante,
+        tipo: folio.tipo_inmueble,
+        cantidadInmuebles: cantidad
+    };
+
+    // Avanzar o finalizar
+    if (index < wizardData.cantidadFolios - 1) {
+        wizardData.folioActualIndex++;
+        mostrarFolioActualMultiple();
+    } else {
+        // Todos completados - pasar a confirmación
+        $('#btn-continuar-confirmacion').prop('disabled', false);
+
+        // Mostrar botones principales nuevamente
+        $('#botones-folios-principales').show();
+
+        // Determinar tipo de plano basado en el primer folio
+        wizardData.tipoPlano = 'S' + (folio.tipo_inmueble === 'HIJUELA' ? 'R' : 'U');
+
+        Swal.fire({
+            icon: 'success',
+            title: '¡Todos los folios completados!',
+            text: 'Ahora puedes continuar a la confirmación',
+            confirmButtonText: 'Continuar'
+        });
+    }
+}
+
+function retrocederFolioMultiple() {
+    if (wizardData.folioActualIndex > 0) {
+        wizardData.folioActualIndex--;
+        mostrarFolioActualMultiple();
+    }
 }
 
 function buscarFolioMatrix(index) {
@@ -854,37 +1247,37 @@ function mostrarResultadoMatrix(index, data) {
     html += '</div>';
     html += '</div>';
 
-    html += '<div class="col-md-3">';
-    html += '<div class="form-group">';
-    html += '<label>N° ' + tipoLabel + '</label>';
-    html += '<input type="number" class="form-control numero-inmueble-matrix" data-index="' + index + '" value="' + (index + 1) + '" min="1">';
+    html += '</div>';
+    html += '</div>';
+
+    // SELECTOR DE CANTIDAD DE HIJUELAS/SITIOS
+    const labelCantidad = esRural ? 'hijuelas' : 'sitios';
+    html += '<hr><h6>Cantidad de ' + labelCantidad + '</h6>';
+    html += '<div class="row mb-3">';
+    html += '<div class="col-md-4">';
+    html += '<div class="form-group mb-0">';
+    html += '<label>¿Cuántas ' + labelCantidad + '? <span class="text-danger">*</span></label>';
+    html += '<select class="form-control cantidad-inmuebles-matrix" data-index="' + index + '" required>';
+    html += '<option value="">Seleccionar...</option>';
+    html += '<option value="1">1 ' + tipoLabel.toLowerCase() + '</option>';
+    html += '<option value="2">2 ' + labelCantidad + '</option>';
+    html += '<option value="3">3 ' + labelCantidad + '</option>';
+    html += '<option value="4">4 ' + labelCantidad + '</option>';
+    html += '<option value="5">5 ' + labelCantidad + '</option>';
+    html += '<option value="custom">Más...</option>';
+    html += '</select>';
+    html += '</div>';
+    html += '</div>';
+    html += '<div class="col-md-3" id="cantidad-custom-container-matrix-' + index + '" style="display: none;">';
+    html += '<div class="form-group mb-0">';
+    html += '<label>Cantidad exacta</label>';
+    html += '<input type="number" class="form-control cantidad-custom-matrix" data-index="' + index + '" min="6" placeholder="6+">';
     html += '</div>';
     html += '</div>';
     html += '</div>';
 
-    // FILA 2: Medidas
-    html += '<div class="row">';
-    if (esRural) {
-        html += '<div class="col-md-4">';
-        html += '<div class="form-group">';
-        html += '<label>Hectáreas</label>';
-        html += '<input type="text" class="form-control hectareas-matrix" data-index="' + index + '" placeholder="0,0000" inputmode="decimal" onkeypress="return validarNumeroDecimal(event)">';
-        html += '<small class="text-muted">Formato: 2,5000</small>';
-        html += '</div>';
-        html += '</div>';
-
-        html += '<div class="col-md-4">';
-    } else {
-        html += '<div class="col-md-8">';
-    }
-
-    html += '<div class="form-group">';
-    html += '<label>M² <span class="text-danger">*</span></label>';
-    html += '<input type="text" class="form-control m2-matrix" data-index="' + index + '" placeholder="0" required inputmode="numeric" onkeypress="return validarNumeroEntero(event)">';
-    html += '<small class="text-muted">Solo números enteros</small>';
-    html += '</div>';
-    html += '</div>';
-    html += '</div>';
+    // Contenedor para los campos de medidas de cada hijuela/sitio
+    html += '<div id="medidas-inmuebles-container-matrix-' + index + '" class="mb-3"></div>';
 
     // FILA 3: Datos del plano (solo en primer folio)
     if (index === 0) {
@@ -916,9 +1309,107 @@ function mostrarResultadoMatrix(index, data) {
 
     $(`#resultado-${index}`).html(html);
 
-    // Agregar conversión hectáreas ↔ m² si es rural
+    // Agregar listeners para selector de cantidad
+    attachCantidadListenersMatrix(index, esRural, tipoLabel);
+}
+
+// Listeners para selector de cantidad en Matrix
+function attachCantidadListenersMatrix(index, esRural, tipoInmueble) {
+    // Listener para selector de cantidad
+    $(document).off('change', `.cantidad-inmuebles-matrix[data-index="${index}"]`);
+    $(document).on('change', `.cantidad-inmuebles-matrix[data-index="${index}"]`, function() {
+        const value = $(this).val();
+
+        if (value === 'custom') {
+            $(`#cantidad-custom-container-matrix-${index}`).show();
+            $(`.cantidad-custom-matrix[data-index="${index}"]`).prop('required', true).focus();
+            $(`#medidas-inmuebles-container-matrix-${index}`).html('');
+        } else if (value) {
+            $(`#cantidad-custom-container-matrix-${index}`).hide();
+            $(`.cantidad-custom-matrix[data-index="${index}"]`).prop('required', false).val('');
+            generarCamposMedidasMatrix(index, parseInt(value), esRural, tipoInmueble);
+        } else {
+            $(`#cantidad-custom-container-matrix-${index}`).hide();
+            $(`#medidas-inmuebles-container-matrix-${index}`).html('');
+        }
+    });
+
+    // Listener para input personalizado
+    $(document).off('change', `.cantidad-custom-matrix[data-index="${index}"]`);
+    $(document).on('change', `.cantidad-custom-matrix[data-index="${index}"]`, function() {
+        const cantidad = parseInt($(this).val());
+        if (cantidad >= 6) {
+            generarCamposMedidasMatrix(index, cantidad, esRural, tipoInmueble);
+        }
+    });
+}
+
+// Generar campos de medidas para Matrix
+function generarCamposMedidasMatrix(folioIndex, cantidad, esRural, tipoInmueble) {
+    let html = '<div class="border rounded p-3 bg-light">';
+    html += '<h6 class="text-secondary mb-3"><i class="fas fa-ruler-combined"></i> Medidas de cada ' + tipoInmueble.toLowerCase() + '</h6>';
+
+    for (let i = 0; i < cantidad; i++) {
+        html += '<div class="row align-items-end mb-2">';
+        html += '<div class="col-md-2">';
+        html += '<strong>' + tipoInmueble + ' #' + (i + 1) + '</strong>';
+        html += '</div>';
+
+        if (esRural) {
+            html += '<div class="col-md-4">';
+            html += '<div class="form-group mb-0">';
+            html += '<label class="small">Hectáreas</label>';
+            html += '<input type="text" class="form-control form-control-sm hectareas-inmueble-matrix" data-folio="' + folioIndex + '" data-inmueble="' + i + '" placeholder="0,0000" inputmode="decimal" onkeypress="return validarNumeroDecimal(event)">';
+            html += '<small class="text-muted">Auto-convierte a M²</small>';
+            html += '</div>';
+            html += '</div>';
+            html += '<div class="col-md-4">';
+        } else {
+            html += '<div class="col-md-8">';
+        }
+
+        html += '<div class="form-group mb-0">';
+        html += '<label class="small">M² <span class="text-danger">*</span></label>';
+        html += '<input type="text" class="form-control form-control-sm m2-inmueble-matrix" data-folio="' + folioIndex + '" data-inmueble="' + i + '" placeholder="0" required inputmode="numeric" onkeypress="return validarNumeroEntero(event)">';
+        html += '</div>';
+        html += '</div>';
+        html += '</div>';
+    }
+
+    html += '</div>';
+
+    $(`#medidas-inmuebles-container-matrix-${folioIndex}`).html(html);
+
+    // Agregar listeners de conversión hectáreas ↔ m²
     if (esRural) {
-        attachConversionListenersMatrix(index);
+        attachConversionListenersMatrixInmuebles(folioIndex, cantidad);
+    }
+}
+
+// Conversión hectáreas ↔ m² para inmuebles Matrix
+function attachConversionListenersMatrixInmuebles(folioIndex, cantidad) {
+    for (let i = 0; i < cantidad; i++) {
+        // Hectáreas -> M²
+        $(document).off('input', `.hectareas-inmueble-matrix[data-folio="${folioIndex}"][data-inmueble="${i}"]`);
+        $(document).on('input', `.hectareas-inmueble-matrix[data-folio="${folioIndex}"][data-inmueble="${i}"]`, function() {
+            let valor = $(this).val().replace(/\./g, '').replace(',', '.');
+            if (valor && !isNaN(valor)) {
+                const ha = parseFloat(valor);
+                const m2 = Math.round(ha * 10000);
+                $(`.m2-inmueble-matrix[data-folio="${folioIndex}"][data-inmueble="${i}"]`).val(m2);
+            }
+        });
+
+        // M² -> Hectáreas
+        $(document).off('input', `.m2-inmueble-matrix[data-folio="${folioIndex}"][data-inmueble="${i}"]`);
+        $(document).on('input', `.m2-inmueble-matrix[data-folio="${folioIndex}"][data-inmueble="${i}"]`, function() {
+            let valor = $(this).val().replace(/\./g, '').replace(',', '.');
+            if (valor && !isNaN(valor)) {
+                const m2 = parseFloat(valor);
+                const ha = m2 / 10000;
+                $(`.hectareas-inmueble-matrix[data-folio="${folioIndex}"][data-inmueble="${i}"]`).val(formatNumber(ha, 4));
+            }
+        });
     }
 }
 
@@ -960,7 +1451,28 @@ function recolectarMedidasMatrix() {
     wizardData.folios.forEach((folio, index) => {
         if (!folio) return;
 
-        // Leer datos personales (editables)
+        // Si el folio ya fue recolectado por el wizard (tiene inmuebles), usar datos guardados
+        if (folio.inmuebles && folio.inmuebles.length > 0 && folio.solicitante) {
+            // Validar datos ya guardados
+            if (!folio.solicitante) {
+                errores.push(`Folio ${folio.folio}: Solicitante es obligatorio`);
+            }
+            if (!folio.m2 || folio.m2 <= 0) {
+                errores.push(`Folio ${folio.folio}: M² es obligatorio`);
+            }
+            // Datos del plano (solo primer folio)
+            if (index === 0) {
+                if (!folio.responsable) {
+                    errores.push('Responsable es obligatorio');
+                }
+                if (!folio.proyecto) {
+                    errores.push('Proyecto es obligatorio');
+                }
+            }
+            return; // Ya está recolectado, salir
+        }
+
+        // Si no fue recolectado por wizard, leer del DOM (caso 1 folio)
         const solicitante = $(`.solicitante-matrix[data-index="${index}"]`).val()?.trim();
         const apPaterno = $(`.ap-paterno-matrix[data-index="${index}"]`).val()?.trim();
         const apMaterno = $(`.ap-materno-matrix[data-index="${index}"]`).val()?.trim();
@@ -970,35 +1482,76 @@ function recolectarMedidasMatrix() {
             return;
         }
 
-        // Leer medidas
-        const numeroInmueble = $(`.numero-inmueble-matrix[data-index="${index}"]`).val();
-        const m2Input = $(`.m2-matrix[data-index="${index}"]`).val();
-
-        if (!m2Input) {
-            errores.push(`Folio ${folio.folio}: M² es obligatorio`);
+        // Verificar que se haya seleccionado cantidad de inmuebles
+        const cantidadSelector = $(`.cantidad-inmuebles-matrix[data-index="${index}"]`).val();
+        if (!cantidadSelector) {
+            errores.push(`Folio ${folio.folio}: Debe seleccionar cantidad de ${folio.tipo_inmueble === 'HIJUELA' ? 'hijuelas' : 'sitios'}`);
             return;
         }
 
-        const m2 = parseFloat(m2Input.replace(/\./g, '').replace(',', '.'));
-        if (isNaN(m2) || m2 <= 0) {
-            errores.push(`Folio ${folio.folio}: M² inválido`);
+        // Obtener cantidad real
+        let cantidadInmuebles;
+        if (cantidadSelector === 'custom') {
+            cantidadInmuebles = parseInt($(`.cantidad-custom-matrix[data-index="${index}"]`).val());
+        } else {
+            cantidadInmuebles = parseInt(cantidadSelector);
+        }
+
+        if (!cantidadInmuebles || cantidadInmuebles < 1) {
+            errores.push(`Folio ${folio.folio}: Cantidad de inmuebles inválida`);
             return;
+        }
+
+        // Recolectar inmuebles individuales
+        const inmuebles = [];
+        let totalM2 = 0;
+        let totalHectareas = 0;
+        const esRural = folio.tipo_inmueble === 'HIJUELA';
+
+        for (let i = 0; i < cantidadInmuebles; i++) {
+            const m2Input = $(`.m2-inmueble-matrix[data-folio="${index}"][data-inmueble="${i}"]`).val();
+
+            if (!m2Input) {
+                errores.push(`Folio ${folio.folio}: M² del ${folio.tipo_inmueble} #${i + 1} es obligatorio`);
+                continue;
+            }
+
+            const m2 = parseFloat(m2Input.replace(/\./g, '').replace(',', '.'));
+            if (isNaN(m2) || m2 <= 0) {
+                errores.push(`Folio ${folio.folio}: M² del ${folio.tipo_inmueble} #${i + 1} es inválido`);
+                continue;
+            }
+
+            const inmueble = {
+                numero_inmueble: i + 1,
+                tipo_inmueble: folio.tipo_inmueble,
+                m2: m2
+            };
+
+            // Agregar hectáreas si es rural
+            if (esRural) {
+                const haInput = $(`.hectareas-inmueble-matrix[data-folio="${index}"][data-inmueble="${i}"]`).val();
+                if (haInput) {
+                    const ha = parseFloat(haInput.replace(/\./g, '').replace(',', '.'));
+                    if (!isNaN(ha)) {
+                        inmueble.hectareas = ha;
+                        totalHectareas += ha;
+                    }
+                }
+            }
+
+            inmuebles.push(inmueble);
+            totalM2 += m2;
         }
 
         // Actualizar folio con TODOS los datos editados
         folio.solicitante = solicitante;
         folio.apellido_paterno = apPaterno || null;
         folio.apellido_materno = apMaterno || null;
-        folio.numero_inmueble = parseInt(numeroInmueble) || (index + 1);
-        folio.m2 = m2;
-
-        // Agregar hectáreas si es rural
-        if (folio.tipo_inmueble === 'HIJUELA') {
-            const haInput = $(`.hectareas-matrix[data-index="${index}"]`).val();
-            if (haInput) {
-                folio.hectareas = parseFloat(haInput.replace(/\./g, '').replace(',', '.'));
-            }
-        }
+        folio.numero_inmueble = 1; // Ya no se usa individual, se usa array
+        folio.m2 = totalM2;
+        folio.hectareas = esRural ? totalHectareas : null;
+        folio.inmuebles = inmuebles;
 
         // Leer datos del plano (solo en primer folio)
         if (index === 0) {
@@ -1035,28 +1588,6 @@ function recolectarMedidasMatrix() {
     return true;
 }
 
-// Conversión hectáreas ↔ m² para Matrix
-function attachConversionListenersMatrix(index) {
-    // Hectáreas -> M²
-    $(document).on('input', `.hectareas-matrix[data-index="${index}"]`, function() {
-        let valor = $(this).val().replace(/\./g, '').replace(',', '.');
-        if (valor && !isNaN(valor)) {
-            const ha = parseFloat(valor);
-            const m2 = ha * 10000;
-            $(`.m2-matrix[data-index="${index}"]`).val(formatNumber(m2, 2));
-        }
-    });
-
-    // M² -> Hectáreas
-    $(document).on('input', `.m2-matrix[data-index="${index}"]`, function() {
-        let valor = $(this).val().replace(/\./g, '').replace(',', '.');
-        if (valor && !isNaN(valor)) {
-            const m2 = parseFloat(valor);
-            const ha = m2 / 10000;
-            $(`.hectareas-matrix[data-index="${index}"]`).val(formatNumber(ha, 4));
-        }
-    });
-}
 
 function procesarFoliosMasivos() {
     const texto = $('#folios-masivos').val().trim();
@@ -1074,10 +1605,375 @@ function procesarFoliosMasivos() {
     }
 
     $('#resultado-masivos').html('<p><i class="fas fa-spinner fa-spin"></i> Procesando ' + folios.length + ' folios...</p>');
+    $('#btn-procesar-masivos').prop('disabled', true);
 
-    // TODO: Llamar al backend para buscar todos
-    // Por ahora simulación
-    Swal.fire('Info', 'Procesamiento masivo pendiente de implementar', 'info');
+    // Llamar al backend
+    $.ajax({
+        url: '{{ route("planos.crear.buscar-folios-masivos") }}',
+        method: 'POST',
+        headers: {
+            'X-CSRF-TOKEN': '{{ csrf_token() }}'
+        },
+        data: { folios: texto },
+        success: function(response) {
+            $('#btn-procesar-masivos').prop('disabled', false);
+            mostrarResultadosMasivos(response);
+        },
+        error: function(xhr) {
+            $('#btn-procesar-masivos').prop('disabled', false);
+            Swal.fire('Error', 'Error al procesar folios: ' + (xhr.responseJSON?.message || 'Error desconocido'), 'error');
+            $('#resultado-masivos').html('');
+        }
+    });
+}
+
+function mostrarResultadosMasivos(response) {
+    const { encontrados, noEncontrados, yaUsados, resumen } = response;
+
+    let html = '';
+
+    // Resumen
+    html += '<div class="alert alert-info">';
+    html += '<strong>Resumen:</strong> ';
+    html += resumen.encontrados + ' encontrados';
+    if (resumen.noEncontrados > 0) {
+        html += ', <span class="text-danger">' + resumen.noEncontrados + ' no encontrados</span>';
+    }
+    if (resumen.yaUsados > 0) {
+        html += ', <span class="text-warning">' + resumen.yaUsados + ' ya usados</span>';
+    }
+    html += '</div>';
+
+    // Alertas de no encontrados
+    if (noEncontrados.length > 0) {
+        html += '<div class="alert alert-danger py-2">';
+        html += '<strong>No encontrados en Matrix:</strong> ' + noEncontrados.join(', ');
+        html += '</div>';
+    }
+
+    // Alertas de ya usados
+    if (yaUsados.length > 0) {
+        html += '<div class="alert alert-warning py-2">';
+        html += '<strong>Ya usados en otros planos:</strong> ' + yaUsados.join(', ');
+        html += '<br><small>Estos folios serán excluidos automáticamente</small>';
+        html += '</div>';
+    }
+
+    // Filtrar folios válidos (encontrados y no usados)
+    const foliosValidos = encontrados.filter(f => !f.yaUsado);
+
+    if (foliosValidos.length === 0) {
+        html += '<div class="alert alert-danger">';
+        html += 'No hay folios válidos para procesar. Todos están ya usados o no fueron encontrados.';
+        html += '</div>';
+        $('#resultado-masivos').html(html);
+        return;
+    }
+
+    // Guardar en wizardData
+    wizardData.folios = foliosValidos;
+    wizardData.cantidadFolios = foliosValidos.length;
+
+    // Detectar tipo predominante
+    const tipos = foliosValidos.map(f => f.tipo_inmueble);
+    const tipoHijuela = tipos.filter(t => t === 'HIJUELA').length;
+    const tipoSitio = tipos.length - tipoHijuela;
+    const tipoPredominante = tipoHijuela >= tipoSitio ? 'HIJUELA' : 'SITIO';
+    const esRural = tipoPredominante === 'HIJUELA';
+
+    // Determinar tipo de plano
+    wizardData.tipoPlano = 'S' + (esRural ? 'R' : 'U');
+
+    html += '<hr>';
+    html += '<h6><i class="fas fa-list"></i> ' + foliosValidos.length + ' folios válidos - Tipo: ' + tipoPredominante + '</h6>';
+
+    // Tabla de folios
+    html += '<div class="table-responsive" style="max-height: 400px; overflow-y: auto;">';
+    html += '<table class="table table-sm table-bordered">';
+    html += '<thead class="thead-light sticky-top">';
+    html += '<tr>';
+    html += '<th>#</th>';
+    html += '<th>Folio</th>';
+    html += '<th>Solicitante</th>';
+    html += '<th>Comuna</th>';
+    html += '<th>Cant.</th>';
+    html += '<th colspan="' + (esRural ? 2 : 1) + '">Medidas por ' + (esRural ? 'Hijuela' : 'Sitio') + '</th>';
+    html += '</tr>';
+    html += '</thead>';
+    html += '<tbody>';
+
+    foliosValidos.forEach((folio, index) => {
+        const nombreCompleto = (folio.solicitante + ' ' + (folio.apellido_paterno || '') + ' ' + (folio.apellido_materno || '')).trim();
+
+        html += '<tr class="folio-row-masivo" data-index="' + index + '">';
+        html += '<td>' + (index + 1) + '</td>';
+        html += '<td><strong>' + folio.folio + '</strong></td>';
+        html += '<td>' + nombreCompleto + '</td>';
+        html += '<td>' + folio.comuna + '</td>';
+        html += '<td>';
+        html += '<select class="form-control form-control-sm cantidad-masivo" data-index="' + index + '" style="width: 80px;">';
+        html += '<option value="1">1</option>';
+        html += '<option value="2">2</option>';
+        html += '<option value="3">3</option>';
+        html += '<option value="4">4</option>';
+        html += '<option value="5">5</option>';
+        html += '<option value="custom">Más...</option>';
+        html += '</select>';
+        html += '<input type="number" class="form-control form-control-sm cantidad-custom-masivo mt-1" data-index="' + index + '" ';
+        html += 'min="6" max="20" placeholder="6+" style="width: 80px; display: none;">';
+        html += '</td>';
+        // Columnas de medidas (se llenarán dinámicamente)
+        html += '<td colspan="' + (esRural ? 2 : 1) + '" class="p-0">';
+        html += '<div id="medidas-masivo-' + index + '" class="medidas-container-masivo">';
+        // Por defecto 1 inmueble
+        html += generarCamposMedidasMasivo(index, 1, esRural, tipoPredominante);
+        html += '</div>';
+        html += '</td>';
+        html += '</tr>';
+    });
+
+    html += '</tbody>';
+    html += '</table>';
+    html += '</div>';
+
+    // Datos del plano (desde el primer folio)
+    const primerFolio = foliosValidos[0];
+    html += '<hr>';
+    html += '<h6>Datos del Plano (desde primer folio)</h6>';
+    html += '<div class="row">';
+    html += '<div class="col-md-4">';
+    html += '<div class="form-group">';
+    html += '<label>Comuna</label>';
+    html += '<input type="text" class="form-control" id="comuna-masivo" value="' + primerFolio.comuna + '" readonly>';
+    html += '</div></div>';
+    html += '<div class="col-md-4">';
+    html += '<div class="form-group">';
+    html += '<label>Responsable <span class="text-danger">*</span></label>';
+    html += '<input type="text" class="form-control" id="responsable-masivo" value="' + (primerFolio.responsable || '') + '" required>';
+    html += '</div></div>';
+    html += '<div class="col-md-4">';
+    html += '<div class="form-group">';
+    html += '<label>Proyecto <span class="text-danger">*</span></label>';
+    html += '<input type="text" class="form-control" id="proyecto-masivo" value="' + (primerFolio.proyecto || '') + '" required>';
+    html += '</div></div>';
+    html += '</div>';
+
+    $('#resultado-masivos').html(html);
+
+    // Guardar tipo para uso posterior
+    wizardData.esRuralMasivo = esRural;
+    wizardData.tipoInmuebleMasivo = tipoPredominante;
+
+    // Obtener código de comuna
+    const comunaBiobio = Object.entries(comunasBiobio).find(([cod, nom]) => nom === primerFolio.comuna);
+    wizardData.codigoComunaMasivo = comunaBiobio ? comunaBiobio[0] : '000';
+
+    // Listener para cambio de cantidad - regenerar campos
+    $('.cantidad-masivo').on('change', function() {
+        const index = $(this).data('index');
+        const value = $(this).val();
+
+        if (value === 'custom') {
+            // Mostrar input personalizado
+            $(`.cantidad-custom-masivo[data-index="${index}"]`).show().focus();
+            $(`#medidas-masivo-${index}`).html('<p class="text-muted p-2 mb-0"><small>Ingrese cantidad...</small></p>');
+        } else {
+            // Ocultar input personalizado y generar campos
+            $(`.cantidad-custom-masivo[data-index="${index}"]`).hide().val('');
+            const cantidad = parseInt(value);
+            const html = generarCamposMedidasMasivo(index, cantidad, esRural, tipoPredominante);
+            $(`#medidas-masivo-${index}`).html(html);
+            attachListenersMedidasMasivo(index, esRural);
+        }
+        verificarCompletitudMasivos();
+    });
+
+    // Listener para cantidad personalizada
+    $('.cantidad-custom-masivo').on('change', function() {
+        const index = $(this).data('index');
+        const cantidad = parseInt($(this).val());
+        if (cantidad >= 6 && cantidad <= 20) {
+            const html = generarCamposMedidasMasivo(index, cantidad, esRural, tipoPredominante);
+            $(`#medidas-masivo-${index}`).html(html);
+            attachListenersMedidasMasivo(index, esRural);
+            verificarCompletitudMasivos();
+        }
+    });
+
+    // Attach listeners iniciales para cada folio
+    foliosValidos.forEach((folio, index) => {
+        attachListenersMedidasMasivo(index, esRural);
+    });
+
+    // Listener para validar completitud en campos del plano
+    $('#responsable-masivo, #proyecto-masivo').on('input', function() {
+        verificarCompletitudMasivos();
+    });
+
+    // Habilitar botón continuar (deshabilitado hasta completar)
+    $('#btn-continuar-confirmacion').prop('disabled', true);
+    verificarCompletitudMasivos();
+
+    // Actualizar display de correlativo
+    actualizarDisplayCorrelativo(wizardData.codigoComunaMasivo, wizardData.tipoPlano);
+}
+
+function generarCamposMedidasMasivo(folioIndex, cantidad, esRural, tipoInmueble) {
+    let html = '<div class="p-2">';
+
+    for (let i = 0; i < cantidad; i++) {
+        html += '<div class="d-flex align-items-center mb-1' + (i > 0 ? ' border-top pt-1' : '') + '">';
+        html += '<small class="mr-2 text-muted" style="min-width: 50px;">#' + (i + 1) + '</small>';
+
+        if (esRural) {
+            html += '<input type="text" class="form-control form-control-sm ha-masivo mr-1" ';
+            html += 'data-folio="' + folioIndex + '" data-inmueble="' + i + '" ';
+            html += 'placeholder="Ha" style="width: 70px;" inputmode="decimal">';
+        }
+
+        html += '<input type="text" class="form-control form-control-sm m2-masivo" ';
+        html += 'data-folio="' + folioIndex + '" data-inmueble="' + i + '" ';
+        html += 'placeholder="M²" style="width: 80px;" required inputmode="numeric">';
+        html += '</div>';
+    }
+
+    html += '</div>';
+    return html;
+}
+
+function attachListenersMedidasMasivo(folioIndex, esRural) {
+    // Conversión Ha -> M²
+    if (esRural) {
+        $(`.ha-masivo[data-folio="${folioIndex}"]`).off('input').on('input', function() {
+            const inmuebleIndex = $(this).data('inmueble');
+            const haVal = $(this).val().replace(',', '.');
+            const ha = parseFloat(haVal);
+            if (!isNaN(ha) && ha > 0) {
+                const m2 = Math.round(ha * 10000);
+                $(`.m2-masivo[data-folio="${folioIndex}"][data-inmueble="${inmuebleIndex}"]`).val(m2);
+            }
+            verificarCompletitudMasivos();
+        });
+    }
+
+    // Validar al cambiar M²
+    $(`.m2-masivo[data-folio="${folioIndex}"]`).off('input').on('input', function() {
+        verificarCompletitudMasivos();
+    });
+}
+
+function verificarCompletitudMasivos() {
+    let completo = true;
+
+    // Verificar responsable y proyecto
+    if (!$('#responsable-masivo').val()?.trim() || !$('#proyecto-masivo').val()?.trim()) {
+        completo = false;
+    }
+
+    // Verificar que todos los M² estén llenos
+    $('.m2-masivo').each(function() {
+        if (!$(this).val()?.trim()) {
+            completo = false;
+            return false;
+        }
+    });
+
+    $('#btn-continuar-confirmacion').prop('disabled', !completo);
+}
+
+function recolectarFoliosMasivos() {
+    const esRural = wizardData.esRuralMasivo;
+    const tipoInmueble = wizardData.tipoInmuebleMasivo;
+
+    // Verificar datos del plano
+    const responsable = $('#responsable-masivo').val()?.trim();
+    const proyecto = $('#proyecto-masivo').val()?.trim();
+    const comuna = $('#comuna-masivo').val()?.trim();
+
+    if (!responsable || !proyecto) {
+        Swal.fire('Error', 'Debe completar Responsable y Proyecto', 'warning');
+        return false;
+    }
+
+    let errores = [];
+
+    // Recolectar datos de cada folio
+    wizardData.folios.forEach((folio, index) => {
+        // Obtener cantidad (puede ser del select o del input custom)
+        const selectVal = $(`.cantidad-masivo[data-index="${index}"]`).val();
+        let cantidad;
+        if (selectVal === 'custom') {
+            cantidad = parseInt($(`.cantidad-custom-masivo[data-index="${index}"]`).val()) || 1;
+        } else {
+            cantidad = parseInt(selectVal) || 1;
+        }
+
+        // Recolectar inmuebles individuales
+        const inmuebles = [];
+        let totalM2 = 0;
+        let totalHa = 0;
+
+        for (let i = 0; i < cantidad; i++) {
+            const m2Input = $(`.m2-masivo[data-folio="${index}"][data-inmueble="${i}"]`).val();
+
+            if (!m2Input) {
+                errores.push(`Folio ${folio.folio}: M² del ${tipoInmueble.toLowerCase()} #${i + 1} es obligatorio`);
+                continue;
+            }
+
+            const m2 = parseFloat(m2Input.replace(/\./g, '').replace(',', '.'));
+            if (isNaN(m2) || m2 <= 0) {
+                errores.push(`Folio ${folio.folio}: M² del ${tipoInmueble.toLowerCase()} #${i + 1} es inválido`);
+                continue;
+            }
+
+            const inmueble = {
+                numero_inmueble: i + 1,
+                tipo_inmueble: tipoInmueble,
+                m2: m2
+            };
+
+            if (esRural) {
+                const haInput = $(`.ha-masivo[data-folio="${index}"][data-inmueble="${i}"]`).val();
+                if (haInput) {
+                    const ha = parseFloat(haInput.replace(/\./g, '').replace(',', '.'));
+                    if (!isNaN(ha) && ha > 0) {
+                        inmueble.hectareas = ha;
+                        totalHa += ha;
+                    }
+                }
+            }
+
+            inmuebles.push(inmueble);
+            totalM2 += m2;
+        }
+
+        // Actualizar folio con totales
+        folio.m2 = totalM2;
+        folio.hectareas = esRural && totalHa > 0 ? totalHa : null;
+        folio.tipo_inmueble = tipoInmueble;
+        folio.inmuebles = inmuebles;
+        folio.numero_inmueble = cantidad;
+
+        // Datos del plano (solo en primer folio)
+        if (index === 0) {
+            folio.comuna = comuna;
+            folio.codigo_comuna = wizardData.codigoComunaMasivo;
+            folio.responsable = responsable;
+            folio.proyecto = proyecto;
+        }
+    });
+
+    if (errores.length > 0) {
+        Swal.fire({
+            icon: 'error',
+            title: 'Errores en el formulario',
+            html: errores.join('<br>')
+        });
+        return false;
+    }
+
+    return true;
 }
 
 // =====================================================
@@ -1096,7 +1992,7 @@ function generarFormularioManual() {
         // 1 FOLIO SIMPLE
         html += generarFormularioFolioManual(0, esRural, tipoInmueble);
     } else if (wizardData.cantidadTipo === 'multiple') {
-        // Preguntar cantidad exacta
+        // Preguntar cantidad exacta (2-10)
         html += '<div class="form-group">';
         html += '<label>¿Cuántos folios exactamente? (2-10)</label>';
         html += '<select class="form-control" id="cantidad-exacta-manual">';
@@ -1105,6 +2001,18 @@ function generarFormularioManual() {
             html += `<option value="${i}">${i} folios</option>`;
         }
         html += '</select>';
+        html += '</div>';
+        html += '<div id="forms-manuales"></div>';
+    } else if (wizardData.cantidadTipo === 'masivo') {
+        // Preguntar cantidad exacta (11-150)
+        html += '<div class="form-group">';
+        html += '<label>¿Cuántos folios exactamente? (11-150)</label>';
+        html += '<div class="input-group" style="max-width: 200px;">';
+        html += '<input type="number" class="form-control" id="cantidad-exacta-manual-masivo" min="11" max="150" placeholder="11-150">';
+        html += '<div class="input-group-append">';
+        html += '<span class="input-group-text">folios</span>';
+        html += '</div>';
+        html += '</div>';
         html += '</div>';
         html += '<div id="forms-manuales"></div>';
     }
@@ -1126,6 +2034,17 @@ function generarFormularioManual() {
             if (cantidad) {
                 wizardData.cantidadFolios = cantidad;
                 generarFormulariosMultiplesManual(cantidad, esRural, tipoInmueble);
+            }
+        });
+    } else if (wizardData.cantidadTipo === 'masivo') {
+        $('#cantidad-exacta-manual-masivo').on('change', function() {
+            const cantidad = parseInt($(this).val());
+            if (cantidad >= 11 && cantidad <= 150) {
+                wizardData.cantidadFolios = cantidad;
+                generarFormulariosMultiplesManual(cantidad, esRural, tipoInmueble);
+            } else if (cantidad) {
+                Swal.fire('Error', 'La cantidad debe estar entre 11 y 150', 'warning');
+                $(this).val('');
             }
         });
     }
@@ -1330,18 +2249,478 @@ function generarFormularioFolioManual(index, esRural, tipoInmueble) {
 }
 
 function generarFormulariosMultiplesManual(cantidad, esRural, tipoInmueble) {
-    let html = '';
-    for (let i = 0; i < cantidad; i++) {
-        html += generarFormularioFolioManual(i, esRural, tipoInmueble);
-    }
-    $('#forms-manuales').html(html);
-    $('#btn-continuar-confirmacion').prop('disabled', false);
+    // Inicializar tracking de folio actual
+    wizardData.folioActualIndex = 0;
+    wizardData.foliosCompletados = [];
+    wizardData.esRuralManual = esRural;
+    wizardData.tipoInmuebleManual = tipoInmueble;
 
-    // Agregar conversión hectáreas ↔ m² si es rural
-    if (esRural) {
-        for (let i = 0; i < cantidad; i++) {
-            attachConversionListenersManual(i);
+    // Ocultar botones principales durante el wizard
+    $('#botones-folios-principales').hide();
+
+    // Mostrar el primer folio
+    mostrarFolioActualManual();
+}
+
+function mostrarFolioActualManual() {
+    const index = wizardData.folioActualIndex;
+    const total = wizardData.cantidadFolios;
+    const progreso = Math.round(((index) / total) * 100);
+    const esRural = wizardData.esRuralManual;
+    const tipoInmueble = wizardData.tipoInmuebleManual;
+
+    let html = '';
+
+    // Barra de progreso
+    html += '<div class="mb-3">';
+    html += '<div class="d-flex justify-content-between align-items-center mb-2">';
+    html += '<span class="font-weight-bold text-warning"><i class="fas fa-edit"></i> Folio ' + (index + 1) + ' de ' + total + '</span>';
+    html += '<span class="badge badge-warning">' + progreso + '% completado</span>';
+    html += '</div>';
+    html += '<div class="progress" style="height: 8px;">';
+    html += '<div class="progress-bar bg-warning" style="width: ' + progreso + '%"></div>';
+    html += '</div>';
+    html += '</div>';
+
+    // Resumen de folios completados
+    if (wizardData.foliosCompletados.length > 0) {
+        html += '<div class="mb-3">';
+        html += '<small class="text-muted font-weight-bold">Folios completados:</small>';
+        html += '<div class="list-group list-group-flush mt-1">';
+        wizardData.foliosCompletados.forEach((completado, i) => {
+            if (!completado) return;
+            const cantidadInm = completado.cantidadInmuebles || 1;
+            const tipoLabel = completado.tipo === 'HIJUELA' ? 'hijuela' : 'sitio';
+            const tipoPlural = cantidadInm > 1 ? (completado.tipo === 'HIJUELA' ? 'hijuelas' : 'sitios') : tipoLabel;
+            html += '<div class="list-group-item list-group-item-warning py-2 px-3">';
+            html += '<div class="d-flex justify-content-between align-items-center">';
+            html += '<span><i class="fas fa-check-circle text-warning mr-2"></i>';
+            html += '<strong>Folio #' + (i + 1) + ':</strong> ' + (completado.folio || 'S/F') + ' - ' + completado.solicitante + '</span>';
+            html += '<span class="badge badge-light">' + cantidadInm + ' ' + tipoPlural + '</span>';
+            html += '</div>';
+            html += '</div>';
+        });
+        html += '</div>';
+        html += '</div>';
+    }
+
+    // Card del folio actual
+    html += '<div class="card border-warning">';
+    html += '<div class="card-header bg-warning">';
+    html += '<h6 class="mb-0"><i class="fas fa-edit"></i> Folio Manual #' + (index + 1) + '</h6>';
+    html += '</div>';
+    html += '<div class="card-body">';
+
+    // Formulario del folio (simplificado, sin card extra)
+    // FILA 1: Folio y datos personales
+    html += '<div class="row">';
+    html += '<div class="col-md-3">';
+    html += '<div class="form-group">';
+    html += '<label>N° Folio</label>';
+    html += '<input type="text" class="form-control folio-manual-multiple" data-index="' + index + '" placeholder="Opcional">';
+    html += '</div></div>';
+
+    html += '<div class="col-md-3">';
+    html += '<div class="form-group">';
+    html += '<label>Solicitante <span class="text-danger">*</span></label>';
+    html += '<input type="text" class="form-control solicitante-manual-multiple" data-index="' + index + '" required>';
+    html += '</div></div>';
+
+    html += '<div class="col-md-3">';
+    html += '<div class="form-group">';
+    html += '<label>Ap. Paterno</label>';
+    html += '<input type="text" class="form-control ap-paterno-manual-multiple" data-index="' + index + '">';
+    html += '</div></div>';
+
+    html += '<div class="col-md-3">';
+    html += '<div class="form-group">';
+    html += '<label>Ap. Materno</label>';
+    html += '<input type="text" class="form-control ap-materno-manual-multiple" data-index="' + index + '">';
+    html += '</div></div>';
+    html += '</div>';
+
+    // Datos del plano (solo en primer folio)
+    if (index === 0) {
+        html += '<hr><h6>Datos del Plano (aplican a todos los folios)</h6>';
+        html += '<div class="row">';
+        html += '<div class="col-md-4">';
+        html += '<div class="form-group">';
+        html += '<label>Comuna <span class="text-danger">*</span></label>';
+        html += '<select class="form-control comuna-manual-multiple" data-index="' + index + '" required>';
+        html += '<option value="">Seleccionar...</option>';
+        // Agregar comunas desde variable JavaScript
+        Object.entries(comunasBiobio).forEach(([codigo, nombre]) => {
+            html += '<option value="' + codigo + '">' + nombre + '</option>';
+        });
+        html += '</select>';
+        html += '</div></div>';
+
+        html += '<div class="col-md-4">';
+        html += '<div class="form-group">';
+        html += '<label>Responsable <span class="text-danger">*</span></label>';
+        html += '<input type="text" class="form-control responsable-manual-multiple" data-index="' + index + '" required>';
+        html += '</div></div>';
+
+        html += '<div class="col-md-4">';
+        html += '<div class="form-group">';
+        html += '<label>Proyecto <span class="text-danger">*</span></label>';
+        html += '<input type="text" class="form-control proyecto-manual-multiple" data-index="' + index + '" required>';
+        html += '</div></div>';
+        html += '</div>';
+    }
+
+    // Selector de cantidad de hijuelas/sitios
+    const labelCantidad = esRural ? 'hijuelas' : 'sitios';
+    html += '<hr><h6>Cantidad de ' + labelCantidad + '</h6>';
+    html += '<div class="row mb-3">';
+    html += '<div class="col-md-4">';
+    html += '<div class="form-group mb-0">';
+    html += '<label>¿Cuántas ' + labelCantidad + '? <span class="text-danger">*</span></label>';
+    html += '<select class="form-control cantidad-inmuebles-manual-multiple" data-index="' + index + '" required>';
+    html += '<option value="">Seleccionar...</option>';
+    html += '<option value="1">1 ' + tipoInmueble.toLowerCase() + '</option>';
+    html += '<option value="2">2 ' + labelCantidad + '</option>';
+    html += '<option value="3">3 ' + labelCantidad + '</option>';
+    html += '<option value="4">4 ' + labelCantidad + '</option>';
+    html += '<option value="5">5 ' + labelCantidad + '</option>';
+    html += '<option value="custom">Más...</option>';
+    html += '</select>';
+    html += '</div></div>';
+    html += '<div class="col-md-3" id="cantidad-custom-container-manual-multiple-' + index + '" style="display: none;">';
+    html += '<div class="form-group mb-0">';
+    html += '<label>Cantidad exacta</label>';
+    html += '<input type="number" class="form-control cantidad-custom-manual-multiple" data-index="' + index + '" min="6" placeholder="6+">';
+    html += '</div></div>';
+    html += '</div>';
+
+    // Contenedor para medidas
+    html += '<div id="medidas-inmuebles-container-manual-multiple-' + index + '" class="mb-3"></div>';
+
+    html += '</div>';
+    html += '</div>';
+
+    // Botones de navegación
+    html += '<div class="d-flex justify-content-between mt-3">';
+    if (index > 0) {
+        html += '<button type="button" class="btn btn-secondary" id="btn-folio-anterior-manual">';
+        html += '<i class="fas fa-arrow-left"></i> Anterior</button>';
+    } else {
+        html += '<div></div>';
+    }
+    html += '<button type="button" class="btn btn-warning" id="btn-folio-siguiente-manual" disabled>';
+    if (index < total - 1) {
+        html += 'Siguiente <i class="fas fa-arrow-right"></i></button>';
+    } else {
+        html += 'Finalizar <i class="fas fa-check"></i></button>';
+    }
+    html += '</div>';
+
+    const container = $('#forms-manuales');
+    if (container.length === 0) {
+        console.error('ERROR: #forms-manuales container not found!');
+        return;
+    }
+    container.html(html);
+
+    // Restaurar datos si existen
+    if (wizardData.folios[index]) {
+        const folio = wizardData.folios[index];
+        $(`.folio-manual-multiple[data-index="${index}"]`).val(folio.folio || '');
+        $(`.solicitante-manual-multiple[data-index="${index}"]`).val(folio.solicitante || '');
+        $(`.ap-paterno-manual-multiple[data-index="${index}"]`).val(folio.apellido_paterno || '');
+        $(`.ap-materno-manual-multiple[data-index="${index}"]`).val(folio.apellido_materno || '');
+    }
+
+    // Event listeners
+    attachListenersManualMultiple(index, esRural, tipoInmueble);
+
+    // Focus
+    setTimeout(() => {
+        $(`.solicitante-manual-multiple[data-index="${index}"]`).focus();
+    }, 100);
+}
+
+function attachListenersManualMultiple(index, esRural, tipoInmueble) {
+    const labelCantidad = esRural ? 'hijuelas' : 'sitios';
+
+    // Listener para selector de cantidad
+    $(`.cantidad-inmuebles-manual-multiple[data-index="${index}"]`).on('change', function() {
+        const value = $(this).val();
+
+        if (value === 'custom') {
+            $(`#cantidad-custom-container-manual-multiple-${index}`).show();
+            $(`.cantidad-custom-manual-multiple[data-index="${index}"]`).prop('required', true).focus();
+            $(`#medidas-inmuebles-container-manual-multiple-${index}`).html('');
+        } else if (value) {
+            $(`#cantidad-custom-container-manual-multiple-${index}`).hide();
+            $(`.cantidad-custom-manual-multiple[data-index="${index}"]`).prop('required', false).val('');
+            generarCamposMedidasManualMultiple(index, parseInt(value), esRural, tipoInmueble);
+        } else {
+            $(`#cantidad-custom-container-manual-multiple-${index}`).hide();
+            $(`#medidas-inmuebles-container-manual-multiple-${index}`).html('');
         }
+        verificarCompletitudFolioManual(index);
+    });
+
+    // Listener para cantidad custom
+    $(`.cantidad-custom-manual-multiple[data-index="${index}"]`).on('change', function() {
+        const cantidad = parseInt($(this).val());
+        if (cantidad >= 6) {
+            generarCamposMedidasManualMultiple(index, cantidad, esRural, tipoInmueble);
+        }
+        verificarCompletitudFolioManual(index);
+    });
+
+    // Listener para campos requeridos
+    $(`.solicitante-manual-multiple[data-index="${index}"]`).on('input', function() {
+        verificarCompletitudFolioManual(index);
+    });
+
+    // Listeners para datos del plano (solo primer folio)
+    if (index === 0) {
+        $(`.comuna-manual-multiple[data-index="${index}"]`).on('change', function() {
+            verificarCompletitudFolioManual(index);
+        });
+        $(`.responsable-manual-multiple[data-index="${index}"]`).on('input', function() {
+            verificarCompletitudFolioManual(index);
+        });
+        $(`.proyecto-manual-multiple[data-index="${index}"]`).on('input', function() {
+            verificarCompletitudFolioManual(index);
+        });
+    }
+
+    // Botones navegación
+    $('#btn-folio-anterior-manual').on('click', retrocederFolioManual);
+    $('#btn-folio-siguiente-manual').on('click', avanzarSiguienteFolioManual);
+
+    // Verificar completitud inicial (para que el botón esté correctamente deshabilitado)
+    verificarCompletitudFolioManual(index);
+}
+
+function generarCamposMedidasManualMultiple(folioIndex, cantidad, esRural, tipoInmueble) {
+    let html = '<div class="border rounded p-3 bg-light">';
+    html += '<h6 class="text-secondary mb-3"><i class="fas fa-ruler-combined"></i> Medidas de cada ' + tipoInmueble.toLowerCase() + '</h6>';
+
+    for (let i = 0; i < cantidad; i++) {
+        html += '<div class="row align-items-end mb-2">';
+        html += '<div class="col-md-2">';
+        html += '<strong>' + tipoInmueble + ' #' + (i + 1) + '</strong>';
+        html += '</div>';
+
+        if (esRural) {
+            html += '<div class="col-md-4">';
+            html += '<div class="form-group mb-0">';
+            html += '<label class="small">Hectáreas</label>';
+            html += '<input type="text" class="form-control form-control-sm hectareas-inmueble-manual-multiple" data-folio="' + folioIndex + '" data-inmueble="' + i + '" placeholder="0,0000" inputmode="decimal" onkeypress="return validarNumeroDecimal(event)">';
+            html += '</div></div>';
+            html += '<div class="col-md-4">';
+        } else {
+            html += '<div class="col-md-8">';
+        }
+
+        html += '<div class="form-group mb-0">';
+        html += '<label class="small">M² <span class="text-danger">*</span></label>';
+        html += '<input type="text" class="form-control form-control-sm m2-inmueble-manual-multiple" data-folio="' + folioIndex + '" data-inmueble="' + i + '" placeholder="0" required inputmode="numeric" onkeypress="return validarNumeroEntero(event)">';
+        html += '</div></div>';
+        html += '</div>';
+    }
+
+    html += '</div>';
+
+    $(`#medidas-inmuebles-container-manual-multiple-${folioIndex}`).html(html);
+
+    // Conversión Ha ↔ M²
+    if (esRural) {
+        attachConversionListenersManualMultiple(folioIndex, cantidad);
+    }
+
+    // Listener para validar cuando cambian los m²
+    $(`.m2-inmueble-manual-multiple[data-folio="${folioIndex}"]`).on('input', function() {
+        verificarCompletitudFolioManual(folioIndex);
+    });
+}
+
+function attachConversionListenersManualMultiple(folioIndex, cantidad) {
+    for (let i = 0; i < cantidad; i++) {
+        // Hectáreas -> M²
+        $(`.hectareas-inmueble-manual-multiple[data-folio="${folioIndex}"][data-inmueble="${i}"]`).on('input', function() {
+            let valor = $(this).val().replace(/\./g, '').replace(',', '.');
+            if (valor && !isNaN(valor)) {
+                const ha = parseFloat(valor);
+                const m2 = Math.round(ha * 10000);
+                $(`.m2-inmueble-manual-multiple[data-folio="${folioIndex}"][data-inmueble="${i}"]`).val(m2);
+                verificarCompletitudFolioManual(folioIndex);
+            }
+        });
+
+        // M² -> Hectáreas
+        $(`.m2-inmueble-manual-multiple[data-folio="${folioIndex}"][data-inmueble="${i}"]`).on('input', function() {
+            let valor = $(this).val().replace(/\./g, '').replace(',', '.');
+            if (valor && !isNaN(valor)) {
+                const m2 = parseFloat(valor);
+                const ha = m2 / 10000;
+                $(`.hectareas-inmueble-manual-multiple[data-folio="${folioIndex}"][data-inmueble="${i}"]`).val(formatNumber(ha, 4));
+            }
+        });
+    }
+}
+
+function verificarCompletitudFolioManual(index) {
+    // Verificar solicitante
+    const solicitante = $(`.solicitante-manual-multiple[data-index="${index}"]`).val()?.trim();
+    if (!solicitante) {
+        $('#btn-folio-siguiente-manual').prop('disabled', true);
+        return;
+    }
+
+    // Si es primer folio, verificar datos del plano
+    if (index === 0) {
+        const comuna = $(`.comuna-manual-multiple[data-index="${index}"]`).val();
+        const responsable = $(`.responsable-manual-multiple[data-index="${index}"]`).val()?.trim();
+        const proyecto = $(`.proyecto-manual-multiple[data-index="${index}"]`).val()?.trim();
+
+        if (!comuna || !responsable || !proyecto) {
+            $('#btn-folio-siguiente-manual').prop('disabled', true);
+            return;
+        }
+    }
+
+    // Verificar cantidad seleccionada
+    const cantidadSelector = $(`.cantidad-inmuebles-manual-multiple[data-index="${index}"]`).val();
+    if (!cantidadSelector) {
+        $('#btn-folio-siguiente-manual').prop('disabled', true);
+        return;
+    }
+
+    // Obtener cantidad real
+    let cantidad;
+    if (cantidadSelector === 'custom') {
+        cantidad = parseInt($(`.cantidad-custom-manual-multiple[data-index="${index}"]`).val());
+    } else {
+        cantidad = parseInt(cantidadSelector);
+    }
+
+    if (!cantidad || cantidad < 1) {
+        $('#btn-folio-siguiente-manual').prop('disabled', true);
+        return;
+    }
+
+    // Verificar que todos los m² estén llenos
+    let todosCompletos = true;
+    for (let i = 0; i < cantidad; i++) {
+        const m2 = $(`.m2-inmueble-manual-multiple[data-folio="${index}"][data-inmueble="${i}"]`).val();
+        if (!m2) {
+            todosCompletos = false;
+            break;
+        }
+    }
+
+    $('#btn-folio-siguiente-manual').prop('disabled', !todosCompletos);
+}
+
+function avanzarSiguienteFolioManual() {
+    const index = wizardData.folioActualIndex;
+    const esRural = wizardData.esRuralManual;
+    const tipoInmueble = wizardData.tipoInmuebleManual;
+
+    // Recolectar datos del folio actual
+    const folio = $(`.folio-manual-multiple[data-index="${index}"]`).val()?.trim() || null;
+    const solicitante = $(`.solicitante-manual-multiple[data-index="${index}"]`).val()?.trim();
+    const apPaterno = $(`.ap-paterno-manual-multiple[data-index="${index}"]`).val()?.trim();
+    const apMaterno = $(`.ap-materno-manual-multiple[data-index="${index}"]`).val()?.trim();
+
+    // Obtener cantidad de inmuebles
+    const cantidadSelector = $(`.cantidad-inmuebles-manual-multiple[data-index="${index}"]`).val();
+    let cantidad;
+    if (cantidadSelector === 'custom') {
+        cantidad = parseInt($(`.cantidad-custom-manual-multiple[data-index="${index}"]`).val());
+    } else {
+        cantidad = parseInt(cantidadSelector);
+    }
+
+    // Recolectar inmuebles
+    const inmuebles = [];
+    let totalM2 = 0;
+    let totalHa = 0;
+
+    for (let i = 0; i < cantidad; i++) {
+        const m2Input = $(`.m2-inmueble-manual-multiple[data-folio="${index}"][data-inmueble="${i}"]`).val();
+        const m2 = parseFloat(m2Input.replace(/\./g, '').replace(',', '.'));
+
+        const inmueble = {
+            numero_inmueble: i + 1,
+            tipo_inmueble: tipoInmueble,
+            m2: m2
+        };
+
+        if (esRural) {
+            const haInput = $(`.hectareas-inmueble-manual-multiple[data-folio="${index}"][data-inmueble="${i}"]`).val();
+            if (haInput) {
+                const ha = parseFloat(haInput.replace(/\./g, '').replace(',', '.'));
+                inmueble.hectareas = ha;
+                totalHa += ha;
+            }
+        }
+
+        inmuebles.push(inmueble);
+        totalM2 += m2;
+    }
+
+    // Guardar folio en wizardData
+    wizardData.folios[index] = {
+        folio: folio,
+        solicitante: solicitante,
+        apellido_paterno: apPaterno || null,
+        apellido_materno: apMaterno || null,
+        tipo_inmueble: tipoInmueble,
+        m2: totalM2,
+        hectareas: esRural ? totalHa : null,
+        inmuebles: inmuebles,
+        is_from_matrix: false
+    };
+
+    // Datos del plano (solo primer folio)
+    if (index === 0) {
+        const codigoComuna = $(`.comuna-manual-multiple[data-index="${index}"]`).val();
+        const comunaNombre = $(`.comuna-manual-multiple[data-index="${index}"] option:selected`).text();
+        wizardData.folios[index].codigo_comuna = codigoComuna;
+        wizardData.folios[index].comuna = comunaNombre;
+        wizardData.folios[index].responsable = $(`.responsable-manual-multiple[data-index="${index}"]`).val()?.trim();
+        wizardData.folios[index].proyecto = $(`.proyecto-manual-multiple[data-index="${index}"]`).val()?.trim();
+    }
+
+    // Guardar en completados para resumen
+    wizardData.foliosCompletados[index] = {
+        folio: folio,
+        solicitante: solicitante,
+        tipo: tipoInmueble,
+        cantidadInmuebles: cantidad
+    };
+
+    // Avanzar o finalizar
+    if (index < wizardData.cantidadFolios - 1) {
+        wizardData.folioActualIndex++;
+        mostrarFolioActualManual();
+    } else {
+        // Todos completados
+        $('#btn-continuar-confirmacion').prop('disabled', false);
+
+        // Mostrar botones principales nuevamente
+        $('#botones-folios-principales').show();
+
+        Swal.fire({
+            icon: 'success',
+            title: '¡Todos los folios completados!',
+            text: 'Ahora puedes continuar a la confirmación',
+            confirmButtonText: 'Continuar'
+        });
+    }
+}
+
+function retrocederFolioManual() {
+    if (wizardData.folioActualIndex > 0) {
+        wizardData.folioActualIndex--;
+        mostrarFolioActualManual();
     }
 }
 
@@ -1372,15 +2751,22 @@ function attachConversionListenersManual(index) {
 // MOSTRAR CONFIRMACIÓN
 // =====================================================
 function mostrarConfirmacion() {
-    // Recolectar todos los folios según origen
+    // Recolectar todos los folios según origen y tipo
     if (wizardData.origenFolios === 'matrix') {
-        // Primero recolectar las medidas de los formularios
-        if (!recolectarMedidasMatrix()) {
-            return;
-        }
-        // Luego validar que todos están completos
-        if (!validarFoliosMatrixCompleto()) {
-            return;
+        // Verificar si es masivo
+        if (wizardData.cantidadTipo === 'masivo') {
+            if (!recolectarFoliosMasivos()) {
+                return;
+            }
+        } else {
+            // Primero recolectar las medidas de los formularios
+            if (!recolectarMedidasMatrix()) {
+                return;
+            }
+            // Luego validar que todos están completos
+            if (!validarFoliosMatrixCompleto()) {
+                return;
+            }
         }
     } else if (wizardData.origenFolios === 'manual') {
         if (!recolectarFoliosManuales()) {
@@ -1403,9 +2789,18 @@ function mostrarConfirmacion() {
     // Obtener código comuna
     let codigoComuna = '';
     if (wizardData.origenFolios === 'matrix') {
-        codigoComuna = wizardData.folios[0].codigo_comuna || '000';
+        if (wizardData.cantidadTipo === 'masivo') {
+            codigoComuna = wizardData.codigoComunaMasivo || wizardData.folios[0].codigo_comuna || '000';
+        } else {
+            codigoComuna = wizardData.folios[0].codigo_comuna || '000';
+        }
     } else {
-        codigoComuna = $('#comuna-manual').val() || '000';
+        // Para manual: verificar si los datos están en wizardData (wizard múltiple) o en DOM (1 folio)
+        if (wizardData.folios[0] && wizardData.folios[0].codigo_comuna) {
+            codigoComuna = wizardData.folios[0].codigo_comuna;
+        } else {
+            codigoComuna = $('#comuna-manual').val() || '000';
+        }
     }
 
     // Generar número de plano: 08 + codigo_comuna + correlativo + tipo
@@ -1513,9 +2908,43 @@ function validarFoliosMatrixCompleto() {
 
 // Recolectar datos de formularios manuales
 function recolectarFoliosManuales() {
-    wizardData.folios = [];
     const esRural = wizardData.ubicacionManual === 'R';
     const tipoInmueble = esRural ? 'HIJUELA' : 'SITIO';
+
+    // Si los datos ya fueron recolectados por el wizard (múltiples folios)
+    if (wizardData.folios.length > 0 && wizardData.folios[0] && wizardData.folios[0].inmuebles) {
+        // Validar que el primer folio tenga los datos del plano
+        const primerFolio = wizardData.folios[0];
+        if (!primerFolio.codigo_comuna || !primerFolio.responsable || !primerFolio.proyecto) {
+            Swal.fire('Error', 'Debes completar Comuna, Responsable y Proyecto en el primer folio', 'warning');
+            return false;
+        }
+
+        // Validar que todos los folios tengan datos
+        let errores = [];
+        wizardData.folios.forEach((folio, index) => {
+            if (!folio || !folio.solicitante) {
+                errores.push(`Folio ${index + 1}: Solicitante es obligatorio`);
+            }
+            if (!folio.m2 || folio.m2 <= 0) {
+                errores.push(`Folio ${index + 1}: M² es obligatorio`);
+            }
+        });
+
+        if (errores.length > 0) {
+            Swal.fire({
+                icon: 'error',
+                title: 'Errores en el formulario',
+                html: errores.join('<br>')
+            });
+            return false;
+        }
+
+        return true; // Datos ya recolectados y válidos
+    }
+
+    // Caso de 1 folio: leer desde DOM
+    wizardData.folios = [];
 
     // Obtener datos comunes del plano
     const comuna = $('#comuna-manual').val();
@@ -1655,10 +3084,20 @@ function crearPlano() {
         proyecto = wizardData.folios[0].proyecto;
         codigoComuna = wizardData.folios[0].codigo_comuna;
     } else {
-        codigoComuna = $('#comuna-manual').val();
-        comuna = $('#comuna-manual option:selected').text();
-        responsable = $('#responsable-manual').val();
-        proyecto = $('#proyecto-manual').val();
+        // Para manual: verificar si los datos están en wizardData (wizard múltiple) o en DOM (1 folio)
+        if (wizardData.folios[0] && wizardData.folios[0].codigo_comuna) {
+            // Datos del wizard múltiple
+            codigoComuna = wizardData.folios[0].codigo_comuna;
+            comuna = wizardData.folios[0].comuna;
+            responsable = wizardData.folios[0].responsable;
+            proyecto = wizardData.folios[0].proyecto;
+        } else {
+            // Datos de 1 folio (DOM)
+            codigoComuna = $('#comuna-manual').val();
+            comuna = $('#comuna-manual option:selected').text();
+            responsable = $('#responsable-manual').val();
+            proyecto = $('#proyecto-manual').val();
+        }
     }
 
     // Preparar payload
