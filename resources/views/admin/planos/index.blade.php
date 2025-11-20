@@ -1095,24 +1095,76 @@ function guardarPlanoCompleto() {
         folios: []
     };
 
-    // Recolectar datos de todos los folios
+    // Recolectar datos de todos los folios y validar
+    var erroresFolios = [];
+    var numeroFila = 0;
+    var esFiscal = planoData.tipo_saneamiento === 'CR' || planoData.tipo_saneamiento === 'CU';
+
     $('#folios-tbody tr').each(function() {
-        var folio = {
-            id: $(this).find('.folio-id').val() || null,
-            folio: $(this).find('.folio-num').val(),
-            solicitante: $(this).find('.folio-solicitante').val(),
-            apellido_paterno: $(this).find('.folio-ap-pat').val(),
-            apellido_materno: $(this).find('.folio-ap-mat').val(),
-            tipo_inmueble: $(this).find('.folio-tipo').val(),
-            hectareas: $(this).find('.folio-ha').val() || null,
-            m2: $(this).find('.folio-m2').val() || null
+        numeroFila++;
+        var fila = $(this);
+
+        var folioData = {
+            id: fila.find('.folio-id').val() || null,
+            folio: fila.find('.folio-num').val(),
+            solicitante: fila.find('.folio-solicitante').val(),
+            apellido_paterno: fila.find('.folio-ap-pat').val(),
+            apellido_materno: fila.find('.folio-ap-mat').val(),
+            tipo_inmueble: fila.find('.folio-tipo').val(),
+            hectareas: fila.find('.folio-ha').val() || null,
+            m2: fila.find('.folio-m2').val() || null
         };
-        planoData.folios.push(folio);
+
+        // Validar campos obligatorios
+        var camposFaltantes = [];
+
+        if (!esFiscal && !folioData.folio) {
+            camposFaltantes.push('Folio');
+        }
+        if (!folioData.solicitante || folioData.solicitante.trim() === '') {
+            camposFaltantes.push('Solicitante');
+        }
+        if (!folioData.apellido_paterno || folioData.apellido_paterno.trim() === '') {
+            camposFaltantes.push('Apellido Paterno');
+        }
+        if (!folioData.apellido_materno || folioData.apellido_materno.trim() === '') {
+            camposFaltantes.push('Apellido Materno');
+        }
+        if (!folioData.m2 || folioData.m2 <= 0) {
+            camposFaltantes.push('M²');
+        }
+
+        if (camposFaltantes.length > 0) {
+            erroresFolios.push({
+                fila: numeroFila,
+                campos: camposFaltantes
+            });
+        }
+
+        planoData.folios.push(folioData);
     });
 
     // Validar que haya al menos un folio
     if (planoData.folios.length === 0) {
         Swal.fire('Error', 'Debe agregar al menos un folio', 'error');
+        return;
+    }
+
+    // Si hay errores de validación, mostrar mensaje detallado
+    if (erroresFolios.length > 0) {
+        var mensajeError = '<div class="text-left"><p><strong>Los siguientes folios tienen campos vacíos:</strong></p><ul>';
+        erroresFolios.forEach(function(error) {
+            mensajeError += '<li><strong>Fila #' + error.fila + ':</strong> Falta ' + error.campos.join(', ') + '</li>';
+        });
+        mensajeError += '</ul><p class="mt-2">Complete los datos o elimine las filas vacías antes de guardar.</p></div>';
+
+        Swal.fire({
+            icon: 'warning',
+            title: 'Folios Incompletos',
+            html: mensajeError,
+            confirmButtonText: 'Entendido',
+            confirmButtonColor: '#f39c12'
+        });
         return;
     }
 
