@@ -73,7 +73,8 @@ class SessionControlController extends Controller
             'has_control' => true,
             'requested_at' => now(),
             'granted_at' => now(),
-            'is_active' => true
+            'is_active' => true,
+            'last_heartbeat' => now()
         ]);
 
         $proximoCorrelativo = SessionControl::getProximoCorrelativo();
@@ -228,9 +229,14 @@ class SessionControlController extends Controller
             ->where('is_active', true)
             ->first();
 
+        if ($control) {
+            // Actualizar timestamp de último heartbeat
+            $control->update(['last_heartbeat' => now()]);
+        }
+
         return response()->json([
             'active' => !!$control,
-            'proximoCorrelativo' => $control ? $this->getProximoCorrelativo() : null
+            'proximoCorrelativo' => $control ? SessionControl::getProximoCorrelativo() : null
         ]);
     }
 
@@ -363,7 +369,8 @@ class SessionControlController extends Controller
                 'has_control' => true,
                 'requested_at' => now(),
                 'granted_at' => now(),
-                'is_active' => true
+                'is_active' => true,
+                'last_heartbeat' => now()
             ]);
 
             // Actualizar solicitud

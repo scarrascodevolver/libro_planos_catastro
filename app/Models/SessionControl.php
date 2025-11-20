@@ -13,7 +13,7 @@ class SessionControl extends Model
 
     protected $fillable = [
         'user_id', 'session_id', 'has_control', 'requested_at',
-        'granted_at', 'released_at', 'is_active'
+        'granted_at', 'released_at', 'is_active', 'last_heartbeat'
     ];
 
     protected $casts = [
@@ -22,6 +22,7 @@ class SessionControl extends Model
         'requested_at' => 'datetime',
         'granted_at' => 'datetime',
         'released_at' => 'datetime',
+        'last_heartbeat' => 'datetime',
     ];
 
     public function user()
