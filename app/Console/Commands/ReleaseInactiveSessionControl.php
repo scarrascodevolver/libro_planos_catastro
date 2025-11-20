@@ -27,7 +27,8 @@ class ReleaseInactiveSessionControl extends Command
      */
     public function handle()
     {
-        $timeoutMinutes = 10;
+        // Timeout: 30 minutos (realista para ambiente de oficina)
+        $timeoutMinutes = 30;
         $cutoffTime = Carbon::now()->subMinutes($timeoutMinutes);
 
         // Buscar controles activos con last_heartbeat mayor a 10 minutos

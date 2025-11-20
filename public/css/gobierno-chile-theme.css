@@ -1,0 +1,366 @@
+/**
+ * TEMA OFICIAL - GOBIERNO DE CHILE
+ * Paleta cromática oficial basada en los colores de la bandera de Chile
+ *
+ * Fuente: Guía de Diseño Gobierno de Chile
+ */
+
+:root {
+    /* ===== COLORES PRINCIPALES DEL LOGOTIPO ===== */
+    --gov-azul-principal: #0f69b4;      /* Pantone 239 C - Azul logotipo */
+    --gov-rojo-principal: #eb3c46;      /* Pantone 185 C - Rojo logotipo */
+
+    /* ===== COLORES DE IDENTIDAD VISUAL ===== */
+    --gov-gris-claro: #e9e9e9;          /* Pantone 2707 C - Gris institucional */
+    --gov-celeste: #d3def2;             /* Pantone 2707 C - Celeste */
+    --gov-azul-institucional: #0b4582;  /* Pantone 301 C - Azul institucional */
+    --gov-rojo-suave: #e94860;          /* Pantone 2347 C - Rojo suave */
+
+    /* ===== COLORES DERIVADOS PARA UI ===== */
+    --gov-azul-hover: #0d5a9a;          /* Azul principal oscurecido (hover) */
+    --gov-azul-claro: #e8f2fb;          /* Azul principal aclarado (fondos) */
+    --gov-rojo-hover: #d63541;          /* Rojo principal oscurecido (hover) */
+    --gov-rojo-claro: #fdeaec;          /* Rojo principal aclarado (fondos) */
+
+    /* ===== COLORES FUNCIONALES ===== */
+    --gov-exito: #28a745;               /* Verde éxito (mantener estándar) */
+    --gov-advertencia: #ffc107;         /* Amarillo advertencia (mantener estándar) */
+    --gov-peligro: var(--gov-rojo-principal);  /* Usar rojo oficial */
+    --gov-info: var(--gov-azul-principal);     /* Usar azul oficial */
+}
+
+/* ========================================
+   SOBRESCRIBIR ESTILOS ADMINLTE
+======================================== */
+
+/* ----- NAVBAR ----- */
+.navbar-light {
+    background-color: white !important;
+    border-bottom: 3px solid var(--gov-azul-principal) !important;
+}
+
+.navbar-light .navbar-nav .nav-link {
+    color: var(--gov-azul-institucional) !important;
+}
+
+.navbar-light .navbar-nav .nav-link:hover {
+    color: var(--gov-azul-principal) !important;
+}
+
+/* ----- SIDEBAR (Azul Institucional Oscuro) ----- */
+.main-sidebar,
+.sidebar-dark-primary {
+    background-color: #0b4582 !important;
+}
+
+.brand-link,
+.sidebar-dark-primary .brand-link {
+    background-color: #0b4582 !important;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.2) !important;
+}
+
+.brand-text,
+.sidebar-dark-primary .brand-text,
+.sidebar-dark-primary .brand-link .brand-text {
+    color: white !important;
+    font-weight: 600 !important;
+}
+
+/* Usuario en sidebar */
+.sidebar-dark-primary .user-panel .info a,
+.sidebar-dark-primary .user-panel .info {
+    color: white !important;
+}
+
+.sidebar-dark-primary .nav-sidebar > .nav-item > .nav-link {
+    color: rgba(255, 255, 255, 0.8) !important;
+}
+
+.sidebar-dark-primary .nav-sidebar > .nav-item > .nav-link.active {
+    background-color: var(--gov-azul-principal) !important;
+    color: white !important;
+}
+
+.sidebar-dark-primary .nav-sidebar > .nav-item > .nav-link:hover {
+    background-color: var(--gov-azul-hover) !important;
+    color: white !important;
+}
+
+/* ----- BOTONES PRIMARIOS ----- */
+.btn-primary {
+    background-color: var(--gov-azul-principal) !important;
+    border-color: var(--gov-azul-principal) !important;
+}
+
+.btn-primary:hover,
+.btn-primary:focus,
+.btn-primary:active {
+    background-color: var(--gov-azul-hover) !important;
+    border-color: var(--gov-azul-hover) !important;
+}
+
+/* ----- BOTONES PELIGRO ----- */
+.btn-danger {
+    background-color: var(--gov-rojo-principal) !important;
+    border-color: var(--gov-rojo-principal) !important;
+}
+
+.btn-danger:hover,
+.btn-danger:focus,
+.btn-danger:active {
+    background-color: var(--gov-rojo-hover) !important;
+    border-color: var(--gov-rojo-hover) !important;
+}
+
+/* ----- BOTONES WARNING ----- */
+.btn-warning {
+    background-color: var(--gov-rojo-suave) !important;
+    border-color: var(--gov-rojo-suave) !important;
+    color: white !important;
+}
+
+.btn-warning:hover {
+    background-color: #d63f54 !important;
+    border-color: #d63f54 !important;
+}
+
+/* ----- BOTONES INFO ----- */
+.btn-info {
+    background-color: var(--gov-celeste) !important;
+    border-color: var(--gov-celeste) !important;
+    color: var(--gov-azul-institucional) !important;
+}
+
+.btn-info:hover {
+    background-color: #c2d3ea !important;
+    border-color: #c2d3ea !important;
+}
+
+/* ----- LINKS Y ENLACES ----- */
+a {
+    color: var(--gov-azul-principal) !important;
+}
+
+a:hover {
+    color: var(--gov-azul-hover) !important;
+}
+
+/* ----- BADGES ----- */
+.badge-primary {
+    background-color: var(--gov-azul-principal) !important;
+}
+
+.badge-danger {
+    background-color: var(--gov-rojo-principal) !important;
+}
+
+.badge-warning {
+    background-color: var(--gov-rojo-suave) !important;
+}
+
+.badge-info {
+    background-color: var(--gov-azul-institucional) !important;
+}
+
+/* ----- CARDS ----- */
+.bg-primary,
+.card-primary .card-header {
+    background-color: var(--gov-azul-principal) !important;
+    border-color: var(--gov-azul-principal) !important;
+}
+
+.bg-danger,
+.card-danger .card-header {
+    background-color: var(--gov-rojo-principal) !important;
+    border-color: var(--gov-rojo-principal) !important;
+}
+
+.bg-info {
+    background-color: var(--gov-azul-institucional) !important;
+}
+
+.bg-success {
+    background-color: var(--gov-exito) !important;
+}
+
+.bg-warning {
+    background-color: var(--gov-rojo-suave) !important;
+}
+
+.border-primary {
+    border-color: var(--gov-azul-principal) !important;
+}
+
+.border-danger {
+    border-color: var(--gov-rojo-principal) !important;
+}
+
+/* ----- DATATABLES ----- */
+.dataTables_wrapper .dataTables_paginate .paginate_button.current {
+    background: var(--gov-azul-principal) !important;
+    border-color: var(--gov-azul-principal) !important;
+    color: white !important;
+}
+
+.dataTables_wrapper .dataTables_paginate .paginate_button:hover {
+    background: var(--gov-azul-claro) !important;
+    border-color: var(--gov-azul-principal) !important;
+    color: var(--gov-azul-principal) !important;
+}
+
+/* ----- MODALS ----- */
+.modal-header.bg-primary {
+    background-color: var(--gov-azul-principal) !important;
+}
+
+.modal-header.bg-danger {
+    background-color: var(--gov-rojo-principal) !important;
+}
+
+/* ----- ALERTS ----- */
+.alert-primary {
+    background-color: var(--gov-azul-claro) !important;
+    border-color: var(--gov-azul-principal) !important;
+    color: var(--gov-azul-institucional) !important;
+}
+
+.alert-danger {
+    background-color: var(--gov-rojo-claro) !important;
+    border-color: var(--gov-rojo-principal) !important;
+    color: #721c24 !important;
+}
+
+/* ----- PROGRESS BARS ----- */
+.progress-bar {
+    background-color: var(--gov-azul-principal) !important;
+}
+
+/* ----- TABS ----- */
+.nav-tabs .nav-link.active {
+    background-color: var(--gov-azul-principal) !important;
+    border-color: var(--gov-azul-principal) var(--gov-azul-principal) #fff !important;
+    color: white !important;
+}
+
+.nav-tabs .nav-link:hover {
+    border-color: var(--gov-celeste) var(--gov-celeste) #dee2e6 !important;
+}
+
+/* ----- FORMS ----- */
+.form-control:focus {
+    border-color: var(--gov-azul-principal) !important;
+    box-shadow: 0 0 0 0.2rem rgba(15, 105, 180, 0.25) !important;
+}
+
+.custom-control-input:checked ~ .custom-control-label::before {
+    background-color: var(--gov-azul-principal) !important;
+    border-color: var(--gov-azul-principal) !important;
+}
+
+/* ----- SELECT2 ----- */
+.select2-container--default .select2-results__option--highlighted[aria-selected] {
+    background-color: var(--gov-azul-principal) !important;
+}
+
+.select2-container--default .select2-selection--single:focus {
+    border-color: var(--gov-azul-principal) !important;
+}
+
+/* ----- SWEETALERT2 ----- */
+.swal2-confirm {
+    background-color: var(--gov-azul-principal) !important;
+}
+
+.swal2-cancel {
+    background-color: var(--gov-gris-claro) !important;
+    color: #333 !important;
+}
+
+/* ----- DROPDOWN MENU ----- */
+.dropdown-item:hover,
+.dropdown-item:focus {
+    background-color: var(--gov-celeste) !important;
+    color: var(--gov-azul-institucional) !important;
+}
+
+.dropdown-item.active {
+    background-color: var(--gov-azul-principal) !important;
+}
+
+/* ----- BREADCRUMB ----- */
+.breadcrumb-item.active {
+    color: var(--gov-azul-institucional) !important;
+}
+
+/* ----- CUSTOM CLASSES ----- */
+.bg-gobierno-azul {
+    background-color: var(--gov-azul-principal) !important;
+    color: white !important;
+}
+
+.bg-gobierno-rojo {
+    background-color: var(--gov-rojo-principal) !important;
+    color: white !important;
+}
+
+.bg-gobierno-celeste {
+    background-color: var(--gov-celeste) !important;
+    color: var(--gov-azul-institucional) !important;
+}
+
+.text-gobierno-azul {
+    color: var(--gov-azul-principal) !important;
+}
+
+.text-gobierno-rojo {
+    color: var(--gov-rojo-principal) !important;
+}
+
+.border-gobierno-azul {
+    border-color: var(--gov-azul-principal) !important;
+}
+
+.border-gobierno-rojo {
+    border-color: var(--gov-rojo-principal) !important;
+}
+
+/* ----- ICONOS DE ACCIONES ----- */
+.text-primary {
+    color: var(--gov-azul-principal) !important;
+}
+
+.text-danger {
+    color: var(--gov-rojo-principal) !important;
+}
+
+.text-warning {
+    color: var(--gov-rojo-suave) !important;
+}
+
+.text-info {
+    color: var(--gov-azul-institucional) !important;
+}
+
+/* ----- TABLE HOVER ----- */
+.table-hover tbody tr:hover {
+    background-color: var(--gov-azul-claro) !important;
+}
+
+/* ----- PAGINATION ----- */
+.page-item.active .page-link {
+    background-color: var(--gov-azul-principal) !important;
+    border-color: var(--gov-azul-principal) !important;
+}
+
+.page-link {
+    color: var(--gov-azul-principal) !important;
+}
+
+.page-link:hover {
+    color: var(--gov-azul-hover) !important;
+    background-color: var(--gov-azul-claro) !important;
+}
+
+/* ========================================
+   FIN DEL TEMA GOBIERNO DE CHILE
+======================================== */
