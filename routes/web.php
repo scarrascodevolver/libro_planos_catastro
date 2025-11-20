@@ -71,4 +71,10 @@ Route::middleware('auth')->group(function () {
     Route::get('/session-control/pending-requests', [SessionControlController::class, 'getPendingRequests'])->name('session-control.pending-requests');
     Route::post('/session-control/respond-request/{requestId}', [SessionControlController::class, 'respondRequest'])->name('session-control.respond-request');
 
+    // Gestión de Usuarios - UserController
+    Route::get('/usuarios', [App\Http\Controllers\Admin\UserController::class, 'index'])->name('admin.usuarios.index');
+    Route::post('/usuarios', [App\Http\Controllers\Admin\UserController::class, 'store'])->name('admin.usuarios.store');
+    Route::put('/usuarios/{id}', [App\Http\Controllers\Admin\UserController::class, 'update'])->name('admin.usuarios.update');
+    Route::delete('/usuarios/{id}', [App\Http\Controllers\Admin\UserController::class, 'destroy'])->name('admin.usuarios.destroy');
+
 });

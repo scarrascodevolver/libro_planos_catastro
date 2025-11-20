@@ -204,6 +204,13 @@
                             <p>Agregar Planos</p>
                         </a>
                     </li>
+
+                    <li class="nav-item">
+                        <a href="{{ route('admin.usuarios.index') }}" class="nav-link {{ request()->routeIs('admin.usuarios.*') ? 'active' : '' }}">
+                            <i class="nav-icon fas fa-users"></i>
+                            <p>Gestión de Usuarios</p>
+                        </a>
+                    </li>
                     @endif
                 </ul>
             </nav>
