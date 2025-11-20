@@ -28,7 +28,7 @@
                                     <select class="form-control form-control-sm" id="edit_comuna">
                                         <option value="">Seleccionar...</option>
                                         @foreach($comunas as $codigo => $nombre)
-                                            <option value="{{ $nombre }}" data-codigo="{{ $codigo }}">{{ $nombre }}</option>
+                                            <option value="{{ $nombre }}" data-codigo="{{ $codigo }}" data-provincia="{{ $comunasProvincia[$nombre] ?? '' }}">{{ $nombre }}</option>
                                         @endforeach
                                     </select>
                                 </div>
@@ -47,7 +47,12 @@
                             <div class="col-md-3">
                                 <div class="form-group mb-2">
                                     <label class="small mb-1">Provincia</label>
-                                    <input type="text" class="form-control form-control-sm" id="edit_provincia">
+                                    <select class="form-control form-control-sm" id="edit_provincia">
+                                        <option value="">Seleccionar provincia...</option>
+                                        @foreach($provincias as $provincia)
+                                            <option value="{{ $provincia }}">{{ $provincia }}</option>
+                                        @endforeach
+                                    </select>
                                 </div>
                             </div>
                             <div class="col-md-3">

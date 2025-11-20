@@ -988,6 +988,11 @@ function editarPlano(id) {
 
                     actualizarResumenEdit();
                     $('#edit-modal').modal('show');
+
+                    // Activar filtrado de comunas por provincia después de cargar datos
+                    setTimeout(function() {
+                        filtrarComunasPorProvincia();
+                    }, 100);
                 })
                 .fail(function(xhr) {
                     Swal.fire('Error', 'No se pudo cargar el plano', 'error');
@@ -1142,6 +1147,54 @@ function guardarPlanoCompleto() {
         }
     });
 }
+
+// ===== FILTRADO PROVINCIA-COMUNA DEPENDIENTE =====
+function filtrarComunasPorProvincia() {
+    var provinciaSeleccionada = $('#edit_provincia').val();
+    var comunaActual = $('#edit_comuna').val();
+
+    // Mostrar todas las comunas primero
+    $('#edit_comuna option').show();
+
+    // Si hay provincia seleccionada, filtrar
+    if (provinciaSeleccionada) {
+        $('#edit_comuna option').each(function() {
+            var option = $(this);
+            var provinciaCom = option.data('provincia');
+
+            // No filtrar el option vacío
+            if (option.val() === '') {
+                return;
+            }
+
+            // Ocultar comunas que no pertenecen a la provincia seleccionada
+            if (provinciaCom !== provinciaSeleccionada) {
+                option.hide();
+
+                // Si la comuna actual no pertenece a la nueva provincia, resetear
+                if (option.val() === comunaActual) {
+                    $('#edit_comuna').val('');
+                }
+            }
+        });
+    }
+}
+
+// Event listener para cambio de provincia
+$(document).on('change', '#edit_provincia', function() {
+    filtrarComunasPorProvincia();
+});
+
+// También actualizar provincia automáticamente cuando se selecciona comuna
+$(document).on('change', '#edit_comuna', function() {
+    var comunaSeleccionada = $(this).val();
+    if (comunaSeleccionada) {
+        var provinciaComuna = $(this).find('option:selected').data('provincia');
+        if (provinciaComuna) {
+            $('#edit_provincia').val(provinciaComuna);
+        }
+    }
+});
 
 function reasignarPlano(id) {
     // Verificar control de sesión antes de permitir reasignación

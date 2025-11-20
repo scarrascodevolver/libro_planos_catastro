@@ -26,11 +26,18 @@ class PlanoController extends Controller
         }
 
         $comunas = ComunaBiobio::orderBy('nombre')->pluck('nombre', 'codigo');
+
+        // Relación comuna => provincia para select dependiente
+        $comunasProvincia = ComunaBiobio::pluck('provincia', 'nombre')->toArray();
+
+        // Provincias únicas para el select
+        $provincias = ComunaBiobio::select('provincia')->distinct()->orderBy('provincia')->pluck('provincia');
+
         $responsables = Plano::select('responsable')->distinct()->whereNotNull('responsable')->orderBy('responsable')->pluck('responsable');
         $proyectos = Plano::select('proyecto')->distinct()->whereNotNull('proyecto')->orderBy('proyecto')->pluck('proyecto');
         $anos = Plano::select('ano')->distinct()->whereNotNull('ano')->where('ano', '>', 0)->orderBy('ano', 'desc')->pluck('ano')->unique();
 
-        return view('admin.planos.index', compact('comunas', 'responsables', 'proyectos', 'anos'));
+        return view('admin.planos.index', compact('comunas', 'comunasProvincia', 'provincias', 'responsables', 'proyectos', 'anos'));
     }
 
     private function getDataTableData(Request $request)
