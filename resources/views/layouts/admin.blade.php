@@ -24,6 +24,9 @@
     <!-- SweetAlert2 CSS (Local) -->
     <link rel="stylesheet" href="{{ asset('vendor/sweetalert2/sweetalert2.min.css') }}">
 
+    <!-- TEMA OFICIAL GOBIERNO DE CHILE -->
+    <link rel="stylesheet" href="{{ asset('css/gobierno-chile-theme.css?v=5') }}">
+
     <!-- CSS personalizado -->
     <style>
         .child-row {
@@ -162,9 +165,9 @@
     <!-- Main Sidebar Container -->
     <aside class="main-sidebar sidebar-dark-primary elevation-4">
         <!-- Brand Logo -->
-        <a href="{{ route('home') }}" class="brand-link text-center">
-            <img src="{{ asset('LOGO_SISTEMA.png') }}" alt="Logo Sistema" class="brand-image elevation-3" style="opacity: .8; max-height: 40px; margin-bottom: 5px;">
-            <span class="brand-text font-weight-light d-block" style="margin-top: 0;">Libro Planos</span>
+        <a href="{{ route('home') }}" class="brand-link" style="display: flex; align-items: center; padding: 0.75rem 1rem;">
+            <img src="{{ asset('LOGO_SISTEMA.png') }}" alt="Logo Sistema" class="elevation-3" style="opacity: .8; max-height: 33px; margin-right: 12px;">
+            <span class="brand-text font-weight-light">Libro Planos</span>
         </a>
 
         <!-- Sidebar -->

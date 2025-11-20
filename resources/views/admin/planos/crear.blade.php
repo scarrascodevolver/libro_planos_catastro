@@ -11,7 +11,7 @@
 
 @push('styles')
 <style>
-/* Cards de selección de cantidad de folios */
+/* Cards de selección de cantidad de folios - Colores Gobierno */
 .card-seleccion {
     cursor: pointer;
     transition: all 0.3s ease;
@@ -19,15 +19,15 @@
 }
 
 .card-seleccion:hover {
-    border-color: #007bff;
+    border-color: #0f69b4;
     transform: translateY(-3px);
-    box-shadow: 0 4px 15px rgba(0, 123, 255, 0.15);
+    box-shadow: 0 4px 15px rgba(15, 105, 180, 0.15);
 }
 
 .card-seleccion.selected {
-    border-color: #007bff;
-    background-color: #e7f3ff;
-    box-shadow: 0 4px 15px rgba(0, 123, 255, 0.3);
+    border-color: #0f69b4;
+    background-color: #e8f2fb;
+    box-shadow: 0 4px 15px rgba(15, 105, 180, 0.3);
 }
 
 .card-seleccion.selected .icon-cantidad i {
@@ -50,7 +50,7 @@
 }
 
 .card-seleccion.selected h6 {
-    color: #007bff;
+    color: #0f69b4;
 }
 </style>
 @endpush
@@ -64,9 +64,6 @@
             <i class="fas fa-hashtag"></i>
             Control de Numeración Correlativa
         </h3>
-        <div class="card-tools">
-            <span class="badge badge-danger" id="control-badge">Sin Control</span>
-        </div>
     </div>
     <div class="card-body">
         <div class="row">
