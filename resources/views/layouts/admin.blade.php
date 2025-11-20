@@ -162,9 +162,9 @@
     <!-- Main Sidebar Container -->
     <aside class="main-sidebar sidebar-dark-primary elevation-4">
         <!-- Brand Logo -->
-        <a href="{{ route('home') }}" class="brand-link">
-            <i class="fas fa-map brand-icon"></i>
-            <span class="brand-text font-weight-light">Libro Planos</span>
+        <a href="{{ route('home') }}" class="brand-link text-center">
+            <img src="{{ asset('LOGO_SISTEMA.png') }}" alt="Logo Sistema" class="brand-image elevation-3" style="opacity: .8; max-height: 40px; margin-bottom: 5px;">
+            <span class="brand-text font-weight-light d-block" style="margin-top: 0;">Libro Planos</span>
         </a>
 
         <!-- Sidebar -->

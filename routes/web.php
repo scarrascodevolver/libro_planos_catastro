@@ -29,10 +29,8 @@ Route::middleware('auth')->group(function () {
     Route::get('/planos/{id}/edit', [PlanoController::class, 'edit'])->name('planos.edit');
     Route::get('/planos/{id}/folios-expansion', [PlanoController::class, 'getFoliosExpansion'])->name('planos.folios-expansion');
     Route::get('/planos/{id}/detalles-completos', [PlanoController::class, 'getDetallesCompletos'])->name('planos.detalles-completos');
-    Route::get('/planos/{id}/folios-gestion', [PlanoController::class, 'getFoliosParaGestion'])->name('planos.folios.gestion');
     Route::post('/planos/{id}/reasignar', [PlanoController::class, 'reasignar'])->name('planos.reasignar');
-    Route::post('/planos/{id}/quitar-folios', [PlanoController::class, 'quitarFolios'])->name('planos.folios.quitar');
-    Route::post('/planos/{id}/agregar-folio', [PlanoController::class, 'agregarFolio'])->name('planos.folios.agregar');
+    Route::post('/planos/{id}/update-completo', [PlanoController::class, 'updateCompleto'])->name('planos.update-completo');
     Route::put('/planos/{id}', [PlanoController::class, 'update'])->name('planos.update');
     Route::delete('/planos/{id}', [PlanoController::class, 'destroy'])->name('planos.destroy');
 

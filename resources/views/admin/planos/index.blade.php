@@ -289,9 +289,6 @@
 <!-- Modal Reasignar Número -->
 @include('admin.planos.modals.reasignar-numero')
 
-<!-- Modal Gestionar Folios (Agregar/Quitar) -->
-@include('admin.planos.modals.gestionar-folios')
-
 <!-- Modal Detalles Completos -->
 <div class="modal fade" id="modal-detalles-completos" tabindex="-1">
     <div class="modal-dialog modal-xl">
@@ -336,6 +333,8 @@ $(document).ready(function() {
 // Variables globales
 let planosTable;
 let expandedRows = {};
+let currentEditPlanoId = null;
+let currentEditPlanoData = null;
 
 function initPlanosTable() {
     const columnDefs = [
@@ -917,62 +916,212 @@ function verDetallesCompletos(id) {
 }
 
 @if(Auth::user()->isRegistro())
+
+// ===== EDITAR PLANO =====
 function editarPlano(id) {
-
-    // Mostrar overlay de carga
-    $('#edit-loading-overlay').removeClass('d-none').show();
-
-    // Limpiar formulario y errores previos
-    $('#form-edit-plano')[0].reset();
-    $('.is-invalid').removeClass('is-invalid');
-    $('.invalid-feedback').text('');
-
     $.get("{{ url('/planos') }}/" + id + "/edit")
         .done(function(response) {
-            // Poblar modal de edición - TODOS LOS CAMPOS
-            $('#edit-modal #edit_id').val(id);
-            // Buscar comuna sin importar mayúsculas/minúsculas
-            const comunaPlano = response.plano.comuna.toLowerCase();
-            const comunaOption = $('#edit_comuna option').filter(function() {
-                return $(this).val().toLowerCase() === comunaPlano;
-            });
+            var plano = response.plano;
 
-            if (comunaOption.length > 0) {
-                $('#edit-modal #edit_comuna').val(comunaOption.val());
+            // Llenar datos del plano
+            $('#edit_plano_id').val(plano.id);
+            $('#edit-numero-plano').text(plano.numero_plano || '');
+
+            // Buscar comuna case-insensitive y sin tildes
+            var comunaValue = plano.comuna || '';
+            var comunaEncontrada = '';
+
+            // Función para normalizar: quitar tildes y convertir a mayúsculas
+            function normalizeComuna(str) {
+                return str.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toUpperCase();
             }
-            $('#edit-modal #edit_responsable').val(response.plano.responsable);
-            $('#edit-modal #edit_proyecto').val(response.plano.proyecto);
-            $('#edit-modal #edit_tipo_saneamiento').val(response.plano.tipo_saneamiento);
-            $('#edit-modal #edit_provincia').val(response.plano.provincia);
-            $('#edit-modal #edit_mes').val(response.plano.mes);
-            $('#edit-modal #edit_ano').val(response.plano.ano);
-            $('#edit-modal #edit_total_hectareas').val(response.plano.total_hectareas || '');
-            $('#edit-modal #edit_total_m2').val(response.plano.total_m2);
-            $('#edit-modal #edit_observaciones').val(response.plano.observaciones || '');
-            $('#edit-modal #edit_archivo').val(response.plano.archivo || '');
-            $('#edit-modal #edit_tubo').val(response.plano.tubo || '');
-            $('#edit-modal #edit_tela').val(response.plano.tela || '');
-            $('#edit-modal #edit_archivo_digital').val(response.plano.archivo_digital || '');
 
-            // Actualizar contador de caracteres
-            updateObservacionesCount();
+            var comunaNormalizada = normalizeComuna(comunaValue);
 
-            // Ocultar loading y mostrar modal
-            $('#edit-loading-overlay').hide();
+            $('#edit_comuna option').each(function() {
+                if (normalizeComuna($(this).val()) === comunaNormalizada) {
+                    comunaEncontrada = $(this).val();
+                    return false; // break
+                }
+            });
+            $('#edit_comuna').val(comunaEncontrada).trigger('change');
+
+            $('#edit_tipo_saneamiento').val(plano.tipo_saneamiento || 'SR');
+            $('#edit_provincia').val(plano.provincia || '');
+            $('#edit_responsable').val(plano.responsable || '');
+            $('#edit_mes').val(plano.mes || 'ENE');
+            $('#edit_ano').val(plano.ano || 2025);
+            $('#edit_proyecto').val(plano.proyecto || '');
+            $('#edit_observaciones').val(plano.observaciones || '');
+
+            // Llenar folios
+            var tbody = $('#folios-tbody');
+            tbody.empty();
+
+            var folios = plano.folios || [];
+            for (var i = 0; i < folios.length; i++) {
+                agregarFilaFolio(folios[i]);
+            }
+
+            // Si no hay folios, agregar una fila vacía
+            if (folios.length === 0) {
+                agregarFilaFolio();
+            }
+
+            actualizarResumenEdit();
             $('#edit-modal').modal('show');
-
-            // Ya no necesitamos Select2
         })
         .fail(function(xhr) {
-            $('#edit-loading-overlay').hide();
-            const message = xhr.responseJSON?.message || 'No se pudo cargar la información del plano';
-            Swal.fire({
-                icon: 'error',
-                title: 'Error al cargar',
-                text: message,
-                confirmButtonColor: '#dc3545'
-            });
+            Swal.fire('Error', 'No se pudo cargar el plano', 'error');
         });
+}
+
+// Agregar fila de folio a la tabla
+function agregarFilaFolio(folio) {
+    folio = folio || {};
+
+    var html = '<tr class="folio-row">';
+    html += '<td><input type="text" class="form-control form-control-sm folio-num" value="' + (folio.folio || '') + '"></td>';
+    html += '<td><input type="text" class="form-control form-control-sm folio-solicitante" value="' + (folio.solicitante || '') + '"></td>';
+    html += '<td><input type="text" class="form-control form-control-sm folio-ap-pat" value="' + (folio.apellido_paterno || '') + '"></td>';
+    html += '<td><input type="text" class="form-control form-control-sm folio-ap-mat" value="' + (folio.apellido_materno || '') + '"></td>';
+    html += '<td><select class="form-control form-control-sm folio-tipo">';
+    html += '<option value="HIJUELA"' + (folio.tipo_inmueble === 'HIJUELA' ? ' selected' : '') + '>HIJUELA</option>';
+    html += '<option value="SITIO"' + (folio.tipo_inmueble === 'SITIO' ? ' selected' : '') + '>SITIO</option>';
+    html += '</select></td>';
+    html += '<td><input type="number" step="0.01" class="form-control form-control-sm folio-ha" value="' + (folio.hectareas || '') + '" onchange="actualizarResumenEdit()"></td>';
+    html += '<td><input type="number" class="form-control form-control-sm folio-m2" value="' + (folio.m2 || '') + '" onchange="actualizarResumenEdit()"></td>';
+    html += '<td><button type="button" class="btn btn-xs btn-danger" onclick="eliminarFilaFolio(this)" title="Eliminar"><i class="fas fa-trash"></i></button>';
+    html += '<input type="hidden" class="folio-id" value="' + (folio.id || '') + '"></td>';
+    html += '</tr>';
+
+    $('#folios-tbody').append(html);
+    actualizarResumenEdit();
+}
+
+// Eliminar fila de folio
+function eliminarFilaFolio(btn) {
+    var filas = $('#folios-tbody tr').length;
+    if (filas <= 1) {
+        Swal.fire('Aviso', 'Debe quedar al menos un folio', 'warning');
+        return;
+    }
+    $(btn).closest('tr').remove();
+    actualizarResumenEdit();
+}
+
+// Actualizar resumen de totales
+function actualizarResumenEdit() {
+    var totalFolios = $('#folios-tbody tr').length;
+    var totalHa = 0;
+    var totalM2 = 0;
+
+    $('#folios-tbody tr').each(function() {
+        var ha = parseFloat($(this).find('.folio-ha').val()) || 0;
+        var m2 = parseInt($(this).find('.folio-m2').val()) || 0;
+        totalHa += ha;
+        totalM2 += m2;
+    });
+
+    $('#edit-total-folios').text(totalFolios);
+    $('#resumen-folios').text(totalFolios);
+    $('#resumen-hectareas').text(totalHa.toFixed(2));
+    $('#resumen-m2').text(totalM2.toLocaleString());
+}
+
+// Actualizar número de plano cuando cambia la comuna
+function actualizarNumeroPlanoPorComuna() {
+    var selectedOption = $('#edit_comuna option:selected');
+    var nuevoCodigo = selectedOption.attr('data-codigo');
+    var numeroActual = $('#edit-numero-plano').text().trim();
+
+    if (!nuevoCodigo || !numeroActual || numeroActual.length < 8) {
+        return; // No hacer nada si no hay datos suficientes
+    }
+
+    // Extraer partes del número: 08 + 303 + 29272 + SU
+    var codigoRegion = numeroActual.substring(0, 2); // 08
+    var correlativo = numeroActual.substring(5, numeroActual.length - 2); // 29272
+    var tipo = numeroActual.slice(-2); // SU
+
+    // Construir nuevo número con el nuevo código de comuna
+    var nuevoNumero = codigoRegion + nuevoCodigo.padStart(3, '0') + correlativo + tipo;
+
+    // Actualizar display
+    $('#edit-numero-plano').text(nuevoNumero);
+}
+
+// Event listener para cambio de comuna en modal de edición
+$(document).ready(function() {
+    $(document).on('change', '#edit_comuna', function() {
+        actualizarNumeroPlanoPorComuna();
+    });
+});
+
+// Guardar plano completo (plano + todos los folios)
+function guardarPlanoCompleto() {
+    var planoId = $('#edit_plano_id').val();
+
+    // Recolectar datos del plano
+    var planoData = {
+        _token: '{{ csrf_token() }}',
+        comuna: $('#edit_comuna').val(),
+        tipo_saneamiento: $('#edit_tipo_saneamiento').val(),
+        provincia: $('#edit_provincia').val(),
+        responsable: $('#edit_responsable').val(),
+        mes: $('#edit_mes').val(),
+        ano: $('#edit_ano').val(),
+        proyecto: $('#edit_proyecto').val(),
+        observaciones: $('#edit_observaciones').val(),
+        folios: []
+    };
+
+    // Recolectar datos de todos los folios
+    $('#folios-tbody tr').each(function() {
+        var folio = {
+            id: $(this).find('.folio-id').val() || null,
+            folio: $(this).find('.folio-num').val(),
+            solicitante: $(this).find('.folio-solicitante').val(),
+            apellido_paterno: $(this).find('.folio-ap-pat').val(),
+            apellido_materno: $(this).find('.folio-ap-mat').val(),
+            tipo_inmueble: $(this).find('.folio-tipo').val(),
+            hectareas: $(this).find('.folio-ha').val() || null,
+            m2: $(this).find('.folio-m2').val() || null
+        };
+        planoData.folios.push(folio);
+    });
+
+    // Validar que haya al menos un folio
+    if (planoData.folios.length === 0) {
+        Swal.fire('Error', 'Debe agregar al menos un folio', 'error');
+        return;
+    }
+
+    // Enviar al servidor
+    $.ajax({
+        url: "{{ url('/planos') }}/" + planoId + "/update-completo",
+        method: 'POST',
+        data: planoData,
+        success: function(response) {
+            if (response.success) {
+                $('#edit-modal').modal('hide');
+                planosTable.draw(false);
+                Swal.fire({
+                    icon: 'success',
+                    title: 'Guardado',
+                    text: response.message || 'Plano actualizado correctamente',
+                    timer: 2000,
+                    showConfirmButton: false
+                });
+            } else {
+                Swal.fire('Error', response.message || 'Error al guardar', 'error');
+            }
+        },
+        error: function(xhr) {
+            var msg = xhr.responseJSON ? xhr.responseJSON.message : 'Error al guardar';
+            Swal.fire('Error', msg, 'error');
+        }
+    });
 }
 
 function reasignarPlano(id) {
@@ -994,19 +1143,23 @@ function reasignarPlano(id) {
             // Si tiene control, obtener datos del plano original
             $.get('{{ url("/planos") }}/' + id + '/detalles-completos')
                 .done(function(planoData) {
-                    // Extraer código comuna y tipo del número actual
-                    // Formato: 08 + codigo_comuna(3) + correlativo + tipo(2)
-                    const numeroActual = planoData.plano.numero_plano || '';
-                    let codigoComuna = '303'; // Default
-                    let tipoPlano = 'SU';     // Default
+                    const plano = planoData.plano;
+                    // Usar numero_plano_completo que tiene el formato completo (0830329272SR)
+                    const numeroActual = plano.numero_plano_completo || plano.numero_plano || '';
+                    let codigoComuna = plano.codigo_comuna || '303';
+                    let tipoPlano = plano.tipo_saneamiento || 'SU';
 
-                    if (numeroActual.length >= 7) {
+                    // Si no tenemos codigo_comuna directo, extraerlo del número
+                    if (!plano.codigo_comuna && numeroActual.length >= 7) {
                         codigoComuna = numeroActual.substring(2, 5);
                         tipoPlano = numeroActual.slice(-2);
                     }
 
+                    // Llenar datos del modal
                     $('#reasignar-modal #reasignar_id').val(id);
-                    $('#nuevo_numero').val('Generando...');
+                    $('#numero_actual').val(numeroActual);
+                    $('#cantidad_folios_reasignar').text(planoData.folios ? planoData.folios.length : 0);
+                    $('#nuevo_numero').val('Generando...').removeClass('bg-success').addClass('bg-light');
 
                     // Generar automáticamente el próximo número
                     $.ajax({
@@ -1019,7 +1172,9 @@ function reasignarPlano(id) {
                         },
                         success: function(response) {
                             if (response.success) {
-                                $('#nuevo_numero').val(response.numeroCompleto);
+                                $('#nuevo_numero').val(response.numeroCompleto)
+                                    .removeClass('bg-light')
+                                    .addClass('bg-success');
                             } else {
                                 $('#nuevo_numero').val('Error al generar');
                                 Swal.fire('Error', response.message || 'No se pudo generar el número automático', 'error');
@@ -1131,7 +1286,7 @@ function initModals() {
     $('#edit_observaciones').on('input', updateObservacionesCount);
 
     // Validación en tiempo real
-    $('#edit_responsable, #edit_proyecto, #edit_provincia, #edit_total_m2, #edit_ano').on('blur', function() {
+    $('#edit_responsable, #edit_proyecto, #edit_provincia, #edit_ano').on('blur', function() {
         validateField($(this));
     });
 
@@ -1144,6 +1299,11 @@ function initModals() {
         e.preventDefault();
         const id = $('#reasignar_id').val();
         const formData = $(this).serialize();
+        const $btn = $('#btn-confirmar-reasignar');
+        const originalBtnText = $btn.html();
+
+        // Deshabilitar botón y mostrar loading
+        $btn.prop('disabled', true).html('<i class="fas fa-spinner fa-spin"></i> Creando...');
 
         $.ajax({
             url: "{{ url('/planos') }}/" + id + "/reasignar",
@@ -1151,25 +1311,70 @@ function initModals() {
             data: formData,
             success: function(response) {
                 if (response.success) {
-                    Swal.fire('¡Éxito!', response.message, 'success');
+                    // Cerrar modal de reasignación
                     $('#reasignar-modal').modal('hide');
+
+                    // Recargar tabla
                     planosTable.draw(false);
+
+                    // Mostrar notificación breve y abrir modal de edición automáticamente
+                    const Toast = Swal.mixin({
+                        toast: true,
+                        position: 'top-end',
+                        showConfirmButton: false,
+                        timer: 3000,
+                        timerProgressBar: true
+                    });
+
+                    Toast.fire({
+                        icon: 'success',
+                        title: response.message
+                    });
+
+                    // Abrir modal de edición del nuevo plano automáticamente
+                    if (response.nuevo_plano_id) {
+                        setTimeout(function() {
+                            editarPlano(response.nuevo_plano_id);
+                        }, 600); // Delay para cerrar modal de reasignar primero
+                    }
                 } else {
                     Swal.fire('Error', response.message, 'error');
                 }
             },
-            error: function() {
-                Swal.fire('Error', 'No se pudo reasignar el número', 'error');
+            error: function(xhr) {
+                const message = xhr.responseJSON?.message || 'No se pudo reasignar el número';
+                Swal.fire('Error', message, 'error');
+            },
+            complete: function() {
+                // Restaurar botón
+                $btn.prop('disabled', false).html(originalBtnText);
             }
         });
     });
 
-    // Limpiar formulario al cerrar modal
+    // Limpiar formulario al cerrar modal editar plano
     $('#edit-modal').on('hidden.bs.modal', function() {
-        $('#form-edit-plano')[0].reset();
+        // Limpiar campos del plano
+        $('#edit_plano_id').val('');
+        $('#edit-numero-plano').text('');
+        $('#edit_comuna').val('');
+        $('#edit_tipo_saneamiento').val('SR');
+        $('#edit_provincia').val('');
+        $('#edit_responsable').val('');
+        $('#edit_mes').val('ENE');
+        $('#edit_ano').val('');
+        $('#edit_proyecto').val('');
+        $('#edit_observaciones').val('');
+
+        // Limpiar tabla de folios
+        $('#folios-tbody').empty();
+        $('#edit-total-folios').text('0');
+        $('#resumen-folios').text('0');
+        $('#resumen-hectareas').text('0');
+        $('#resumen-m2').text('0');
+
         $('.is-invalid').removeClass('is-invalid');
         $('.invalid-feedback').text('');
-        $('#edit-loading-overlay').hide();
     });
 
     // Modal Editar Folio - Submit
@@ -1252,9 +1457,11 @@ function initModals() {
         $('.invalid-feedback').text('');
         $('#edit-folio-loading-overlay').hide();
     });
+
+    // TODO: Implementar handlers para edición de folios después de reasignar
 }
 
-// ===== FUNCIONES AUXILIARES UX EDICIÓN =====
+// ===== FUNCIONES AUXILIARES =====
 
 function updateObservacionesCount() {
     const $textarea = $('#edit_observaciones');
@@ -1298,9 +1505,6 @@ function validateField($field) {
     } else if (fieldName === 'ano' && (!value || value < 2020 || value > 2030)) {
         isValid = false;
         errorMessage = 'El año debe estar entre 2020 y 2030';
-    } else if (fieldName === 'total_m2' && (!value || value < 1)) {
-        isValid = false;
-        errorMessage = 'El total de m² debe ser mayor a 0';
     }
 
     // Aplicar estilos de validación
@@ -1322,7 +1526,7 @@ function validateEditForm() {
     const requiredFields = [
         '#edit_comuna', '#edit_responsable', '#edit_proyecto',
         '#edit_tipo_saneamiento', '#edit_provincia', '#edit_mes',
-        '#edit_ano', '#edit_total_m2'
+        '#edit_ano'
     ];
 
     requiredFields.forEach(function(selector) {
@@ -1428,13 +1632,10 @@ function displayFolioValidationErrors(errors) {
 // ===== GESTIONAR FOLIOS (AGREGAR/QUITAR) =====
 
 @if(Auth::user()->isRegistro())
-// Event listener para botón gestionar folios
-$('#planos-table tbody').on('click', '.gestionar-folios', function() {
-    const id = $(this).data('id');
-    abrirModalGestionFolios(id);
-});
+// ===== FUNCIONALIDAD GESTIONAR FOLIOS ELIMINADA =====
+// Ahora se usa el botón EDITAR para agregar/quitar folios
 
-function abrirModalGestionFolios(planoId) {
+function abrirModalGestionFolios_OBSOLETO(planoId) {
     // Resetear modal
     $('#gestion-numero-plano').text('');
     $('#quitar-folios-lista').html('');

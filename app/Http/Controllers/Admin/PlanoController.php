@@ -55,8 +55,6 @@ class PlanoController extends Controller
                 if (Auth::user()->isRegistro()) {
                     $acciones .= '<a class="dropdown-item editar-plano" href="#" data-id="'.$plano->id.'"><i class="fas fa-edit mr-2 text-primary"></i>Editar Plano</a>';
                     $acciones .= '<a class="dropdown-item reasignar-plano" href="#" data-id="'.$plano->id.'"><i class="fas fa-exchange-alt mr-2 text-warning"></i>Reasignar N°</a>';
-                    $acciones .= '<div class="dropdown-divider"></div>';
-                    $acciones .= '<a class="dropdown-item gestionar-folios" href="#" data-id="'.$plano->id.'"><i class="fas fa-folder-plus mr-2 text-success"></i>Gestionar Folios</a>';
                 }
 
                 $acciones .= '</div></div>';
@@ -577,8 +575,13 @@ class PlanoController extends Controller
         return response()->json([
             'success' => true,
             'plano' => [
-                'numero_plano_completo' => $this->formatNumeroPlanoCompleto($plano)
+                'id' => $plano->id,
+                'numero_plano' => $plano->numero_plano,
+                'numero_plano_completo' => $this->formatNumeroPlanoCompleto($plano),
+                'codigo_comuna' => $plano->codigo_comuna,
+                'tipo_saneamiento' => $plano->tipo_saneamiento
             ],
+            'folios' => $plano->folios,
             'html' => $html
         ]);
     }
@@ -616,9 +619,82 @@ class PlanoController extends Controller
         $plano = Plano::with('folios')->findOrFail($id);
         $comunas = ComunaBiobio::getParaSelect();
 
+        // Agregar campos calculados
+        $planoArray = $plano->toArray();
+        $planoArray['numero_plano_completo'] = $this->formatNumeroPlanoCompleto($plano);
+        $planoArray['cantidad_folios'] = $plano->folios->count();
+
         return response()->json([
-            'plano' => $plano,
+            'plano' => $planoArray,
             'comunas' => $comunas
+        ]);
+    }
+
+    /**
+     * Agregar un nuevo folio al plano
+     */
+    public function agregarFolio(Request $request, $id)
+    {
+        if (!Auth::user()->isRegistro()) {
+            return response()->json([
+                'success' => false,
+                'message' => 'No tienes permisos para agregar folios'
+            ], 403);
+        }
+
+        $request->validate([
+            'folio' => 'nullable|string|max:50',
+            'solicitante' => 'required|string|max:255',
+            'apellido_paterno' => 'nullable|string|max:255',
+            'apellido_materno' => 'nullable|string|max:255',
+            'tipo_inmueble' => 'required|in:HIJUELA,SITIO',
+            'hectareas' => 'nullable|numeric|min:0',
+            'm2' => 'required|numeric|min:1',
+        ]);
+
+        $plano = Plano::findOrFail($id);
+
+        // Crear el nuevo folio
+        $folio = PlanoFolio::create([
+            'plano_id' => $plano->id,
+            'folio' => $request->folio,
+            'solicitante' => $request->solicitante,
+            'apellido_paterno' => $request->apellido_paterno,
+            'apellido_materno' => $request->apellido_materno,
+            'tipo_inmueble' => $request->tipo_inmueble,
+            'hectareas' => $request->tipo_inmueble === 'HIJUELA' ? $request->hectareas : null,
+            'm2' => $request->m2,
+            'is_from_matrix' => false,
+        ]);
+
+        // Recalcular totales del plano
+        $this->recalcularTotalesPlano($plano);
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Folio agregado correctamente',
+            'folio' => $folio
+        ]);
+    }
+
+    /**
+     * Recalcular totales de hectáreas, m² y cantidad de folios
+     */
+    private function recalcularTotalesPlano($planoOrId)
+    {
+        // Aceptar tanto objeto Plano como ID
+        if ($planoOrId instanceof Plano) {
+            $plano = $planoOrId;
+        } else {
+            $plano = Plano::findOrFail($planoOrId);
+        }
+
+        $folios = $plano->folios()->get();
+
+        $plano->update([
+            'cantidad_folios' => $folios->count(),
+            'total_hectareas' => $folios->sum('hectareas') ?: null,
+            'total_m2' => $folios->sum('m2')
         ]);
     }
 
@@ -658,6 +734,134 @@ class PlanoController extends Controller
         ]);
     }
 
+    /**
+     * Actualizar plano completo con todos sus folios
+     */
+    public function updateCompleto(Request $request, $id)
+    {
+        if (!Auth::user()->isRegistro()) {
+            return response()->json([
+                'success' => false,
+                'message' => 'No tienes permisos para editar planos'
+            ], 403);
+        }
+
+        $request->validate([
+            'comuna' => 'required|string|max:100',
+            'tipo_saneamiento' => 'required|in:SR,SU,CR,CU',
+            'provincia' => 'nullable|string|max:100',
+            'responsable' => 'nullable|string|max:255',
+            'mes' => 'required|string|max:20',
+            'ano' => 'required|integer|between:2000,2030',
+            'proyecto' => 'nullable|string|max:255',
+            'observaciones' => 'nullable|string|max:1000',
+            'folios' => 'required|array|min:1',
+            'folios.*.folio' => 'nullable|string|max:50',
+            'folios.*.solicitante' => 'nullable|string|max:255',
+            'folios.*.apellido_paterno' => 'nullable|string|max:255',
+            'folios.*.apellido_materno' => 'nullable|string|max:255',
+            'folios.*.tipo_inmueble' => 'required|in:HIJUELA,SITIO',
+            'folios.*.hectareas' => 'nullable|numeric|min:0',
+            'folios.*.m2' => 'nullable|numeric|min:0',
+        ]);
+
+        $plano = Plano::with('folios')->findOrFail($id);
+
+        try {
+            DB::beginTransaction();
+
+            // Si cambió la comuna, actualizar codigo_comuna y numero_plano
+            $nuevoComunaNombre = $request->comuna;
+            $comunaAnterior = $plano->comuna;
+            $actualizarNumero = false;
+
+            if ($nuevoComunaNombre !== $comunaAnterior) {
+                // Buscar código de la nueva comuna
+                $nuevaComuna = ComunaBiobio::where('nombre', $nuevoComunaNombre)->first();
+                if ($nuevaComuna) {
+                    $plano->codigo_comuna = $nuevaComuna->codigo;
+
+                    // Reconstruir número de plano
+                    $codigoRegion = str_pad($plano->codigo_region ?: '08', 2, '0', STR_PAD_LEFT);
+                    $codigoComuna = str_pad($nuevaComuna->codigo, 3, '0', STR_PAD_LEFT);
+                    $correlativo = $plano->numero_correlativo;
+                    $tipo = $request->tipo_saneamiento;
+
+                    $plano->numero_plano = $codigoRegion . $codigoComuna . $correlativo . $tipo;
+                    $actualizarNumero = true;
+                }
+            }
+
+            // Actualizar datos del plano (convertir null a empty string para campos NOT NULL)
+            $plano->update([
+                'comuna' => $request->comuna,
+                'tipo_saneamiento' => $request->tipo_saneamiento,
+                'provincia' => $request->provincia ?: '',
+                'responsable' => $request->responsable ?: '',
+                'mes' => $request->mes,
+                'ano' => $request->ano,
+                'proyecto' => $request->proyecto ?: '',
+                'observaciones' => $request->observaciones ?: '',
+            ]);
+
+            // Obtener IDs de folios existentes
+            $foliosExistentesIds = $plano->folios->pluck('id')->toArray();
+            $foliosRecibidosIds = [];
+
+            // Procesar cada folio recibido
+            foreach ($request->folios as $folioData) {
+                $folioId = isset($folioData['id']) && $folioData['id'] ? $folioData['id'] : null;
+
+                // Preparar datos del folio
+                $datosfolio = [
+                    'folio' => $folioData['folio'] ?: null,
+                    'solicitante' => $folioData['solicitante'] ?: '',
+                    'apellido_paterno' => $folioData['apellido_paterno'] ?: null,
+                    'apellido_materno' => $folioData['apellido_materno'] ?: null,
+                    'tipo_inmueble' => $folioData['tipo_inmueble'],
+                    'hectareas' => $folioData['tipo_inmueble'] === 'HIJUELA' ? ($folioData['hectareas'] ?: null) : null,
+                    'm2' => !empty($folioData['m2']) ? $folioData['m2'] : 0,
+                    'is_from_matrix' => false,
+                ];
+
+                if ($folioId && in_array($folioId, $foliosExistentesIds)) {
+                    // Actualizar folio existente
+                    PlanoFolio::where('id', $folioId)->update($datosfolio);
+                    $foliosRecibidosIds[] = $folioId;
+                } else {
+                    // Crear nuevo folio
+                    $nuevoFolio = PlanoFolio::create(array_merge($datosfolio, [
+                        'plano_id' => $plano->id
+                    ]));
+                    $foliosRecibidosIds[] = $nuevoFolio->id;
+                }
+            }
+
+            // Eliminar folios que ya no están (fueron quitados en la UI)
+            $foliosAEliminar = array_diff($foliosExistentesIds, $foliosRecibidosIds);
+            if (!empty($foliosAEliminar)) {
+                PlanoFolio::whereIn('id', $foliosAEliminar)->delete();
+            }
+
+            // Recalcular totales
+            $this->recalcularTotalesPlano($plano);
+
+            DB::commit();
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Plano y folios actualizados correctamente'
+            ]);
+
+        } catch (\Exception $e) {
+            DB::rollBack();
+            return response()->json([
+                'success' => false,
+                'message' => 'Error al guardar: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+
     public function reasignar(Request $request, $id)
     {
         if (!Auth::user()->isRegistro()) {
@@ -665,32 +869,69 @@ class PlanoController extends Controller
         }
 
         $request->validate([
-            'nuevo_numero' => 'required|string|max:50|unique:planos,numero_plano,' . $id
+            'nuevo_numero' => 'required|string|max:50|unique:planos,numero_plano'
         ]);
 
-        $plano = Plano::findOrFail($id);
-        $numeroAnterior = $plano->numero_plano;
-
-        // Extraer el nuevo correlativo del número (posición 5 hasta -2)
+        $planoOriginal = Plano::with('folios')->findOrFail($id);
+        $numeroAnterior = $planoOriginal->numero_plano;
         $nuevoNumero = $request->nuevo_numero;
-        $nuevoCorrelativo = null;
 
-        // Formato: 08 + codigo_comuna(3) + correlativo + tipo(2)
-        // Ejemplo: 0830329896SU -> correlativo = 29896
+        // Extraer el nuevo correlativo del número
+        $nuevoCorrelativo = null;
         if (strlen($nuevoNumero) >= 7) {
-            $sinPrefijo = substr($nuevoNumero, 5); // Quitar "08" + codigo_comuna
-            $sinTipo = substr($sinPrefijo, 0, -2);  // Quitar tipo (SU, SR, etc)
+            $sinPrefijo = substr($nuevoNumero, 5);
+            $sinTipo = substr($sinPrefijo, 0, -2);
             $nuevoCorrelativo = intval($sinTipo);
         }
 
-        $plano->update([
+        // Crear nuevo plano copiando todos los datos del original
+        $nuevoPlano = Plano::create([
             'numero_plano' => $nuevoNumero,
-            'numero_correlativo' => $nuevoCorrelativo
+            'codigo_region' => $planoOriginal->codigo_region,
+            'codigo_comuna' => $planoOriginal->codigo_comuna,
+            'numero_correlativo' => $nuevoCorrelativo,
+            'tipo_saneamiento' => $planoOriginal->tipo_saneamiento,
+            'provincia' => $planoOriginal->provincia,
+            'comuna' => $planoOriginal->comuna,
+            'mes' => $planoOriginal->mes,
+            'ano' => $planoOriginal->ano,
+            'responsable' => $planoOriginal->responsable,
+            'proyecto' => $planoOriginal->proyecto,
+            'providencia' => $planoOriginal->providencia,
+            'total_hectareas' => $planoOriginal->total_hectareas,
+            'total_m2' => $planoOriginal->total_m2,
+            'cantidad_folios' => $planoOriginal->cantidad_folios,
+            'observaciones' => $planoOriginal->observaciones,
+            'archivo' => $planoOriginal->archivo,
+            'tubo' => $planoOriginal->tubo,
+            'tela' => $planoOriginal->tela,
+            'archivo_digital' => $planoOriginal->archivo_digital,
+            'created_by' => Auth::id()
         ]);
+
+        // Copiar todos los folios al nuevo plano
+        foreach ($planoOriginal->folios as $folioOriginal) {
+            PlanoFolio::create([
+                'plano_id' => $nuevoPlano->id,
+                'folio' => $folioOriginal->folio,
+                'solicitante' => $folioOriginal->solicitante,
+                'apellido_paterno' => $folioOriginal->apellido_paterno,
+                'apellido_materno' => $folioOriginal->apellido_materno,
+                'tipo_inmueble' => $folioOriginal->tipo_inmueble,
+                'numero_inmueble' => $folioOriginal->numero_inmueble,
+                'hectareas' => $folioOriginal->hectareas,
+                'm2' => $folioOriginal->m2,
+                'is_from_matrix' => $folioOriginal->is_from_matrix,
+                'matrix_folio' => $folioOriginal->matrix_folio
+            ]);
+        }
 
         return response()->json([
             'success' => true,
-            'message' => "Número reasignado de {$numeroAnterior} a {$nuevoNumero}"
+            'message' => "Plano reasignado: {$numeroAnterior} → {$nuevoNumero}",
+            'nuevo_plano_id' => $nuevoPlano->id,
+            'numero_anterior' => $numeroAnterior,
+            'numero_nuevo' => $nuevoNumero
         ]);
     }
 
@@ -718,6 +959,7 @@ class PlanoController extends Controller
         $folio = PlanoFolio::findOrFail($folioId);
 
         return response()->json([
+            'success' => true,
             'folio' => $folio
         ]);
     }
@@ -757,21 +999,6 @@ class PlanoController extends Controller
         return response()->json([
             'success' => true,
             'message' => 'Folio actualizado correctamente'
-        ]);
-    }
-
-    private function recalcularTotalesPlano($planoId)
-    {
-        $plano = Plano::with('folios')->findOrFail($planoId);
-
-        $totalHectareas = $plano->folios->sum('hectareas');
-        $totalM2 = $plano->folios->sum('m2');
-        $cantidadFolios = $plano->folios->count();
-
-        $plano->update([
-            'total_hectareas' => $totalHectareas > 0 ? $totalHectareas : null,
-            'total_m2' => $totalM2,
-            'cantidad_folios' => $cantidadFolios
         ]);
     }
 
@@ -878,88 +1105,6 @@ class PlanoController extends Controller
             return response()->json([
                 'success' => false,
                 'message' => 'Error al eliminar folios: ' . $e->getMessage()
-            ], 500);
-        }
-    }
-
-    /**
-     * Agregar uno o múltiples folios (hijuelas/sitios) a un plano existente
-     */
-    public function agregarFolio(Request $request, $id)
-    {
-        if (!Auth::user()->isRegistro()) {
-            abort(403, 'No tienes permisos para agregar folios');
-        }
-
-        // Validar datos base del folio
-        $validated = $request->validate([
-            'folio' => 'nullable|string|max:50',
-            'solicitante' => 'required|string|max:255',
-            'apellido_paterno' => 'nullable|string|max:255',
-            'apellido_materno' => 'nullable|string|max:255',
-            'is_from_matrix' => 'nullable|boolean',
-            'matrix_folio' => 'nullable|string|max:50',
-            // Array de inmuebles (hijuelas o sitios)
-            'inmuebles' => 'required|array|min:1|max:20',
-            'inmuebles.*.numero_inmueble' => 'required|integer|min:1',
-            'inmuebles.*.hectareas' => 'nullable|numeric|min:0',
-            'inmuebles.*.m2' => 'required|numeric|min:0.01',
-        ]);
-
-        $plano = Plano::with('folios')->findOrFail($id);
-
-        // Determinar tipo_inmueble según tipo_saneamiento del plano
-        $tipoPlano = $plano->tipo_saneamiento;
-        $tipoInmueble = in_array($tipoPlano, ['SR', 'CR']) ? 'HIJUELA' : 'SITIO';
-
-        try {
-            DB::beginTransaction();
-
-            $foliosCreados = 0;
-
-            // Crear un registro por cada hijuela/sitio
-            foreach ($validated['inmuebles'] as $inmueble) {
-
-                // Si es SITIO, forzar hectareas a null
-                $hectareas = ($tipoInmueble === 'HIJUELA') ? ($inmueble['hectareas'] ?? null) : null;
-
-                PlanoFolio::create([
-                    'plano_id' => $id,
-                    'folio' => $validated['folio'] ?: null,
-                    'solicitante' => $validated['solicitante'],
-                    'apellido_paterno' => $validated['apellido_paterno'] ?? null,
-                    'apellido_materno' => $validated['apellido_materno'] ?? null,
-                    'tipo_inmueble' => $tipoInmueble,
-                    'numero_inmueble' => $inmueble['numero_inmueble'],
-                    'hectareas' => $hectareas,
-                    'm2' => $inmueble['m2'],
-                    'is_from_matrix' => $validated['is_from_matrix'] ?? false,
-                    'matrix_folio' => $validated['matrix_folio'] ?? null
-                ]);
-
-                $foliosCreados++;
-            }
-
-            // Recalcular totales del plano
-            $this->recalcularTotalesPlano($id);
-
-            DB::commit();
-
-            $mensaje = $foliosCreados === 1
-                ? 'Folio agregado exitosamente'
-                : "{$foliosCreados} folios agregados exitosamente";
-
-            return response()->json([
-                'success' => true,
-                'message' => $mensaje,
-                'folios_creados' => $foliosCreados
-            ]);
-
-        } catch (\Exception $e) {
-            DB::rollBack();
-            return response()->json([
-                'success' => false,
-                'message' => 'Error al agregar folios: ' . $e->getMessage()
             ], 500);
         }
     }
