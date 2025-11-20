@@ -415,7 +415,7 @@ let lastPendingCount = 0;
 function checkPendingRequests() {
     $.get('{{ route("session-control.pending-requests") }}')
         .done(function(response) {
-            console.log('📬 Solicitudes pendientes:', response);
+            // console.log('📬 Solicitudes pendientes:', response);
 
             const section = $('#pending-requests-section');
             const list = $('#pending-requests-list');
