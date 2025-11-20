@@ -1,0 +1,123 @@
+================================================================================
+  INSTALACIÓN EN PRODUCCIÓN - PC DESTINO
+  Sistema Libro de Planos - Región del Biobío
+================================================================================
+
+⚠️ IMPORTANTE: Seguir estos pasos EN ORDEN para evitar errores de APP_KEY
+
+================================================================================
+PASO 1: COPIAR ARCHIVOS
+================================================================================
+
+1. Copiar TODO el proyecto a:
+   C:\xampp\htdocs\libro_planos\
+
+2. Verificar que se copió el archivo .env:
+   Debe existir: C:\xampp\htdocs\libro_planos\.env
+
+================================================================================
+PASO 2: VERIFICAR APP_KEY
+================================================================================
+
+Abrir terminal en: C:\xampp\htdocs\libro_planos
+
+Ejecutar:
+   findstr "APP_KEY" .env
+
+Debe mostrar:
+   APP_KEY=base64:XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX=
+
+SI NO APARECE, ejecutar:
+   php artisan key:generate
+
+================================================================================
+PASO 3: CONFIGURAR BASE DE DATOS
+================================================================================
+
+1. Crear base de datos en phpMyAdmin:
+   Nombre: libro_planos
+
+2. Editar .env con datos de la BD:
+   DB_DATABASE=libro_planos
+   DB_USERNAME=root
+   DB_PASSWORD=
+
+3. Ejecutar migraciones:
+   php artisan migrate --seed
+
+================================================================================
+PASO 4: CACHEAR CONFIGURACIÓN (SOLO EN PRODUCCIÓN)
+================================================================================
+
+⚠️ IMPORTANTE: SOLO ejecutar UNA VEZ después de configurar todo
+
+Ejecutar en orden:
+   php artisan config:clear
+   php artisan cache:clear
+   php artisan config:cache
+   php artisan route:cache
+
+================================================================================
+PASO 5: VERIFICAR FUNCIONAMIENTO
+================================================================================
+
+1. Abrir navegador:
+   http://localhost/libro_planos/public
+
+2. Probar login:
+   Usuario: alfonso.norambuena@biobio.cl
+   Contraseña: alfonso123
+
+3. Si funciona correctamente: ✓ INSTALACIÓN COMPLETA
+
+================================================================================
+PASO 6: CONFIGURAR SCHEDULER (OPCIONAL PERO RECOMENDADO)
+================================================================================
+
+Ver archivo: INSTRUCCIONES-SCHEDULER.txt
+
+Opciones:
+- Copiar start-scheduler.vbs a carpeta de Inicio (auto-ejecutable)
+- O ejecutar iniciar-scheduler.bat cada mañana
+
+================================================================================
+SI APARECE ERROR "APP_KEY"
+================================================================================
+
+NUNCA ejecutar "config:cache" sin antes verificar que .env tiene APP_KEY
+
+Para arreglar:
+   1. php artisan config:clear
+   2. php artisan cache:clear
+   3. Verificar: findstr "APP_KEY" .env
+   4. Si no aparece: php artisan key:generate
+   5. php artisan config:cache
+
+O simplemente ejecutar:
+   fix-app-key.bat
+
+================================================================================
+REGLAS DE ORO - PRODUCCIÓN
+================================================================================
+
+✓ HACER:
+  - Verificar APP_KEY antes de cachear
+  - Usar config:cache SOLO UNA VEZ en producción
+  - Si modificas .env, hacer config:clear primero
+
+✗ NO HACER:
+  - NO usar config:cache en desarrollo
+  - NO modificar .env sin limpiar caché primero
+  - NO ejecutar key:generate después de cachear
+
+================================================================================
+SOPORTE
+================================================================================
+
+Si tienes problemas:
+1. Ejecutar: fix-app-key.bat
+2. Revisar: storage/logs/laravel.log
+3. Contactar al desarrollador del sistema
+
+Última actualización: 2025-11-20
+================================================================================
