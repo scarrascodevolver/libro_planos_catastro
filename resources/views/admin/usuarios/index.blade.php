@@ -160,7 +160,7 @@ $(document).ready(function() {
     $('#form-crear').on('submit', function(e) {
         e.preventDefault();
         $.ajax({
-            url: '{{ route("usuarios.store") }}',
+            url: '{{ route("admin.usuarios.store") }}',
             method: 'POST',
             data: $(this).serialize(),
             success: function(response) {
@@ -195,7 +195,7 @@ $(document).ready(function() {
         e.preventDefault();
         let id = $('#edit-id').val();
         $.ajax({
-            url: '{{ url("/usuarios") }}/' + id,
+            url: '{{ route("admin.usuarios.update", ":id") }}'.replace(':id', id),
             method: 'PUT',
             data: $(this).serialize(),
             success: function(response) {
@@ -225,7 +225,7 @@ $(document).ready(function() {
         }).then((result) => {
             if (result.isConfirmed) {
                 $.ajax({
-                    url: '{{ url("/usuarios") }}/' + id,
+                    url: '{{ route("admin.usuarios.destroy", ":id") }}'.replace(':id', id),
                     method: 'DELETE',
                     data: { _token: '{{ csrf_token() }}' },
                     success: function(response) {
