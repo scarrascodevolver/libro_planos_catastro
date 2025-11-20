@@ -397,10 +397,11 @@ function initPlanosTable() {
         },
         columns: columns,
         columnDefs: columnDefs,
-        pageLength: 25,
+        pageLength: -1,
         lengthMenu: [[10, 25, 50, 100, -1], [10, 25, 50, 100, "Todos"]],
-        dom: '<"row"<"col-sm-12 col-md-8"f><"col-sm-12 col-md-4 text-right"l>>rt<"row"<"col-sm-12 col-md-5"i><"col-sm-12 col-md-7"p>><"d-none"B>',
-        info: true,       // Activar información de registros
+        dom: '<"row"<"col-sm-12"f>>rt<"row"<"col-sm-12"p>><"d-none"B>',
+        info: false,      // Ocultar información de registros
+        lengthChange: false,  // Ocultar selector de cantidad de registros
         paging: true,     // Activar paginación
         buttons: [
             {
@@ -919,60 +920,78 @@ function verDetallesCompletos(id) {
 
 // ===== EDITAR PLANO =====
 function editarPlano(id) {
-    $.get("{{ url('/planos') }}/" + id + "/edit")
+    // Verificar control de sesión antes de permitir edición
+    $.get('{{ route("session-control.status") }}')
         .done(function(response) {
-            var plano = response.plano;
-
-            // Llenar datos del plano
-            $('#edit_plano_id').val(plano.id);
-            $('#edit-numero-plano').text(plano.numero_plano || '');
-
-            // Buscar comuna case-insensitive y sin tildes
-            var comunaValue = plano.comuna || '';
-            var comunaEncontrada = '';
-
-            // Función para normalizar: quitar tildes y convertir a mayúsculas
-            function normalizeComuna(str) {
-                return str.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toUpperCase();
+            if (!response.hasControl) {
+                Swal.fire({
+                    icon: 'warning',
+                    title: 'Control Requerido',
+                    html: `<p>Necesitas tener control de numeración para editar planos.</p>
+                           <p>Esto evita conflictos si otro usuario está editando.</p>
+                           <p>Estado actual: <strong>${response.whoHasControl || 'Nadie tiene control'}</strong></p>`,
+                    confirmButtonText: 'Entendido',
+                    confirmButtonColor: '#007bff'
+                });
+                return;
             }
 
-            var comunaNormalizada = normalizeComuna(comunaValue);
+            // Si tiene control, cargar datos del plano
+            $.get("{{ url('/planos') }}/" + id + "/edit")
+                .done(function(editResponse) {
+                    var plano = editResponse.plano;
 
-            $('#edit_comuna option').each(function() {
-                if (normalizeComuna($(this).val()) === comunaNormalizada) {
-                    comunaEncontrada = $(this).val();
-                    return false; // break
-                }
-            });
-            $('#edit_comuna').val(comunaEncontrada).trigger('change');
+                    // Llenar datos del plano
+                    $('#edit_plano_id').val(plano.id);
+                    $('#edit-numero-plano').text(plano.numero_plano || '');
 
-            $('#edit_tipo_saneamiento').val(plano.tipo_saneamiento || 'SR');
-            $('#edit_provincia').val(plano.provincia || '');
-            $('#edit_responsable').val(plano.responsable || '');
-            $('#edit_mes').val(plano.mes || 'ENE');
-            $('#edit_ano').val(plano.ano || 2025);
-            $('#edit_proyecto').val(plano.proyecto || '');
-            $('#edit_observaciones').val(plano.observaciones || '');
+                    // Buscar comuna case-insensitive y sin tildes
+                    var comunaValue = plano.comuna || '';
+                    var comunaEncontrada = '';
 
-            // Llenar folios
-            var tbody = $('#folios-tbody');
-            tbody.empty();
+                    // Función para normalizar: quitar tildes y convertir a mayúsculas
+                    function normalizeComuna(str) {
+                        return str.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toUpperCase();
+                    }
 
-            var folios = plano.folios || [];
-            for (var i = 0; i < folios.length; i++) {
-                agregarFilaFolio(folios[i]);
-            }
+                    var comunaNormalizada = normalizeComuna(comunaValue);
 
-            // Si no hay folios, agregar una fila vacía
-            if (folios.length === 0) {
-                agregarFilaFolio();
-            }
+                    $('#edit_comuna option').each(function() {
+                        if (normalizeComuna($(this).val()) === comunaNormalizada) {
+                            comunaEncontrada = $(this).val();
+                            return false; // break
+                        }
+                    });
+                    $('#edit_comuna').val(comunaEncontrada).trigger('change');
 
-            actualizarResumenEdit();
-            $('#edit-modal').modal('show');
-        })
-        .fail(function(xhr) {
-            Swal.fire('Error', 'No se pudo cargar el plano', 'error');
+                    $('#edit_tipo_saneamiento').val(plano.tipo_saneamiento || 'SR');
+                    $('#edit_provincia').val(plano.provincia || '');
+                    $('#edit_responsable').val(plano.responsable || '');
+                    $('#edit_mes').val(plano.mes || 'ENE');
+                    $('#edit_ano').val(plano.ano || 2025);
+                    $('#edit_proyecto').val(plano.proyecto || '');
+                    $('#edit_observaciones').val(plano.observaciones || '');
+
+                    // Llenar folios
+                    var tbody = $('#folios-tbody');
+                    tbody.empty();
+
+                    var folios = plano.folios || [];
+                    for (var i = 0; i < folios.length; i++) {
+                        agregarFilaFolio(folios[i]);
+                    }
+
+                    // Si no hay folios, agregar una fila vacía
+                    if (folios.length === 0) {
+                        agregarFilaFolio();
+                    }
+
+                    actualizarResumenEdit();
+                    $('#edit-modal').modal('show');
+                })
+                .fail(function(xhr) {
+                    Swal.fire('Error', 'No se pudo cargar el plano', 'error');
+                });
         });
 }
 
@@ -2285,6 +2304,60 @@ $('#form-agregar-folio').on('submit', function(e) {
     align-items: center !important;
     margin-bottom: 0 !important;
     font-weight: normal !important;
+}
+
+/* Estilos para Select2 en filtros avanzados */
+.select2-container--bootstrap4 .select2-selection {
+    border: 1px solid #ced4da !important;
+    border-radius: 0.25rem;
+    min-height: calc(1.5em + 0.75rem + 2px);
+}
+
+.select2-container--bootstrap4 .select2-selection--single {
+    height: calc(1.5em + 0.75rem + 2px) !important;
+}
+
+.select2-container--bootstrap4 .select2-selection__rendered {
+    line-height: calc(1.5em + 0.75rem) !important;
+    padding-left: 0.75rem !important;
+}
+
+.select2-container--bootstrap4 .select2-selection__arrow {
+    height: calc(1.5em + 0.75rem) !important;
+}
+
+.select2-container--bootstrap4.select2-container--focus .select2-selection {
+    border-color: #80bdff !important;
+    box-shadow: 0 0 0 0.2rem rgba(0, 123, 255, 0.25);
+}
+
+/* Alineación vertical de filtros */
+#filtros-form .row {
+    align-items: flex-end;
+    margin-left: -8px;
+    margin-right: -8px;
+}
+
+#filtros-form .row > [class*="col-"] {
+    padding-left: 8px;
+    padding-right: 8px;
+}
+
+#filtros-form .form-group {
+    margin-bottom: 1rem;
+}
+
+#filtros-form label {
+    display: block;
+    margin-bottom: 0.5rem;
+    font-weight: 400;
+    min-height: 1.5em;
+}
+
+/* Asegurar que select2 y select normales tengan exactamente la misma altura */
+#filtros-form .form-control,
+#filtros-form .select2-container {
+    height: calc(1.5em + 0.75rem + 2px) !important;
 }
 
 /* Filas expandibles clickeables */
