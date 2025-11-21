@@ -7,9 +7,11 @@ use Illuminate\Http\Request;
 use App\Models\Plano;
 use App\Models\PlanoFolio;
 use App\Models\ComunaBiobio;
+use App\Models\SessionControl;
 use PhpOffice\PhpSpreadsheet\IOFactory;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Auth;
 use Carbon\Carbon;
 
 class PlanoHistoricoController extends Controller
@@ -94,6 +96,36 @@ class PlanoHistoricoController extends Controller
             'archivo_excel' => 'required|file|mimes:xlsx,xls|max:10240'
         ]);
 
+        // VALIDAR CONTROL DE SESIÓN
+        $user = Auth::user();
+
+        // Solo usuarios con rol "registro" pueden importar
+        if (!$user->isRegistro()) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Solo usuarios con rol "registro" pueden importar planos históricos'
+            ], 403);
+        }
+
+        // Verificar que el usuario tiene control activo
+        $control = SessionControl::where('user_id', $user->id)
+            ->where('has_control', true)
+            ->where('is_active', true)
+            ->first();
+
+        if (!$control) {
+            $quienTiene = SessionControl::quienTieneControl();
+            $mensaje = $quienTiene
+                ? "El control lo tiene actualmente: {$quienTiene->name}. Debes solicitarlo para poder importar."
+                : "No tienes control de numeración. Debes solicitarlo primero para poder importar.";
+
+            return response()->json([
+                'success' => false,
+                'message' => $mensaje,
+                'requiere_control' => true
+            ], 403);
+        }
+
         try {
             DB::beginTransaction();
 
@@ -111,22 +143,31 @@ class PlanoHistoricoController extends Controller
             $grupos = $this->agruparDatos($datos);
             $resultado = $this->procesarGrupos($grupos);
 
-            if ($resultado['errores_criticos'] > 0) {
-                DB::rollBack();
+            // SIEMPRE hacer commit (aunque haya errores críticos)
+            // Los errores críticos solo rechazan planos específicos, no cancelan TODO
+            DB::commit();
+
+            // Determinar si fue éxito o no
+            if ($resultado['planos_creados'] > 0) {
+                // Se importó al menos 1 plano → ÉXITO
+                $message = $resultado['planos_creados'] . ' plano(s) importado(s) exitosamente';
+                if ($resultado['errores_criticos'] > 0) {
+                    $message .= ' (' . $resultado['errores_criticos'] . ' plano(s) rechazado(s))';
+                }
+
+                return response()->json([
+                    'success' => true,
+                    'message' => $message,
+                    'resultado' => $resultado
+                ]);
+            } else {
+                // NO se importó NADA → ERROR
                 return response()->json([
                     'success' => false,
-                    'message' => 'Importación cancelada por errores críticos',
+                    'message' => 'No se pudo importar ningún plano. Todos tienen errores críticos.',
                     'resultado' => $resultado
                 ], 422);
             }
-
-            DB::commit();
-
-            return response()->json([
-                'success' => true,
-                'message' => 'Importación completada exitosamente',
-                'resultado' => $resultado
-            ]);
 
         } catch (\Exception $e) {
             DB::rollBack();
@@ -146,16 +187,59 @@ class PlanoHistoricoController extends Controller
                in_array('FOLIO', $fila);
     }
 
+    /**
+     * Detecta el formato del Excel según la estructura de la primera fila de datos
+     *
+     * @param array $primeraFilaDatos Primera fila con datos (sin header)
+     * @return string 'USUARIO_COMPACTO' (08301 junto) o 'SEPARADO' (08 | 301)
+     */
+    private function detectarFormato($primeraFilaDatos)
+    {
+        $celdaA = trim($primeraFilaDatos[0] ?? '');
+
+        // Si columna A tiene 5 dígitos → formato usuario compacto (08301)
+        if (preg_match('/^\d{5}$/', $celdaA)) {
+            Log::info("Formato detectado: USUARIO_COMPACTO (columna A = '{$celdaA}')");
+            return 'USUARIO_COMPACTO';
+        }
+
+        // Si columna A tiene 2 dígitos → formato separado (08)
+        if (preg_match('/^\d{1,2}$/', $celdaA)) {
+            Log::info("Formato detectado: SEPARADO (columna A = '{$celdaA}')");
+            return 'SEPARADO';
+        }
+
+        // Fallback: intentar detectar por longitud
+        if (strlen($celdaA) >= 4 && strlen($celdaA) <= 5) {
+            Log::warning("Formato ambiguo, asumiendo USUARIO_COMPACTO por longitud (columna A = '{$celdaA}')");
+            return 'USUARIO_COMPACTO';
+        }
+
+        Log::warning("Formato desconocido, usando SEPARADO por defecto (columna A = '{$celdaA}')");
+        return 'SEPARADO';
+    }
+
     private function agruparDatos($datos)
     {
         $grupos = [];
+
+        // Detectar formato con la primera fila de datos (no vacía)
+        $formato = 'SEPARADO'; // Default
+        foreach ($datos as $fila) {
+            if (!empty(array_filter($fila))) {
+                $formato = $this->detectarFormato($fila);
+                break; // Detectar solo con la primera fila válida
+            }
+        }
+
+        Log::info("Procesando Excel con formato: {$formato}");
 
         foreach ($datos as $index => $fila) {
             // Saltear filas vacías
             if (empty(array_filter($fila))) continue;
 
-            // Mapear índices de columnas (según estructura confirmada)
-            $registro = $this->mapearFilaExcel($fila, $index);
+            // Mapear índices de columnas pasando el formato detectado
+            $registro = $this->mapearFilaExcel($fila, $index, $formato);
 
             // Crear clave de agrupación
             $claveGrupo = $registro['CODIGO_REGIONAL'] . '_' .
@@ -173,36 +257,95 @@ class PlanoHistoricoController extends Controller
         return $grupos;
     }
 
-    private function mapearFilaExcel($fila, $numeroFila)
+    private function mapearFilaExcel($fila, $numeroFila, $formato = 'SEPARADO')
     {
-        // Mapeo según estructura Excel confirmada (24 columnas)
-        return [
-            'NUMERO_FILA' => $numeroFila + 1,
-            'CODIGO_REGIONAL' => $fila[0] ?? '',
-            'CODIGO_COMUNAL' => $this->normalizarCodigoComuna($fila[1] ?? ''),
-            'N°_PLANO' => $fila[2] ?? '',
-            'URBANO/RURAL' => $fila[3] ?? '',
-            'FOLIO' => $fila[4] ?? '',
-            'SOLICITANTE' => $fila[5] ?? '',
-            'PATERNO' => $fila[6] ?? '',
-            'MATERNO' => $fila[7] ?? '',
-            'COMUNA' => $fila[8] ?? '',
-            'HIJ' => intval($fila[9] ?? 0),
-            'HA' => floatval($fila[10] ?? 0),
-            'M²_HIJ' => floatval($fila[11] ?? 0), // Primera columna M² - Con decimales
-            'SITIO' => intval($fila[12] ?? 0),
-            'M²_SITIO' => floatval($fila[13] ?? 0), // Segunda columna M² - Con decimales
-            'FECHA' => $fila[14] ?? '',
-            'AÑO' => intval($fila[15] ?? 0),
-            'Responsable' => $fila[16] ?? '',
-            'PROYECTO' => $fila[17] ?? '',
-            'PROVIDENCIA' => $fila[18] ?? '',
-            'ARCHIVO' => $fila[19] ?? '',
-            'OBSERVACION' => $fila[20] ?? '',
-            'TUBO' => $fila[21] ?? '',
-            'TELA' => $fila[22] ?? '',
-            'ARCHIVO_DIGITAL' => $fila[23] ?? ''
-        ];
+        if ($formato === 'USUARIO_COMPACTO') {
+            // FORMATO USUARIO: Código regional+comunal junto en columna A (08301)
+            // Columnas corridas 1 posición a la izquierda
+
+            // Separar código regional (08) y comunal (301) de columna A
+            $codigoCompleto = str_pad(trim($fila[0] ?? ''), 5, '0', STR_PAD_LEFT);
+            $codigoRegional = substr($codigoCompleto, 0, 2);  // Primeros 2 dígitos
+            $codigoComunal = substr($codigoCompleto, 2, 3);   // Últimos 3 dígitos
+
+            // Armar número de plano completo: 08 + 301 + 29270 + CU = 0830129270CU
+            $numeroCorrelativo = trim($fila[1] ?? '');
+            $tipoSaneamiento = str_replace('.', '', strtoupper(trim($fila[2] ?? ''))); // Quitar puntos (S.R. → SR)
+            $numeroPlano = $codigoRegional . $codigoComunal . $numeroCorrelativo . $tipoSaneamiento;
+
+            return [
+                'NUMERO_FILA' => $numeroFila + 1,
+                'CODIGO_REGIONAL' => $codigoRegional,
+                'CODIGO_COMUNAL' => $this->normalizarCodigoComuna($codigoComunal),
+                'N°_PLANO' => $numeroPlano,
+                'URBANO/RURAL' => $tipoSaneamiento,
+                'FOLIO' => $fila[3] ?? '',              // Col D (era E)
+                'SOLICITANTE' => $fila[4] ?? '',        // Col E (era F)
+                'PATERNO' => $fila[5] ?? '',            // Col F (era G)
+                'MATERNO' => $fila[6] ?? '',            // Col G (era H)
+                'COMUNA' => $fila[7] ?? '',             // Col H (era I)
+                'HIJ' => intval($fila[8] ?? 0),         // Col I (era J)
+                'HA' => floatval($fila[9] ?? 0),        // Col J (era K)
+                'M²_HIJ' => floatval($fila[10] ?? 0),   // Col K (era L)
+                'SITIO' => intval($fila[11] ?? 0),      // Col L (era M)
+                'M²_SITIO' => floatval($fila[12] ?? 0), // Col M (era N)
+                'FECHA' => $fila[13] ?? '',             // Col N (era O)
+                'AÑO' => intval($fila[14] ?? 0),        // Col O (era P)
+                'Responsable' => $fila[15] ?? '',       // Col P (era Q)
+                'PROYECTO' => $fila[16] ?? '',          // Col Q (era R)
+                'PROVIDENCIA' => $fila[17] ?? '',       // Col R (era S)
+                'ARCHIVO' => $fila[18] ?? '',           // Col S (era T)
+                'OBSERVACION' => $fila[19] ?? '',       // Col T (era U)
+                'TUBO' => $fila[20] ?? '',              // Col U (era V)
+                'TELA' => $fila[21] ?? '',              // Col V (era W)
+                'ARCHIVO_DIGITAL' => $fila[22] ?? ''    // Col W (era X)
+            ];
+
+        } else {
+            // FORMATO SEPARADO (actual): Código regional y comunal en columnas A y B
+            // 08 | 301 | 29270 | CU | ...
+
+            // Armar número de plano completo si no viene armado
+            $numeroPlanoOriginal = trim($fila[2] ?? '');
+            $codigoRegional = trim($fila[0] ?? '');
+            $codigoComunal = $this->normalizarCodigoComuna(trim($fila[1] ?? ''));
+            $tipoSaneamiento = str_replace('.', '', strtoupper(trim($fila[3] ?? ''))); // Quitar puntos (S.R. → SR)
+
+            // Si el número de plano está vacío o es solo el correlativo, armarlo completo
+            if (empty($numeroPlanoOriginal) || !preg_match('/[A-Z]{2}$/', $numeroPlanoOriginal)) {
+                $numeroPlano = $codigoRegional . $codigoComunal . $numeroPlanoOriginal . $tipoSaneamiento;
+            } else {
+                $numeroPlano = $numeroPlanoOriginal;
+            }
+
+            return [
+                'NUMERO_FILA' => $numeroFila + 1,
+                'CODIGO_REGIONAL' => $codigoRegional,
+                'CODIGO_COMUNAL' => $codigoComunal,
+                'N°_PLANO' => $numeroPlano,
+                'URBANO/RURAL' => $tipoSaneamiento,
+                'FOLIO' => $fila[4] ?? '',
+                'SOLICITANTE' => $fila[5] ?? '',
+                'PATERNO' => $fila[6] ?? '',
+                'MATERNO' => $fila[7] ?? '',
+                'COMUNA' => $fila[8] ?? '',
+                'HIJ' => intval($fila[9] ?? 0),
+                'HA' => floatval($fila[10] ?? 0),
+                'M²_HIJ' => floatval($fila[11] ?? 0),   // Primera columna M² - Con decimales
+                'SITIO' => intval($fila[12] ?? 0),
+                'M²_SITIO' => floatval($fila[13] ?? 0), // Segunda columna M² - Con decimales
+                'FECHA' => $fila[14] ?? '',
+                'AÑO' => intval($fila[15] ?? 0),
+                'Responsable' => $fila[16] ?? '',
+                'PROYECTO' => $fila[17] ?? '',
+                'PROVIDENCIA' => $fila[18] ?? '',
+                'ARCHIVO' => $fila[19] ?? '',
+                'OBSERVACION' => $fila[20] ?? '',
+                'TUBO' => $fila[21] ?? '',
+                'TELA' => $fila[22] ?? '',
+                'ARCHIVO_DIGITAL' => $fila[23] ?? ''
+            ];
+        }
     }
 
     private function validarGrupos($grupos)
@@ -241,16 +384,24 @@ class PlanoHistoricoController extends Controller
         $primerFila = $grupo[0];
         $numeroPlano = $primerFila['N°_PLANO'];
 
+        // Validar tipo saneamiento NO vacío (campo crítico obligatorio)
+        $tipoSaneamiento = trim($primerFila['URBANO/RURAL'] ?? '');
+        if (empty($tipoSaneamiento)) {
+            $errores[] = "CRÍTICO: Tipo de plano (SR/SU/CR/CU) está VACÍO";
+        } elseif (!in_array($tipoSaneamiento, ['SR', 'SU', 'CR', 'CU'])) {
+            $errores[] = "CRÍTICO: Tipo de plano inválido '{$tipoSaneamiento}' (debe ser SR, SU, CR o CU)";
+        }
+
         // Validar número plano único en BD
         $existeEnBD = Plano::where('numero_plano', $numeroPlano)->exists();
         Log::info("Validando plano {$numeroPlano}: existe en BD = " . ($existeEnBD ? 'SÍ' : 'NO'));
         if ($existeEnBD) {
-            $errores[] = "Número de plano {$numeroPlano} ya existe en BD";
+            $errores[] = "CRÍTICO: Número de plano {$numeroPlano} ya existe en BD";
         }
 
         // Validar número plano único en este lote de importación
         if (in_array($numeroPlano, $numerosProcessados)) {
-            $errores[] = "Número de plano {$numeroPlano} duplicado en este archivo";
+            $errores[] = "CRÍTICO: Número de plano {$numeroPlano} duplicado en este archivo";
         }
 
         // Validar comuna existe (búsqueda inteligente)
@@ -300,20 +451,58 @@ class PlanoHistoricoController extends Controller
     {
         $planosCreados = 0;
         $foliosCreados = 0;
-        $errores = [];
+        $errores = []; // Errores críticos con info detallada
+        $warnings = []; // Warnings con info detallada
         $erroresCriticos = 0;
         $numerosProcessados = []; // Track números ya procesados en este lote
 
         foreach ($grupos as $clave => $grupo) {
             try {
+                $primerFila = $grupo[0];
+
                 // Validar grupo antes de procesar
                 $erroresGrupo = $this->validarGrupo($grupo, $numerosProcessados);
+                $warningsGrupo = []; // Warnings detectados durante validación
+
                 if (!empty($erroresGrupo)) {
-                    $errores[$clave] = $erroresGrupo;
-                    $erroresCriticos++;
-                    Log::warning("Grupo $clave rechazado por errores:", $erroresGrupo);
-                    continue;
+                    // Separar WARNINGS de ERRORES CRÍTICOS
+                    $erroresCriticosGrupo = [];
+
+                    foreach ($erroresGrupo as $error) {
+                        // Si contiene "CRÍTICO" o "ya existe" o "duplicado" → es crítico
+                        if (stripos($error, 'CRÍTICO') !== false ||
+                            stripos($error, 'ya existe') !== false ||
+                            stripos($error, 'duplicado') !== false) {
+                            $erroresCriticosGrupo[] = $error;
+                        } else {
+                            $warningsGrupo[] = $error;
+                        }
+                    }
+
+                    // Preparar info del plano para mostrar al usuario
+                    $infoPlano = [
+                        'numero_plano' => $primerFila['N°_PLANO'],
+                        'fila_excel' => $primerFila['NUMERO_FILA'],
+                        'comuna' => $primerFila['COMUNA'],
+                        'solicitante' => $primerFila['SOLICITANTE'],
+                        'folio' => $primerFila['FOLIO'] ?: '[VACÍO]',
+                        'tipo' => $primerFila['URBANO/RURAL']
+                    ];
+
+                    if (!empty($erroresCriticosGrupo)) {
+                        // Errores críticos → rechazar grupo
+                        $errores[] = array_merge($infoPlano, [
+                            'errores' => $erroresCriticosGrupo
+                        ]);
+                        $erroresCriticos++;
+                        Log::error("Grupo $clave rechazado por errores críticos:", $erroresCriticosGrupo);
+                        continue;
+                    }
                 }
+
+                // DETECTAR WARNINGS ADICIONALES (superficies vacías, datos incompletos)
+                $warningsAdicionales = $this->detectarWarningsGrupo($grupo);
+                $warningsGrupo = array_merge($warningsGrupo, $warningsAdicionales);
 
                 // Crear plano
                 $plano = $this->crearPlanoDesdeGrupo($grupo);
@@ -328,8 +517,33 @@ class PlanoHistoricoController extends Controller
                     $foliosCreados++;
                 }
 
+                // Si hay warnings para este grupo → agregar al reporte
+                if (!empty($warningsGrupo)) {
+                    $infoPlano = [
+                        'numero_plano' => $primerFila['N°_PLANO'],
+                        'fila_excel' => $primerFila['NUMERO_FILA'],
+                        'comuna' => $primerFila['COMUNA'],
+                        'solicitante' => $primerFila['SOLICITANTE'],
+                        'folio' => $primerFila['FOLIO'] ?: '[VACÍO]',
+                        'tipo' => $primerFila['URBANO/RURAL']
+                    ];
+                    $warnings[] = array_merge($infoPlano, [
+                        'advertencias' => $warningsGrupo
+                    ]);
+                    Log::warning("Plano {$primerFila['N°_PLANO']} importado con warnings:", $warningsGrupo);
+                }
+
             } catch (\Exception $e) {
-                $errores[$clave] = ["Error al procesar: " . $e->getMessage()];
+                $primerFila = $grupo[0] ?? [];
+                $errores[] = [
+                    'numero_plano' => $primerFila['N°_PLANO'] ?? 'Desconocido',
+                    'fila_excel' => $primerFila['NUMERO_FILA'] ?? '?',
+                    'comuna' => $primerFila['COMUNA'] ?? '?',
+                    'solicitante' => $primerFila['SOLICITANTE'] ?? '?',
+                    'folio' => $primerFila['FOLIO'] ?? '[VACÍO]',
+                    'tipo' => $primerFila['URBANO/RURAL'] ?? '?',
+                    'errores' => ["Error al procesar: " . $e->getMessage()]
+                ];
                 $erroresCriticos++;
                 Log::error("Error procesando grupo $clave: " . $e->getMessage());
             }
@@ -338,9 +552,44 @@ class PlanoHistoricoController extends Controller
         return [
             'planos_creados' => $planosCreados,
             'folios_creados' => $foliosCreados,
-            'errores' => $errores,
+            'errores' => $errores, // Array de objetos con info detallada
+            'warnings' => $warnings, // Array de objetos con info detallada
             'errores_criticos' => $erroresCriticos
         ];
+    }
+
+    /**
+     * Detecta warnings no críticos en el grupo (superficies vacías, datos incompletos)
+     */
+    private function detectarWarningsGrupo($grupo)
+    {
+        $warnings = [];
+
+        foreach ($grupo as $fila) {
+            // Warning: Sin superficie
+            $hayHectareas = !empty($fila['HA']) && floatval($fila['HA']) > 0;
+            $hayM2Hij = !empty($fila['M²_HIJ']) && floatval($fila['M²_HIJ']) > 0;
+            $hayM2Sitio = !empty($fila['M²_SITIO']) && floatval($fila['M²_SITIO']) > 0;
+
+            if (!$hayHectareas && !$hayM2Hij && !$hayM2Sitio) {
+                $warnings[] = "Folio {$fila['FOLIO']}: Sin superficie (Hectáreas y M² vacíos)";
+            }
+
+            // Warning: Solicitante vacío
+            if (empty(trim($fila['SOLICITANTE']))) {
+                $warnings[] = "Folio {$fila['FOLIO']}: Solicitante vacío";
+            }
+
+            // Warning: Apellidos vacíos (solo si no es FISCO)
+            $solicitante = strtoupper(trim($fila['SOLICITANTE']));
+            if ($solicitante !== 'FISCO' && $solicitante !== 'FISCO DE CHILE') {
+                if (empty(trim($fila['PATERNO']))) {
+                    $warnings[] = "Folio {$fila['FOLIO']}: Apellido paterno vacío";
+                }
+            }
+        }
+
+        return array_unique($warnings);
     }
 
     private function crearPlanoDesdeGrupo($grupo)
@@ -365,11 +614,19 @@ class PlanoHistoricoController extends Controller
         // Limpiar tipo_saneamiento quitando puntos
         $tipoSaneamiento = str_replace('.', '', $primerFila['URBANO/RURAL']);
 
+        // Extraer número correlativo (SOLO el correlativo, sin región, comuna, ni tipo)
+        $numeroCorrelativo = $this->extraerNumeroCorrelativo(
+            $primerFila['N°_PLANO'],
+            $primerFila['CODIGO_REGIONAL'],
+            $primerFila['CODIGO_COMUNAL'],
+            $tipoSaneamiento
+        );
+
         return Plano::create([
             'numero_plano' => $primerFila['N°_PLANO'],
             'codigo_region' => $primerFila['CODIGO_REGIONAL'],
             'codigo_comuna' => $primerFila['CODIGO_COMUNAL'],
-            'numero_correlativo' => $primerFila['N°_PLANO'], // Por ahora el mismo valor
+            'numero_correlativo' => $numeroCorrelativo,
             'tipo_saneamiento' => $tipoSaneamiento,
             'provincia' => $provincia,
             'comuna' => $nombreComuna,
@@ -388,6 +645,39 @@ class PlanoHistoricoController extends Controller
             'archivo_digital' => $primerFila['ARCHIVO_DIGITAL'],
             'created_by' => auth()->id()
         ]);
+    }
+
+    /**
+     * Extrae SOLO el número correlativo del número de plano completo
+     *
+     * Ejemplo: 0820529872SR → 29872
+     * - Quita código regional (08)
+     * - Quita código comunal (205)
+     * - Quita tipo saneamiento (SR)
+     *
+     * @param string $numeroCompleto Número completo (0820529872SR)
+     * @param string $codigoRegional Código región (08)
+     * @param string $codigoComunal Código comuna (205)
+     * @param string $tipoSaneamiento Tipo (SR/SU/CR/CU)
+     * @return int Número correlativo puro (29872)
+     */
+    private function extraerNumeroCorrelativo($numeroCompleto, $codigoRegional, $codigoComunal, $tipoSaneamiento)
+    {
+        // Eliminar código regional del inicio (2 dígitos)
+        $sinRegion = substr($numeroCompleto, 2);
+
+        // Eliminar código comunal (3 dígitos)
+        $sinComuna = substr($sinRegion, 3);
+
+        // Eliminar tipo saneamiento del final (2 letras)
+        $soloCorrelativo = substr($sinComuna, 0, -2);
+
+        // Convertir a integer
+        $correlativo = intval($soloCorrelativo);
+
+        Log::info("Número correlativo extraído: '{$numeroCompleto}' → {$correlativo}");
+
+        return $correlativo;
     }
 
     private function crearFolioDesdeFila($planoId, $fila)
