@@ -10,12 +10,20 @@
 @endsection
 
 @section('content')
+
 <div class="card">
     <div class="card-header">
         <h3 class="card-title">
             <i class="fas fa-file-import"></i>
             Importación Masiva
         </h3>
+        @if(auth()->user()->isRegistro())
+        <div class="card-tools">
+            <span class="badge badge-danger" id="session-badge-import">
+                <i class="fas fa-spinner fa-spin"></i> Verificando...
+            </span>
+        </div>
+        @endif
     </div>
     <div class="card-body">
         <div class="row">
@@ -115,15 +123,78 @@
 
 @endsection
 
+@push('styles')
+<style>
+/* Cambiar texto del botón "Browse" a "Examinar" en español */
+.custom-file-input ~ .custom-file-label::after {
+    content: "Examinar" !important;
+}
+</style>
+@endpush
+
 @push('scripts')
 <script>
 $(document).ready(function() {
     $('[data-toggle="tooltip"]').tooltip();
+
+    @if(auth()->user()->isRegistro())
+        checkSessionControlImport();
+        setInterval(checkSessionControlImport, 15000); // Cada 15 segundos
+    @endif
+
     initImportForms();
     loadEstadisticas();
 });
 
 let currentPreviewType = null;
+let hasSessionControl = false;
+
+@if(auth()->user()->isRegistro())
+function checkSessionControlImport() {
+    $.ajax({
+        url: '{{ route("session-control.status") }}',
+        method: 'GET',
+        success: function(response) {
+            hasSessionControl = response.hasControl;
+
+            const badge = $('#session-badge-import');
+            const btnHistoricos = $('#btn-importar-historicos');
+
+            if (response.hasControl) {
+                // Tiene control
+                badge.removeClass('badge-danger badge-warning')
+                     .addClass('badge-success')
+                     .html('<i class="fas fa-unlock"></i> Con Control');
+
+                btnHistoricos.prop('disabled', false)
+                             .removeClass('btn-secondary')
+                             .addClass('btn-warning');
+            } else if (response.whoHasControl) {
+                // Otro tiene control
+                badge.removeClass('badge-success badge-warning')
+                     .addClass('badge-danger')
+                     .html('<i class="fas fa-lock"></i> Sin Control (' + response.whoHasControl + ')');
+
+                btnHistoricos.prop('disabled', true)
+                             .removeClass('btn-warning')
+                             .addClass('btn-secondary');
+            } else {
+                // Nadie tiene control
+                badge.removeClass('badge-success badge-danger')
+                     .addClass('badge-warning')
+                     .html('<i class="fas fa-lock"></i> Sin Control (Disponible)');
+
+                btnHistoricos.prop('disabled', true)
+                             .removeClass('btn-warning')
+                             .addClass('btn-secondary');
+            }
+        },
+        error: function(xhr) {
+            console.error('Error verificando control:', xhr);
+        }
+    });
+}
+@endif
 
 function initImportForms() {
     // Matrix Import - Un solo botón que hace preview + confirmar
@@ -191,6 +262,19 @@ function initImportForms() {
 
     // Históricos Import - Un solo botón que hace preview + confirmar
     $('#btn-importar-historicos').on('click', function() {
+        // VERIFICAR CONTROL DE SESIÓN
+        @if(auth()->user()->isRegistro())
+            if (!hasSessionControl) {
+                Swal.fire({
+                    icon: 'warning',
+                    title: 'Sin Control de Numeración',
+                    text: 'Debes tener el control de numeración para importar planos históricos',
+                    confirmButtonText: 'Entendido'
+                });
+                return;
+            }
+        @endif
+
         const formData = new FormData();
         const archivo = $('#archivo_historicos')[0].files[0];
 
@@ -440,36 +524,64 @@ function executeHistoricosImport() {
             Swal.close();
 
             if (response.success) {
-                // Mostrar resultados
-                let html = '<div class="alert alert-success">';
-                html += '<h6><i class="fas fa-check-circle"></i> Importación histórica completada</h6>';
-                html += '<p>' + response.message + '</p>';
-                html += '<ul>';
-                html += '<li>Planos creados: <strong>' + response.resultado.planos_creados + '</strong></li>';
-                html += '<li>Folios creados: <strong>' + response.resultado.folios_creados + '</strong></li>';
-                html += '<li>Errores críticos: <strong>' + response.resultado.errores_criticos + '</strong></li>';
-                html += '</ul></div>';
+                // Mostrar resultados con formato mejorado
+                let html = '<div class="text-left">';
 
-                if (response.resultado.errores && Object.keys(response.resultado.errores).length > 0) {
-                    html += '<div class="alert alert-warning">';
-                    html += '<h6>Errores encontrados:</h6>';
-                    html += '<div style="max-height: 200px; overflow-y: auto;">';
-                    Object.keys(response.resultado.errores).forEach(function(grupo) {
-                        html += '<h6 class="mt-2">' + grupo + ':</h6>';
-                        html += '<ul>';
-                        response.resultado.errores[grupo].forEach(function(error) {
-                            html += '<li>' + error + '</li>';
+                // Resumen exitoso
+                html += '<div class="alert alert-success mb-3">';
+                html += '<h5 class="mb-2"><i class="fas fa-check-circle"></i> Importación Completada</h5>';
+                html += '<div class="row">';
+                html += '<div class="col-6">✓ Planos creados: <strong>' + response.resultado.planos_creados + '</strong></div>';
+                html += '<div class="col-6">✓ Folios creados: <strong>' + response.resultado.folios_creados + '</strong></div>';
+                html += '</div></div>';
+
+                // Warnings (planos con datos incompletos pero importados)
+                if (response.resultado.warnings && response.resultado.warnings.length > 0) {
+                    html += '<div class="alert alert-warning mb-3">';
+                    html += '<h6><i class="fas fa-exclamation-triangle"></i> Advertencias (' + response.resultado.warnings.length + ' plano(s) con datos incompletos - importados igual)</h6>';
+                    html += '<div style="max-height: 200px; overflow-y: auto; font-size: 13px;">';
+                    response.resultado.warnings.forEach(function(warning) {
+                        html += '<div class="border-bottom pb-2 mb-2">';
+                        html += '<strong>• Plano ' + warning.numero_plano + '</strong> <span class="badge badge-secondary">Fila Excel: ' + warning.fila_excel + '</span><br>';
+                        html += '<small>';
+                        html += '&nbsp;&nbsp;Comuna: ' + warning.comuna + ' | ';
+                        html += 'Solicitante: ' + warning.solicitante + ' | ';
+                        html += 'Folio: ' + warning.folio + '<br>';
+                        warning.advertencias.forEach(function(adv) {
+                            html += '&nbsp;&nbsp;<span class="text-warning">⚠</span> ' + adv + '<br>';
                         });
-                        html += '</ul>';
+                        html += '</small></div>';
                     });
                     html += '</div></div>';
                 }
+
+                // Errores críticos (planos NO importados)
+                if (response.resultado.errores && response.resultado.errores.length > 0) {
+                    html += '<div class="alert alert-danger mb-3">';
+                    html += '<h6><i class="fas fa-times-circle"></i> Errores Críticos (' + response.resultado.errores.length + ' plano(s) NO importado(s))</h6>';
+                    html += '<div style="max-height: 200px; overflow-y: auto; font-size: 13px;">';
+                    response.resultado.errores.forEach(function(error) {
+                        html += '<div class="border-bottom pb-2 mb-2">';
+                        html += '<strong>• Plano ' + error.numero_plano + '</strong> <span class="badge badge-dark">Fila Excel: ' + error.fila_excel + '</span><br>';
+                        html += '<small>';
+                        html += '&nbsp;&nbsp;Comuna: ' + error.comuna + ' | ';
+                        html += 'Solicitante: ' + error.solicitante + ' | ';
+                        html += 'Folio: ' + error.folio + '<br>';
+                        error.errores.forEach(function(err) {
+                            html += '&nbsp;&nbsp;<span class="text-danger">✖</span> ' + err + '<br>';
+                        });
+                        html += '</small></div>';
+                    });
+                    html += '</div></div>';
+                }
+
+                html += '</div>';
 
                 Swal.fire({
                     title: '¡Importación Completada!',
                     html: html,
                     icon: 'success',
-                    width: 700,
+                    width: 800,
                     confirmButtonText: 'Cerrar'
                 });
 
@@ -478,31 +590,59 @@ function executeHistoricosImport() {
                 $('.custom-file-label').eq(1).html('Seleccionar PLANOS-HISTORICOS.xlsx');
 
             } else {
-                let errorHtml = '<p>' + response.message + '</p>';
-                if (response.resultado && response.resultado.errores) {
+                // Error general
+                let errorHtml = '<div class="text-left">';
+                errorHtml += '<p>' + response.message + '</p>';
+
+                if (response.resultado && response.resultado.errores && response.resultado.errores.length > 0) {
                     errorHtml += '<div class="alert alert-danger mt-2">';
-                    errorHtml += '<h6>Errores críticos:</h6>';
-                    errorHtml += '<div style="max-height: 150px; overflow-y: auto;">';
-                    Object.keys(response.resultado.errores).forEach(function(grupo) {
-                        errorHtml += '<strong>' + grupo + ':</strong><br>';
-                        response.resultado.errores[grupo].forEach(function(error) {
-                            errorHtml += '• ' + error + '<br>';
+                    errorHtml += '<h6>Errores Críticos:</h6>';
+                    errorHtml += '<div style="max-height: 250px; overflow-y: auto; font-size: 13px;">';
+                    response.resultado.errores.forEach(function(error) {
+                        errorHtml += '<div class="border-bottom pb-2 mb-2">';
+                        errorHtml += '<strong>• Plano ' + error.numero_plano + '</strong> <span class="badge badge-dark">Fila: ' + error.fila_excel + '</span><br>';
+                        errorHtml += '<small>Comuna: ' + error.comuna + ' | Solicitante: ' + error.solicitante + '<br>';
+                        error.errores.forEach(function(err) {
+                            errorHtml += '&nbsp;&nbsp;✖ ' + err + '<br>';
                         });
+                        errorHtml += '</small></div>';
                     });
                     errorHtml += '</div></div>';
                 }
+                errorHtml += '</div>';
 
                 Swal.fire({
                     title: 'Error en importación',
                     html: errorHtml,
                     icon: 'error',
-                    width: 600
+                    width: 800
                 });
             }
         },
-        error: function() {
+        error: function(xhr) {
             Swal.close();
-            Swal.fire('Error', 'No se pudo completar la importación histórica', 'error');
+
+            // Si el error es 403 (sin control), mostrar mensaje específico
+            if (xhr.status === 403 && xhr.responseJSON) {
+                const response = xhr.responseJSON;
+
+                if (response.requiere_control) {
+                    Swal.fire({
+                        icon: 'warning',
+                        title: 'Control de Numeración Requerido',
+                        html: '<p>' + response.message + '</p>' +
+                              '<p class="text-muted mt-2">Obtén el control desde el widget superior para poder importar planos históricos.</p>',
+                        confirmButtonText: 'Entendido'
+                    }).then(() => {
+                        // Actualizar estado del control
+                        checkSessionStatus();
+                    });
+                } else {
+                    Swal.fire('Error', response.message || 'No tienes permisos para importar', 'error');
+                }
+            } else {
+                Swal.fire('Error', 'No se pudo completar la importación histórica', 'error');
+            }
         }
     });
 }
