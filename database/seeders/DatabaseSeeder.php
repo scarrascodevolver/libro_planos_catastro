@@ -15,7 +15,7 @@ class DatabaseSeeder extends Seeder
     {
         $this->call([
             ComunaBiobioSeeder::class,
-            UserSeeder::class,
+            AdminUserSeeder::class,
         ]);
     }
 }
