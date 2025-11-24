@@ -643,6 +643,7 @@ class PlanoHistoricoController extends Controller
             'tubo' => $primerFila['TUBO'],
             'tela' => $primerFila['TELA'],
             'archivo_digital' => $primerFila['ARCHIVO_DIGITAL'],
+            'is_historical' => true, // Marcar como plano histórico
             'created_by' => auth()->id()
         ]);
     }
