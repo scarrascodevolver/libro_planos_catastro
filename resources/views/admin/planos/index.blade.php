@@ -475,6 +475,9 @@
                 }
             ];
 
+            // Silenciar alerts de DataTables y usar logging en consola
+            $.fn.dataTable.ext.errMode = 'none';
+
             planosTable = $('#planos-table').DataTable({
                 processing: true,
                 serverSide: true,
@@ -516,6 +519,19 @@
                                     name: col.name
                                 };
                             });
+                        }
+                    },
+                    error: function(xhr, error, code) {
+                        console.error('❌ DataTables Ajax Error:', {
+                            status: xhr.status,
+                            statusText: xhr.statusText,
+                            error: error,
+                            code: code
+                        });
+
+                        // Si es error 401, mostrar mensaje amigable en consola
+                        if (xhr.status === 401) {
+                            console.warn('⚠️ Error de autenticación. Recarga la página si la tabla no carga.');
                         }
                     }
                 },
