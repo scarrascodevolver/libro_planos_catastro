@@ -100,10 +100,10 @@
                 </button>
             </div>
 
-            <!-- Eliminar Históricos -->
+            <!-- Eliminar Planos -->
             <div class="col-md-6">
                 <button type="button" class="btn btn-danger btn-block" id="btn-eliminar-historicos">
-                    <i class="fas fa-fire"></i> Eliminar Planos Históricos
+                    <i class="fas fa-fire"></i> Eliminar TODOS los Planos
                     <span class="badge badge-light ml-2" id="total-historicos-delete">0</span>
                 </button>
             </div>
@@ -666,6 +666,7 @@ function loadEstadisticas() {
 }
 
 function loadHistoricosCount() {
+    // Contar TODOS los planos, no solo históricos
     $.ajax({
         url: '{{ route("planos.importacion.estadisticas-historicos") }}',
         method: 'GET',
@@ -674,7 +675,7 @@ function loadHistoricosCount() {
             $('#total-historicos-delete').text(total.toLocaleString());
         },
         error: function(xhr) {
-            console.error('Error cargando históricos:', xhr);
+            console.error('Error cargando planos:', xhr);
             $('#total-historicos-delete').text('0');
         }
     });
@@ -792,12 +793,12 @@ function ejecutarEliminarMatrix() {
     });
 }
 
-// Eliminar Planos Históricos - Triple confirmación
+// Eliminar TODOS los Planos
 $('#btn-eliminar-historicos').on('click', function() {
     // Primera confirmación
     Swal.fire({
         icon: 'error',
-        title: 'ADVERTENCIA: Eliminar Planos Históricos',
+        title: 'ADVERTENCIA: Eliminar TODOS los Planos',
         html: `
             <div class="text-left">
                 <p class="text-danger mb-3">
@@ -806,12 +807,12 @@ $('#btn-eliminar-historicos').on('click', function() {
                 </p>
                 <p>Eliminarás:</p>
                 <ul>
-                    <li>Todos los planos marcados como históricos</li>
-                    <li>Todos los folios asociados a esos planos</li>
+                    <li>TODOS los planos de la tabla</li>
+                    <li>TODOS los folios asociados</li>
                     <li>Datos de personas, hectáreas, metros cuadrados</li>
                 </ul>
                 <p class="text-muted mb-0">
-                    <small><i class="fas fa-info-circle"></i> Se identifican por el campo is_historical = true</small>
+                    <small><i class="fas fa-info-circle"></i> Se eliminará toda la información de planos</small>
                 </p>
             </div>
         `,
@@ -836,7 +837,7 @@ function mostrarConfirmacionTextoHistoricos() {
             <div class="text-left mb-3">
                 <p>Para confirmar, escribe exactamente:</p>
                 <p class="text-center">
-                    <code class="bg-dark text-white p-2 d-inline-block">BORRAR HISTORICOS</code>
+                    <code class="bg-dark text-white p-2 d-inline-block">BORRAR PLANOS</code>
                 </p>
             </div>
             <input type="text" id="confirmacion-texto" class="form-control" placeholder="Escribe aquí...">
@@ -848,8 +849,8 @@ function mostrarConfirmacionTextoHistoricos() {
         cancelButtonText: 'Cancelar',
         preConfirm: () => {
             const texto = document.getElementById('confirmacion-texto').value;
-            if (texto !== 'BORRAR HISTORICOS') {
-                Swal.showValidationMessage('Debes escribir exactamente: BORRAR HISTORICOS');
+            if (texto !== 'BORRAR PLANOS') {
+                Swal.showValidationMessage('Debes escribir exactamente: BORRAR PLANOS');
                 return false;
             }
             return texto;
@@ -863,7 +864,7 @@ function mostrarConfirmacionTextoHistoricos() {
 
 function ejecutarEliminarHistoricos(confirmacion) {
     Swal.fire({
-        title: 'Eliminando planos históricos...',
+        title: 'Eliminando TODOS los planos...',
         text: 'Esta operación puede tardar varios segundos',
         allowOutsideClick: false,
         allowEscapeKey: false,

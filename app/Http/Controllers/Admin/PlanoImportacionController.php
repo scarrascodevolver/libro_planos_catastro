@@ -448,10 +448,9 @@ class PlanoImportacionController extends Controller
 
     public function getEstadisticasHistoricos()
     {
-        $totalPlanos = Plano::where('is_historical', true)->count();
-        $totalFolios = PlanoFolio::whereIn('plano_id',
-            Plano::where('is_historical', true)->pluck('id')
-        )->count();
+        // Contar TODOS los planos, no solo históricos
+        $totalPlanos = Plano::count();
+        $totalFolios = PlanoFolio::count();
 
         return response()->json([
             'total_planos' => $totalPlanos,
@@ -561,9 +560,8 @@ class PlanoImportacionController extends Controller
     }
 
     /**
-     * Eliminar planos históricos importados
-     * Identificados por is_historical = true
-     * Triple confirmación requerida en frontend
+     * Eliminar TODOS los planos
+     * Confirmación requerida en frontend
      */
     public function eliminarHistoricos(Request $request)
     {
@@ -578,7 +576,7 @@ class PlanoImportacionController extends Controller
             if (!$tieneControl) {
                 return response()->json([
                     'success' => false,
-                    'message' => 'Debes tener el control de numeración activo para eliminar planos históricos'
+                    'message' => 'Debes tener el control de numeración activo para eliminar planos'
                 ], 403);
             }
 
@@ -587,33 +585,31 @@ class PlanoImportacionController extends Controller
                 'confirmacion' => 'required|string'
             ]);
 
-            if ($request->confirmacion !== 'BORRAR HISTORICOS') {
+            if ($request->confirmacion !== 'BORRAR PLANOS') {
                 return response()->json([
                     'success' => false,
-                    'message' => 'Texto de confirmación incorrecto. Debe escribir exactamente: BORRAR HISTORICOS'
+                    'message' => 'Texto de confirmación incorrecto. Debe escribir exactamente: BORRAR PLANOS'
                 ], 422);
             }
 
-            // Contar planos históricos
-            $totalPlanos = Plano::where('is_historical', true)->count();
+            // Contar TODOS los planos
+            $totalPlanos = Plano::count();
 
             if ($totalPlanos === 0) {
                 return response()->json([
                     'success' => false,
-                    'message' => 'No hay planos históricos para eliminar'
+                    'message' => 'No hay planos para eliminar'
                 ]);
             }
 
-            // Contar folios asociados (se eliminarán por CASCADE)
-            $totalFolios = PlanoFolio::whereIn('plano_id',
-                Plano::where('is_historical', true)->pluck('id')
-            )->count();
+            // Contar TODOS los folios (se eliminarán por CASCADE)
+            $totalFolios = PlanoFolio::count();
 
             DB::beginTransaction();
 
             try {
                 // Log crítico antes de eliminar
-                \Log::critical('ELIMINACIÓN MASIVA PLANOS HISTÓRICOS', [
+                \Log::critical('ELIMINACIÓN MASIVA TODOS LOS PLANOS', [
                     'user_id' => Auth::id(),
                     'user_email' => Auth::user()->email,
                     'total_planos' => $totalPlanos,
@@ -622,13 +618,13 @@ class PlanoImportacionController extends Controller
                     'confirmacion' => $request->confirmacion
                 ]);
 
-                // Eliminar planos históricos (folios se eliminan por CASCADE)
-                Plano::where('is_historical', true)->delete();
+                // Eliminar TODOS los planos (folios se eliminan por CASCADE)
+                Plano::truncate();
 
                 DB::commit();
 
                 // Log de confirmación
-                \Log::critical('ELIMINACIÓN MASIVA HISTÓRICOS COMPLETADA', [
+                \Log::critical('ELIMINACIÓN MASIVA PLANOS COMPLETADA', [
                     'user_id' => Auth::id(),
                     'planos_eliminados' => $totalPlanos,
                     'folios_eliminados' => $totalFolios
