@@ -13,7 +13,11 @@ return Application::configure(basePath: dirname(__DIR__))
         health: '/up',
     )
     ->withMiddleware(function (Middleware $middleware) {
-        //
+        // Excluir ruta planos del CSRF para permitir POST de DataTables
+        $middleware->validateCsrfTokens(except: [
+            'planos',
+            'planos/*',
+        ]);
     })
     ->withSchedule(function (Schedule $schedule) {
         // Liberar controles inactivos cada minuto

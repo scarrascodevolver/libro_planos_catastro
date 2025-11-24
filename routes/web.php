@@ -10,6 +10,20 @@ use App\Http\Controllers\Admin\SessionControlController;
 // Autenticación
 Auth::routes();
 
+// PRUEBA TEMPORAL - Ruta sin auth para diagnosticar 401
+Route::get('/test-ajax', function() {
+    return response()->json(['status' => 'ok', 'message' => 'Ajax funciona sin auth']);
+});
+
+// PRUEBA CON AUTH
+Route::get('/test-auth', function() {
+    return response()->json([
+        'status' => 'ok',
+        'user' => auth()->user()->name ?? 'NO USER',
+        'session_id' => session()->getId()
+    ]);
+})->middleware('auth');
+
 // Página principal (redirige al dashboard)
 Route::get('/', [App\Http\Controllers\HomeController::class, 'index'])->name('home');
 Route::get('/home', [App\Http\Controllers\HomeController::class, 'index'])->name('home');
@@ -18,7 +32,7 @@ Route::get('/home', [App\Http\Controllers\HomeController::class, 'index'])->name
 Route::middleware('auth')->group(function () {
 
     // TAB 1: Tabla General - PlanoController
-    Route::get('/planos', [PlanoController::class, 'index'])->name('planos.index');
+    Route::match(['get', 'post'], '/planos', [PlanoController::class, 'index'])->name('planos.index');
     Route::get('/planos/contadores', [PlanoController::class, 'getContadores'])->name('planos.contadores');
 
     // Rutas específicas ANTES de rutas genéricas con {id}
