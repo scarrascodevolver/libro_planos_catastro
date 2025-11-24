@@ -92,70 +92,27 @@
         <!-- Gestión de Datos Importados -->
         <hr class="my-4">
         <div class="row">
-            <div class="col-12">
-                <h5 class="mb-3">
+            <div class="col-12 mb-3">
+                <h5 class="mb-0">
                     <i class="fas fa-database"></i>
-                    Gestión de Datos Importados
-                    <span class="badge badge-danger ml-2">Solo Rol Registro</span>
+                    Gestión de Datos
                 </h5>
             </div>
 
             <!-- Eliminar Matrix -->
             <div class="col-md-6">
-                <div class="card border-warning">
-                    <div class="card-header bg-warning">
-                        <h6 class="mb-0">
-                            <i class="fas fa-trash-alt"></i>
-                            Eliminar Datos Matrix
-                        </h6>
-                    </div>
-                    <div class="card-body">
-                        <p class="text-muted mb-2">
-                            <i class="fas fa-info-circle"></i>
-                            Elimina <strong>TODOS</strong> los registros importados de Matrix (tabla de autocompletado).
-                        </p>
-                        <p class="mb-3">
-                            <strong>Total registros Matrix:</strong>
-                            <span class="badge badge-info" id="total-matrix-delete">{{ number_format($totalMatrix) }}</span>
-                        </p>
-                        <div class="alert alert-warning mb-3">
-                            <i class="fas fa-exclamation-triangle"></i>
-                            <strong>Atención:</strong> Esta acción no afecta planos ya creados, solo elimina datos de autocompletado.
-                        </div>
-                        <button type="button" class="btn btn-warning btn-block" id="btn-eliminar-matrix">
-                            <i class="fas fa-trash"></i> Eliminar TODOS los Datos Matrix
-                        </button>
-                    </div>
-                </div>
+                <button type="button" class="btn btn-warning btn-block" id="btn-eliminar-matrix">
+                    <i class="fas fa-trash"></i> Eliminar Datos Matrix
+                    <span class="badge badge-light ml-2" id="total-matrix-delete">{{ number_format($totalMatrix) }}</span>
+                </button>
             </div>
 
             <!-- Eliminar Históricos -->
             <div class="col-md-6">
-                <div class="card border-danger">
-                    <div class="card-header bg-danger text-white">
-                        <h6 class="mb-0">
-                            <i class="fas fa-exclamation-triangle"></i>
-                            Eliminar Planos Históricos
-                        </h6>
-                    </div>
-                    <div class="card-body">
-                        <p class="text-muted mb-2">
-                            <i class="fas fa-skull-crossbones"></i>
-                            Elimina planos importados desde archivo histórico.
-                        </p>
-                        <p class="mb-3">
-                            <strong>Total planos históricos:</strong>
-                            <span class="badge badge-danger" id="total-historicos-delete">Calculando...</span>
-                        </p>
-                        <div class="alert alert-danger mb-3">
-                            <i class="fas fa-skull-crossbones"></i>
-                            <strong>PELIGRO:</strong> Elimina planos Y sus folios asociados. Requiere triple confirmación.
-                        </div>
-                        <button type="button" class="btn btn-danger btn-block" id="btn-eliminar-historicos">
-                            <i class="fas fa-fire"></i> Eliminar Planos Históricos
-                        </button>
-                    </div>
-                </div>
+                <button type="button" class="btn btn-danger btn-block" id="btn-eliminar-historicos">
+                    <i class="fas fa-fire"></i> Eliminar Planos Históricos
+                    <span class="badge badge-light ml-2" id="total-historicos-delete">0</span>
+                </button>
             </div>
         </div>
     </div>
