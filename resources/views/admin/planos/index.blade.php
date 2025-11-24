@@ -239,9 +239,6 @@
                     <button type="button" class="btn btn-sm btn-success" id="btn-excel">
                         <i class="fas fa-file-excel"></i> Excel
                     </button>
-                    <button type="button" class="btn btn-sm btn-danger" id="btn-pdf">
-                        <i class="fas fa-file-pdf"></i> PDF
-                    </button>
                     <button type="button" class="btn btn-sm btn-secondary" id="btn-print">
                         <i class="fas fa-print"></i> Imprimir
                     </button>
