@@ -265,6 +265,7 @@
                             <th width="100">Acciones</th>
                             <th>N° Plano</th>
                             <th>Folios</th>
+                            <th class="never" style="display:none;">Folios Completos</th>
                             <th>Solicitante</th>
                             <th>Ap. Paterno</th>
                             <th>Ap. Materno</th>
