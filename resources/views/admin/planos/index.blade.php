@@ -969,20 +969,11 @@
 
                     let texto = message;
 
-                    // Cambiar color del badge según si hay filtros
-                    if (totalPlanos === totalSinFiltro) {
-                        // Sin filtros aplicados
-                        $('#registros-encontrados-count')
-                            .removeClass('badge-success')
-                            .addClass('badge-primary');
-                    } else {
-                        // Con filtros aplicados
-                        $('#registros-encontrados-count')
-                            .removeClass('badge-primary')
-                            .addClass('badge-success');
-                    }
-
-                    $('#registros-encontrados-count').text(texto);
+                    // Mantener badge siempre en blanco (badge-light)
+                    $('#registros-encontrados-count')
+                        .removeClass('badge-primary badge-success')
+                        .addClass('badge-light')
+                        .text(texto);
                 },
                 error: function() {
                     // Fallback al método anterior si hay error
