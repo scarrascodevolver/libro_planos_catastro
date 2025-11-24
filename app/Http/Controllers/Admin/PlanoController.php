@@ -1221,4 +1221,131 @@ class PlanoController extends Controller
             ], 500);
         }
     }
+
+    /**
+     * Exportar planos en formato expandido (1 fila por folio)
+     * Para Excel con información completa de cada folio
+     */
+    public function exportExpandido(Request $request)
+    {
+        // Obtener query con filtros aplicados (mismo que DataTable)
+        $query = Plano::with(['folios' => function($query) {
+            $query->orderBy('id');
+        }]);
+
+        // Aplicar los mismos filtros que en DataTable
+        $this->aplicarFiltros($query, $request);
+
+        $planos = $query->get();
+
+        // Preparar datos expandidos: 1 fila por folio
+        $datosExpandidos = [];
+
+        foreach ($planos as $plano) {
+            foreach ($plano->folios as $folio) {
+                $datosExpandidos[] = [
+                    'numero_plano' => $plano->numero_plano,
+                    'folio' => $folio->folio ?: '-',
+                    'solicitante' => $folio->solicitante ?: '-',
+                    'apellido_paterno' => $folio->apellido_paterno ?: '-',
+                    'apellido_materno' => $folio->apellido_materno ?: '-',
+                    'comuna' => $plano->comuna,
+                    'tipo_inmueble' => $folio->tipo_inmueble,
+                    'numero_inmueble' => $folio->numero_inmueble ?: '-',
+                    'hectareas' => $folio->hectareas ? number_format($folio->hectareas, 4, ',', '.') : '-',
+                    'm2' => $folio->m2 ? number_format($folio->m2, 0, ',', '.') : '-',
+                    'mes' => $plano->mes,
+                    'ano' => $plano->ano,
+                    'responsable' => $plano->responsable,
+                    'proyecto' => $plano->proyecto
+                ];
+            }
+        }
+
+        return response()->json([
+            'success' => true,
+            'data' => $datosExpandidos
+        ]);
+    }
+
+    /**
+     * Aplicar filtros a la query (reutilizable)
+     */
+    private function aplicarFiltros($query, $request)
+    {
+        // Filtro por comuna
+        if ($request->filled('comuna_filter')) {
+            $query->where('comuna', $request->comuna_filter);
+        }
+
+        // Filtro por año
+        if ($request->filled('ano_filter')) {
+            $query->where('ano', $request->ano_filter);
+        }
+
+        // Filtro por mes
+        if ($request->filled('mes_filter')) {
+            $query->where('mes', $request->mes_filter);
+        }
+
+        // Filtro por responsable
+        if ($request->filled('responsable_filter')) {
+            $query->where('responsable', $request->responsable_filter);
+        }
+
+        // Filtro por proyecto
+        if ($request->filled('proyecto_filter')) {
+            $query->where('proyecto', $request->proyecto_filter);
+        }
+
+        // Filtro por folio (buscar en relación)
+        if ($request->filled('folio_filter')) {
+            $folioSearch = $request->folio_filter;
+            $query->whereHas('folios', function($q) use ($folioSearch) {
+                $q->where('folio', 'LIKE', "%{$folioSearch}%");
+            });
+        }
+
+        // Filtro por solicitante
+        if ($request->filled('solicitante_filter')) {
+            $solicitanteSearch = $request->solicitante_filter;
+            $query->whereHas('folios', function($q) use ($solicitanteSearch) {
+                $q->where('solicitante', 'LIKE', "%{$solicitanteSearch}%");
+            });
+        }
+
+        // Filtro por apellido paterno
+        if ($request->filled('ap_paterno_filter')) {
+            $apPaternoSearch = $request->ap_paterno_filter;
+            $query->whereHas('folios', function($q) use ($apPaternoSearch) {
+                $q->where('apellido_paterno', 'LIKE', "%{$apPaternoSearch}%");
+            });
+        }
+
+        // Filtro por apellido materno
+        if ($request->filled('ap_materno_filter')) {
+            $apMaternoSearch = $request->ap_materno_filter;
+            $query->whereHas('folios', function($q) use ($apMaternoSearch) {
+                $q->where('apellido_materno', 'LIKE', "%{$apMaternoSearch}%");
+            });
+        }
+
+        // Filtros por rango de hectáreas
+        if ($request->filled('hectareas_min')) {
+            $query->where('total_hectareas', '>=', $request->hectareas_min);
+        }
+        if ($request->filled('hectareas_max')) {
+            $query->where('total_hectareas', '<=', $request->hectareas_max);
+        }
+
+        // Filtros por rango de m²
+        if ($request->filled('m2_min')) {
+            $query->where('total_m2', '>=', $request->m2_min);
+        }
+        if ($request->filled('m2_max')) {
+            $query->where('total_m2', '<=', $request->m2_max);
+        }
+
+        return $query;
+    }
 }

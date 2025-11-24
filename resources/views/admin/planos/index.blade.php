@@ -709,7 +709,7 @@
             });
 
             $('#btn-excel').off('click').on('click', function() {
-                planosTable.button('.buttons-excel').trigger();
+                exportarExcelExpandido();
             });
 
             $('#btn-pdf').off('click').on('click', function() {
@@ -2481,7 +2481,126 @@
         @endif
 
         // Los botones de exportar ahora están integrados nativamente en DataTables
+
+        /**
+         * Exportar a Excel en formato expandido (1 fila por folio)
+         */
+        function exportarExcelExpandido() {
+            // Mostrar loading
+            Swal.fire({
+                title: 'Generando Excel...',
+                text: 'Exportando datos en formato expandido',
+                allowOutsideClick: false,
+                allowEscapeKey: false,
+                showConfirmButton: false,
+                didOpen: () => {
+                    Swal.showLoading();
+                }
+            });
+
+            // Obtener filtros activos
+            const filtros = {
+                comuna_filter: $('#comuna_filter').val(),
+                ano_filter: $('#ano_filter').val(),
+                mes_filter: $('#mes_filter').val(),
+                responsable_filter: $('#responsable_filter').val(),
+                proyecto_filter: $('#proyecto_filter').val(),
+                folio_filter: $('#folio_filter').val(),
+                solicitante_filter: $('#solicitante_filter').val(),
+                ap_paterno_filter: $('#ap_paterno_filter').val(),
+                ap_materno_filter: $('#ap_materno_filter').val(),
+                hectareas_min: $('#hectareas_min').val(),
+                hectareas_max: $('#hectareas_max').val(),
+                m2_min: $('#m2_min').val(),
+                m2_max: $('#m2_max').val()
+            };
+
+            // Llamar al endpoint
+            $.ajax({
+                url: '{{ route("planos.export-expandido") }}',
+                method: 'GET',
+                data: filtros,
+                success: function(response) {
+                    Swal.close();
+
+                    if (response.success && response.data.length > 0) {
+                        // Crear Excel con SheetJS
+                        const worksheet = XLSX.utils.json_to_sheet(response.data, {
+                            header: [
+                                'numero_plano',
+                                'folio',
+                                'solicitante',
+                                'apellido_paterno',
+                                'apellido_materno',
+                                'comuna',
+                                'tipo_inmueble',
+                                'numero_inmueble',
+                                'hectareas',
+                                'm2',
+                                'mes',
+                                'ano',
+                                'responsable',
+                                'proyecto'
+                            ]
+                        });
+
+                        // Personalizar headers
+                        const headers = [
+                            'N° Plano',
+                            'Folio',
+                            'Solicitante',
+                            'Apellido Paterno',
+                            'Apellido Materno',
+                            'Comuna',
+                            'Tipo Inmueble',
+                            'N° Inmueble',
+                            'Hectáreas',
+                            'M²',
+                            'Mes',
+                            'Año',
+                            'Responsable',
+                            'Proyecto'
+                        ];
+
+                        XLSX.utils.sheet_add_aoa(worksheet, [headers], { origin: 'A1' });
+
+                        const workbook = XLSX.utils.book_new();
+                        XLSX.utils.book_append_sheet(workbook, worksheet, 'Planos Expandidos');
+
+                        // Descargar archivo
+                        const filename = 'planos_expandidos_' + new Date().toISOString().slice(0,10) + '.xlsx';
+                        XLSX.writeFile(workbook, filename);
+
+                        Swal.fire({
+                            icon: 'success',
+                            title: 'Excel Generado',
+                            text: `${response.data.length} folios exportados`,
+                            timer: 2000,
+                            showConfirmButton: false
+                        });
+
+                    } else {
+                        Swal.fire({
+                            icon: 'warning',
+                            title: 'Sin Datos',
+                            text: 'No hay datos para exportar con los filtros seleccionados'
+                        });
+                    }
+                },
+                error: function() {
+                    Swal.close();
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'Error',
+                        text: 'No se pudo generar el archivo Excel'
+                    });
+                }
+            });
+        }
     </script>
+
+    <!-- SheetJS para exportación Excel -->
+    <script src="https://cdn.sheetjs.com/xlsx-0.20.1/package/dist/xlsx.full.min.js"></script>
 @endpush
 
 @push('styles')

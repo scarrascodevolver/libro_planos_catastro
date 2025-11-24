@@ -34,6 +34,7 @@ Route::middleware('auth')->group(function () {
     // TAB 1: Tabla General - PlanoController
     Route::match(['get', 'post'], '/planos', [PlanoController::class, 'index'])->name('planos.index');
     Route::get('/planos/contadores', [PlanoController::class, 'getContadores'])->name('planos.contadores');
+    Route::get('/planos/export-expandido', [PlanoController::class, 'exportExpandido'])->name('planos.export-expandido');
 
     // Rutas específicas ANTES de rutas genéricas con {id}
     Route::get('/planos/folios/{folioId}/edit', [PlanoController::class, 'editFolio'])->name('planos.folios.edit');
