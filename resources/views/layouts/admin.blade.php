@@ -165,9 +165,9 @@
     <!-- Main Sidebar Container -->
     <aside class="main-sidebar sidebar-dark-primary elevation-4">
         <!-- Brand Logo -->
-        <a href="{{ route('home') }}" class="brand-link" style="display: flex; align-items: center; padding: 0.75rem 1rem;">
-            <img src="{{ asset('LOGO_SISTEMA.png') }}" alt="Logo Sistema" class="elevation-3" style="opacity: .8; max-height: 33px; margin-right: 12px;">
-            <span class="brand-text font-weight-light">Libro Planos</span>
+        <a href="{{ route('home') }}" class="brand-link" style="display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 1rem; text-align: center;">
+            <img src="{{ asset('LOGO_SISTEMA.png') }}" alt="Logo Sistema" class="elevation-3" style="opacity: .8; max-height: 50px; margin-bottom: 0.5rem;">
+            <span class="brand-text font-weight-light" style="font-size: 1.1rem;">Libro Planos</span>
         </a>
 
         <!-- Sidebar -->
