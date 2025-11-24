@@ -156,11 +156,52 @@
 <script>
 $(document).ready(function() {
     $('[data-toggle="tooltip"]').tooltip();
+
+    @if(auth()->user()->isRegistro())
+        checkSessionControlImport();
+        setInterval(checkSessionControlImport, 10000); // Cada 10 segundos
+    @endif
+
     initImportForms();
     loadEstadisticas();
 });
 
 let currentPreviewType = null;
+let hasSessionControl = false;
+
+@if(auth()->user()->isRegistro())
+function checkSessionControlImport() {
+    $.ajax({
+        url: '{{ route("session-control.status") }}',
+        method: 'GET',
+        success: function(response) {
+            hasSessionControl = response.hasControl;
+
+            const btnHistoricos = $('#btn-importar-historicos');
+
+            if (response.hasControl) {
+                // Tiene control - habilitar botón
+                btnHistoricos.prop('disabled', false)
+                             .removeClass('btn-secondary')
+                             .addClass('btn-warning');
+            } else {
+                // No tiene control - deshabilitar botón
+                btnHistoricos.prop('disabled', true)
+                             .removeClass('btn-warning')
+                             .addClass('btn-secondary');
+            }
+        },
+        error: function(xhr) {
+            console.error('Error verificando control:', xhr);
+            // En caso de error, deshabilitar por seguridad
+            $('#btn-importar-historicos')
+                .prop('disabled', true)
+                .removeClass('btn-warning')
+                .addClass('btn-secondary');
+        }
+    });
+}
+@endif
 
 function initImportForms() {
     // Matrix Import - Un solo botón que hace preview + confirmar
@@ -228,6 +269,19 @@ function initImportForms() {
 
     // Históricos Import - Un solo botón que hace preview + confirmar
     $('#btn-importar-historicos').on('click', function() {
+        // VERIFICAR CONTROL DE SESIÓN
+        @if(auth()->user()->isRegistro())
+            if (!hasSessionControl) {
+                Swal.fire({
+                    icon: 'warning',
+                    title: 'Sin Control de Numeración',
+                    text: 'Debes tener el control de numeración para importar planos históricos',
+                    confirmButtonText: 'Entendido'
+                });
+                return;
+            }
+        @endif
+
         const formData = new FormData();
         const archivo = $('#archivo_historicos')[0].files[0];
 
