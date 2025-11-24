@@ -822,41 +822,13 @@ $('#btn-eliminar-historicos').on('click', function() {
         cancelButtonText: 'Cancelar'
     }).then((result) => {
         if (result.isConfirmed) {
-            // Segunda confirmación
-            mostrarSegundaConfirmacionHistoricos();
+            // Segunda confirmación - Escribir texto
+            mostrarConfirmacionTextoHistoricos();
         }
     });
 });
 
-function mostrarSegundaConfirmacionHistoricos() {
-    Swal.fire({
-        icon: 'warning',
-        title: 'Segunda Confirmación',
-        html: `
-            <div class="text-left">
-                <p class="mb-3">
-                    <strong>¿Estás completamente seguro?</strong>
-                </p>
-                <div class="alert alert-danger mb-0">
-                    <i class="fas fa-exclamation-triangle"></i>
-                    No hay forma de recuperar los datos una vez eliminados
-                </div>
-            </div>
-        `,
-        showCancelButton: true,
-        confirmButtonColor: '#dc3545',
-        cancelButtonColor: '#6c757d',
-        confirmButtonText: 'Sí, Continuar',
-        cancelButtonText: 'Cancelar'
-    }).then((result) => {
-        if (result.isConfirmed) {
-            // Tercera confirmación - Escribir texto
-            mostrarTerceraConfirmacionHistoricos();
-        }
-    });
-}
-
-function mostrarTerceraConfirmacionHistoricos() {
+function mostrarConfirmacionTextoHistoricos() {
     Swal.fire({
         icon: 'error',
         title: 'Confirmación Final',
