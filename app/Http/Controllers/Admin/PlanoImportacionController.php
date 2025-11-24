@@ -619,7 +619,9 @@ class PlanoImportacionController extends Controller
                 ]);
 
                 // Eliminar TODOS los planos (folios se eliminan por CASCADE)
+                DB::statement('SET FOREIGN_KEY_CHECKS=0;');
                 Plano::truncate();
+                DB::statement('SET FOREIGN_KEY_CHECKS=1;');
 
                 DB::commit();
 
