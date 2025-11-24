@@ -555,6 +555,20 @@ class PlanoImportacionController extends Controller
     public function eliminarHistoricos(Request $request)
     {
         try {
+            // VALIDAR CONTROL DE SESIÓN - Usuario debe tener control activo
+            $tieneControl = DB::table('session_control')
+                ->where('user_id', Auth::id())
+                ->where('has_control', true)
+                ->where('is_active', true)
+                ->exists();
+
+            if (!$tieneControl) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Debes tener el control de numeración activo para eliminar planos históricos'
+                ], 403);
+            }
+
             // Validar texto de confirmación
             $request->validate([
                 'confirmacion' => 'required|string'

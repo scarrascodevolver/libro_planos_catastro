@@ -968,11 +968,29 @@ function ejecutarEliminarHistoricos(confirmacion) {
         },
         error: function(xhr) {
             Swal.close();
-            Swal.fire({
-                icon: 'error',
-                title: 'Error al Eliminar',
-                text: xhr.responseJSON?.message || 'No se pudo completar la eliminación de históricos'
-            });
+
+            // Error 403: Sin control de sesión
+            if (xhr.status === 403) {
+                Swal.fire({
+                    icon: 'warning',
+                    title: 'Control de Numeración Requerido',
+                    html: `
+                        <p>${xhr.responseJSON?.message || 'Necesitas tener el control activo'}</p>
+                        <p class="text-muted mt-2">
+                            <i class="fas fa-info-circle"></i>
+                            Solicita el control desde el widget superior o la sección "Agregar Planos"
+                        </p>
+                    `,
+                    confirmButtonText: 'Entendido'
+                });
+            } else {
+                // Otros errores
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Error al Eliminar',
+                    text: xhr.responseJSON?.message || 'No se pudo completar la eliminación de históricos'
+                });
+            }
         }
     });
 }
