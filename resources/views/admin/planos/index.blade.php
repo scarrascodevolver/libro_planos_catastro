@@ -224,16 +224,16 @@
 
     <!-- Tabla Principal Card -->
     <div class="card">
-        <div class="card-header">
+        <div class="card-header" style="background-color: #0f69b4; color: white;">
             <h3 class="card-title">
                 <i class="fas fa-table"></i>
                 Registro de Planos
-                <span class="badge badge-primary ml-2" id="registros-encontrados-count">Cargando...</span>
+                <span class="badge badge-light ml-2" id="registros-encontrados-count">Cargando...</span>
             </h3>
             <div class="card-tools">
                 <!-- Botones DataTables -->
                 <div class="btn-group mr-2" id="datatable-buttons">
-                    <button type="button" class="btn btn-sm btn-primary" id="btn-columns">
+                    <button type="button" class="btn btn-sm btn-light" id="btn-columns">
                         <i class="fas fa-columns"></i> Columnas
                     </button>
                     <button type="button" class="btn btn-sm btn-success" id="btn-excel">
@@ -246,7 +246,7 @@
                         <i class="fas fa-print"></i> Imprimir
                     </button>
                 </div>
-                <button type="button" class="btn btn-tool" data-card-widget="collapse">
+                <button type="button" class="btn btn-tool text-white" data-card-widget="collapse">
                     <i class="fas fa-minus"></i>
                 </button>
             </div>
