@@ -602,47 +602,43 @@ class PlanoImportacionController extends Controller
                 ]);
             }
 
-            // Contar TODOS los folios (se eliminarán por CASCADE)
+            // Contar TODOS los folios (se eliminarán manualmente también)
             $totalFolios = PlanoFolio::count();
 
-            DB::beginTransaction();
+            // Log crítico antes de eliminar
+            \Log::critical('ELIMINACIÓN MASIVA TODOS LOS PLANOS', [
+                'user_id' => Auth::id(),
+                'user_email' => Auth::user()->email,
+                'total_planos' => $totalPlanos,
+                'total_folios' => $totalFolios,
+                'timestamp' => now(),
+                'confirmacion' => $request->confirmacion
+            ]);
 
-            try {
-                // Log crítico antes de eliminar
-                \Log::critical('ELIMINACIÓN MASIVA TODOS LOS PLANOS', [
-                    'user_id' => Auth::id(),
-                    'user_email' => Auth::user()->email,
-                    'total_planos' => $totalPlanos,
-                    'total_folios' => $totalFolios,
-                    'timestamp' => now(),
-                    'confirmacion' => $request->confirmacion
-                ]);
+            // TRUNCATE hace commit implícito, no usar transacciones
+            // Desactivar FK checks temporalmente
+            DB::statement('SET FOREIGN_KEY_CHECKS=0;');
 
-                // Eliminar TODOS los planos (folios se eliminan por CASCADE)
-                DB::statement('SET FOREIGN_KEY_CHECKS=0;');
-                Plano::truncate();
-                DB::statement('SET FOREIGN_KEY_CHECKS=1;');
+            // Truncar ambas tablas (más rápido que CASCADE)
+            PlanoFolio::truncate();
+            Plano::truncate();
 
-                DB::commit();
+            // Reactivar FK checks
+            DB::statement('SET FOREIGN_KEY_CHECKS=1;');
 
-                // Log de confirmación
-                \Log::critical('ELIMINACIÓN MASIVA PLANOS COMPLETADA', [
-                    'user_id' => Auth::id(),
-                    'planos_eliminados' => $totalPlanos,
-                    'folios_eliminados' => $totalFolios
-                ]);
+            // Log de confirmación
+            \Log::critical('ELIMINACIÓN MASIVA PLANOS COMPLETADA', [
+                'user_id' => Auth::id(),
+                'planos_eliminados' => $totalPlanos,
+                'folios_eliminados' => $totalFolios
+            ]);
 
-                return response()->json([
-                    'success' => true,
-                    'message' => "Se eliminaron {$totalPlanos} planos históricos con {$totalFolios} folios asociados",
-                    'planos_eliminados' => $totalPlanos,
-                    'folios_eliminados' => $totalFolios
-                ]);
-
-            } catch (\Exception $e) {
-                DB::rollBack();
-                throw $e;
-            }
+            return response()->json([
+                'success' => true,
+                'message' => "Se eliminaron {$totalPlanos} planos con {$totalFolios} folios asociados",
+                'planos_eliminados' => $totalPlanos,
+                'folios_eliminados' => $totalFolios
+            ]);
 
         } catch (\Illuminate\Validation\ValidationException $e) {
             return response()->json([
