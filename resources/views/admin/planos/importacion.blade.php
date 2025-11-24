@@ -17,13 +17,6 @@
             <i class="fas fa-file-import"></i>
             Importación Masiva
         </h3>
-        @if(auth()->user()->isRegistro())
-        <div class="card-tools">
-            <span class="badge badge-danger" id="session-badge-import">
-                <i class="fas fa-spinner fa-spin"></i> Verificando...
-            </span>
-        </div>
-        @endif
     </div>
     <div class="card-body">
         <div class="row">
@@ -163,65 +156,11 @@
 <script>
 $(document).ready(function() {
     $('[data-toggle="tooltip"]').tooltip();
-
-    @if(auth()->user()->isRegistro())
-        checkSessionControlImport();
-        setInterval(checkSessionControlImport, 15000); // Cada 15 segundos
-    @endif
-
     initImportForms();
     loadEstadisticas();
 });
 
 let currentPreviewType = null;
-let hasSessionControl = false;
-
-@if(auth()->user()->isRegistro())
-function checkSessionControlImport() {
-    $.ajax({
-        url: '{{ route("session-control.status") }}',
-        method: 'GET',
-        success: function(response) {
-            hasSessionControl = response.hasControl;
-
-            const badge = $('#session-badge-import');
-            const btnHistoricos = $('#btn-importar-historicos');
-
-            if (response.hasControl) {
-                // Tiene control
-                badge.removeClass('badge-danger badge-warning')
-                     .addClass('badge-success')
-                     .html('<i class="fas fa-unlock"></i> Con Control');
-
-                btnHistoricos.prop('disabled', false)
-                             .removeClass('btn-secondary')
-                             .addClass('btn-warning');
-            } else if (response.whoHasControl) {
-                // Otro tiene control
-                badge.removeClass('badge-success badge-warning')
-                     .addClass('badge-danger')
-                     .html('<i class="fas fa-lock"></i> Sin Control (' + response.whoHasControl + ')');
-
-                btnHistoricos.prop('disabled', true)
-                             .removeClass('btn-warning')
-                             .addClass('btn-secondary');
-            } else {
-                // Nadie tiene control
-                badge.removeClass('badge-success badge-danger')
-                     .addClass('badge-warning')
-                     .html('<i class="fas fa-lock"></i> Sin Control (Disponible)');
-
-                btnHistoricos.prop('disabled', true)
-                             .removeClass('btn-warning')
-                             .addClass('btn-secondary');
-            }
-        },
-        error: function(xhr) {
-            console.error('Error verificando control:', xhr);
-        }
-    });
-}
-@endif
 
 function initImportForms() {
     // Matrix Import - Un solo botón que hace preview + confirmar
@@ -289,19 +228,6 @@ function initImportForms() {
 
     // Históricos Import - Un solo botón que hace preview + confirmar
     $('#btn-importar-historicos').on('click', function() {
-        // VERIFICAR CONTROL DE SESIÓN
-        @if(auth()->user()->isRegistro())
-            if (!hasSessionControl) {
-                Swal.fire({
-                    icon: 'warning',
-                    title: 'Sin Control de Numeración',
-                    text: 'Debes tener el control de numeración para importar planos históricos',
-                    confirmButtonText: 'Entendido'
-                });
-                return;
-            }
-        @endif
-
         const formData = new FormData();
         const archivo = $('#archivo_historicos')[0].files[0];
 
