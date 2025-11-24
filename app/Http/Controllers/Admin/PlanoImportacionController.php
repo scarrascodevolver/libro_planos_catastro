@@ -446,6 +446,19 @@ class PlanoImportacionController extends Controller
         ]);
     }
 
+    public function getEstadisticasHistoricos()
+    {
+        $totalPlanos = Plano::where('is_historical', true)->count();
+        $totalFolios = PlanoFolio::whereIn('plano_id',
+            Plano::where('is_historical', true)->pluck('id')
+        )->count();
+
+        return response()->json([
+            'total_planos' => $totalPlanos,
+            'total_folios' => $totalFolios
+        ]);
+    }
+
     public function limpiarMatrix(Request $request)
     {
         $request->validate([

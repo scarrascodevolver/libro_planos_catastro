@@ -667,18 +667,15 @@ function loadEstadisticas() {
 
 function loadHistoricosCount() {
     $.ajax({
-        url: '{{ route("planos.index") }}',
-        method: 'POST',
-        data: {
-            draw: 1,
-            start: 0,
-            length: 1,
-            _token: $('meta[name="csrf-token"]').attr('content')
-        },
+        url: '{{ route("planos.importacion.estadisticas-historicos") }}',
+        method: 'GET',
         success: function(response) {
-            // El backend debería filtrar por is_historical
-            // Por ahora mostrar todos los planos
-            $('#total-historicos-delete').text('0 (pendiente)');
+            const total = response.total_planos || 0;
+            $('#total-historicos-delete').text(total.toLocaleString());
+        },
+        error: function(xhr) {
+            console.error('Error cargando históricos:', xhr);
+            $('#total-historicos-delete').text('0');
         }
     });
 }
