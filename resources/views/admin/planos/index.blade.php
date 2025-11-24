@@ -362,8 +362,23 @@
                 },
                 {
                     "className": "nowrap",
-                    "targets": "_all"
-                }, // No wrap para mejor visualización
+                    "targets": [0, 1, 2, 7, 8, 9, 10, 11]
+                }, // No wrap solo para columnas numéricas y fechas
+                {
+                    "targets": [3, 4, 5], // Solicitante, Ap.Paterno, Ap.Materno
+                    "width": "150px",
+                    "className": "text-truncate-cell",
+                    "render": function(data, type, row) {
+                        if (type === 'display' && data && data.length > 20) {
+                            return '<span title="' + data + '">' + data + '</span>';
+                        }
+                        return data;
+                    }
+                },
+                {
+                    "targets": [6], // Comuna
+                    "width": "120px"
+                },
                 {
                     "visible": false,
                     "targets": [12, 13, 14, 15, 16]
@@ -2461,6 +2476,34 @@
         }
 
         /* N° Plano Completo */
+
+        /* Columnas de nombres con truncamiento */
+        .text-truncate-cell {
+            max-width: 150px !important;
+            overflow: hidden !important;
+            text-overflow: ellipsis !important;
+            white-space: nowrap !important;
+        }
+
+        .text-truncate-cell span {
+            display: inline-block;
+            max-width: 100%;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+
+        /* Solicitante, Apellido Paterno, Apellido Materno */
+        #planos-table td:nth-child(4),
+        #planos-table td:nth-child(5),
+        #planos-table td:nth-child(6) {
+            max-width: 150px !important;
+        }
+
+        /* Comuna */
+        #planos-table td:nth-child(7) {
+            max-width: 120px !important;
+        }
 
         /* Dropdown de acciones */
         #planos-table .dropdown-menu {
