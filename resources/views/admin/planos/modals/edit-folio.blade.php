@@ -102,9 +102,12 @@
                         <!-- M² -->
                         <div class="col-md-4">
                             <div class="form-group">
-                                <label for="edit_folio_m2">M² <span class="text-danger">*</span></label>
-                                <input type="number" class="form-control" id="edit_folio_m2" name="m2" required min="1" placeholder="Metros cuadrados">
+                                <label for="edit_folio_m2">M² <span class="text-danger" id="edit_folio_m2_required">*</span></label>
+                                <input type="number" class="form-control" id="edit_folio_m2" name="m2" min="0" placeholder="Metros cuadrados">
                                 <div class="invalid-feedback"></div>
+                                <small class="form-text text-info d-none" id="edit_folio_rural_hint">
+                                    <i class="fas fa-info-circle"></i> Para rurales: Complete hectáreas o m² (al menos uno)
+                                </small>
                             </div>
                         </div>
                     </div>
