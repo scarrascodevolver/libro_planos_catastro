@@ -342,8 +342,13 @@ function showPreview(data, type) {
 
     // HISTÓRICOS: Preview simple sin validación de campos
     if (type === 'historicos') {
+        console.log('📊 Datos históricos recibidos:', data);
+        console.log('📊 totalFilas:', data.totalFilas);
+
+        const totalPlanos = data.totalFilas || 0;
+
         html += '<div class="alert alert-success mb-3">';
-        html += '<h5 class="mb-2"><i class="fas fa-check-circle"></i> ' + data.totalFilas + ' planos detectados</h5>';
+        html += '<h5 class="mb-2"><i class="fas fa-check-circle"></i> ' + totalPlanos + ' planos detectados</h5>';
         html += '<p class="mb-0">Archivo listo para importar</p>';
         html += '</div>';
 
