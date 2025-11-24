@@ -340,7 +340,21 @@ function showPreview(data, type) {
 
     let html = '';
 
-    // Mensaje principal según si hay errores
+    // HISTÓRICOS: Preview simple sin validación de campos
+    if (type === 'historicos') {
+        html += '<div class="alert alert-success mb-3">';
+        html += '<h5 class="mb-2"><i class="fas fa-check-circle"></i> ' + data.totalFilas + ' planos detectados</h5>';
+        html += '<p class="mb-0">Archivo listo para importar</p>';
+        html += '</div>';
+
+        $('#preview-content').html(html);
+        $('#confirm-import').html('<i class="fas fa-check"></i> Confirmar Importación').removeClass('btn-warning').addClass('btn-primary');
+        $('#confirm-import').show();
+        $('#preview-modal').modal('show');
+        return;
+    }
+
+    // MATRIX: Preview con validación de campos
     if (data.registrosConErrores > 0) {
         html += '<div class="alert alert-warning mb-3">';
         html += '<h5 class="mb-2"><i class="fas fa-exclamation-triangle"></i> ' + data.totalFilas + ' folios a importar</h5>';
