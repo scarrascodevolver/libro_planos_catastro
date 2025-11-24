@@ -265,6 +265,7 @@
                             <th width="100">Acciones</th>
                             <th>N° Plano</th>
                             <th>Folios</th>
+                            <th class="never" style="display:none;">Folios Completos</th>
                             <th>Solicitante</th>
                             <th>Ap. Paterno</th>
                             <th>Ap. Materno</th>
@@ -380,9 +381,16 @@
                     "width": "120px"
                 },
                 {
+                    "targets": [3], // folios_completos
                     "visible": false,
-                    "targets": [12, 13, 14, 15, 16]
-                } // Ocultar por defecto las nuevas columnas
+                    "searchable": false,
+                    "orderable": false,
+                    "className": "never"  // Nunca mostrar en responsive
+                },
+                {
+                    "visible": false,
+                    "targets": [13, 14, 15, 16, 17]
+                } // Ocultar por defecto las nuevas columnas (índices ajustados +1)
             ];
 
             const columns = [{
@@ -396,6 +404,10 @@
                 {
                     "data": "folios_display",
                     "name": "folios_display"
+                },
+                {
+                    "data": "folios_completos",
+                    "name": "folios_completos"
                 },
                 {
                     "data": "solicitante_display",
@@ -521,7 +533,16 @@
                 buttons: [{
                         extend: 'excel',
                         exportOptions: {
-                            columns: ':visible:not(.no-export)'
+                            columns: function(idx, data, node) {
+                                // Exportar columnas visibles (excepto acciones) + folios_completos
+                                // Índice 0 = acciones (no exportar)
+                                // Índice 2 = folios_display (no exportar, usar folios_completos)
+                                // Índice 3 = folios_completos (SÍ exportar aunque esté oculto)
+                                if (idx === 0) return false;  // No exportar acciones
+                                if (idx === 2) return false;  // No exportar folios_display (truncado)
+                                if (idx === 3) return true;   // SÍ exportar folios_completos (oculto)
+                                return $(node).hasClass('no-export') ? false : true;
+                            }
                         }
                     },
                     {
