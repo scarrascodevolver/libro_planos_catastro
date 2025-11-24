@@ -58,6 +58,10 @@ Route::middleware('auth')->group(function () {
     Route::get('/planos/importacion/estadisticas-matrix', [PlanoImportacionController::class, 'getEstadisticasMatrix'])->name('planos.importacion.estadisticas-matrix');
     Route::delete('/planos/importacion/limpiar-matrix', [PlanoImportacionController::class, 'limpiarMatrix'])->name('planos.importacion.limpiar-matrix');
 
+    // Gestión de Datos Importados - SOLO rol registro
+    Route::delete('/planos/importacion/eliminar-todos-matrix', [PlanoImportacionController::class, 'eliminarTodosMatrix'])->name('planos.importacion.eliminar-todos-matrix');
+    Route::delete('/planos/importacion/eliminar-historicos', [PlanoImportacionController::class, 'eliminarHistoricos'])->name('planos.importacion.eliminar-historicos');
+
     // TAB 3: Crear Planos - PlanoCreacionController
     Route::get('/planos/crear/index', [PlanoCreacionController::class, 'index'])->name('planos.crear.index');
     Route::get('/planos/crear/ultimo-correlativo', [PlanoCreacionController::class, 'getUltimoCorrelativo'])->name('planos.crear.ultimo-correlativo');

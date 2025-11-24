@@ -88,6 +88,76 @@
                 </div>
             </div>
         </div>
+
+        <!-- Gestión de Datos Importados -->
+        <hr class="my-4">
+        <div class="row">
+            <div class="col-12">
+                <h5 class="mb-3">
+                    <i class="fas fa-database"></i>
+                    Gestión de Datos Importados
+                    <span class="badge badge-danger ml-2">Solo Rol Registro</span>
+                </h5>
+            </div>
+
+            <!-- Eliminar Matrix -->
+            <div class="col-md-6">
+                <div class="card border-warning">
+                    <div class="card-header bg-warning">
+                        <h6 class="mb-0">
+                            <i class="fas fa-trash-alt"></i>
+                            Eliminar Datos Matrix
+                        </h6>
+                    </div>
+                    <div class="card-body">
+                        <p class="text-muted mb-2">
+                            <i class="fas fa-info-circle"></i>
+                            Elimina <strong>TODOS</strong> los registros importados de Matrix (tabla de autocompletado).
+                        </p>
+                        <p class="mb-3">
+                            <strong>Total registros Matrix:</strong>
+                            <span class="badge badge-info" id="total-matrix-delete">{{ number_format($totalMatrix) }}</span>
+                        </p>
+                        <div class="alert alert-warning mb-3">
+                            <i class="fas fa-exclamation-triangle"></i>
+                            <strong>Atención:</strong> Esta acción no afecta planos ya creados, solo elimina datos de autocompletado.
+                        </div>
+                        <button type="button" class="btn btn-warning btn-block" id="btn-eliminar-matrix">
+                            <i class="fas fa-trash"></i> Eliminar TODOS los Datos Matrix
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Eliminar Históricos -->
+            <div class="col-md-6">
+                <div class="card border-danger">
+                    <div class="card-header bg-danger text-white">
+                        <h6 class="mb-0">
+                            <i class="fas fa-exclamation-triangle"></i>
+                            Eliminar Planos Históricos
+                        </h6>
+                    </div>
+                    <div class="card-body">
+                        <p class="text-muted mb-2">
+                            <i class="fas fa-skull-crossbones"></i>
+                            Elimina planos importados desde archivo histórico.
+                        </p>
+                        <p class="mb-3">
+                            <strong>Total planos históricos:</strong>
+                            <span class="badge badge-danger" id="total-historicos-delete">Calculando...</span>
+                        </p>
+                        <div class="alert alert-danger mb-3">
+                            <i class="fas fa-skull-crossbones"></i>
+                            <strong>PELIGRO:</strong> Elimina planos Y sus folios asociados. Requiere triple confirmación.
+                        </div>
+                        <button type="button" class="btn btn-danger btn-block" id="btn-eliminar-historicos">
+                            <i class="fas fa-fire"></i> Eliminar Planos Históricos
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
     </div>
 </div>
 
@@ -651,7 +721,29 @@ function loadEstadisticas() {
     $.get("{{ route('planos.importacion.estadisticas-matrix') }}")
         .done(function(data) {
             $('#total-matrix').text(data.total.toLocaleString());
+            $('#total-matrix-delete').text(data.total.toLocaleString());
         });
+
+    // Cargar total de históricos
+    loadHistoricosCount();
+}
+
+function loadHistoricosCount() {
+    $.ajax({
+        url: '{{ route("planos.index") }}',
+        method: 'POST',
+        data: {
+            draw: 1,
+            start: 0,
+            length: 1,
+            _token: $('meta[name="csrf-token"]').attr('content')
+        },
+        success: function(response) {
+            // El backend debería filtrar por is_historical
+            // Por ahora mostrar todos los planos
+            $('#total-historicos-delete').text('0 (pendiente)');
+        }
+    });
 }
 
 // Confirm import from preview
@@ -664,5 +756,268 @@ $('#confirm-import').on('click', function() {
         executeHistoricosImport();
     }
 });
+
+// ========================================
+// GESTIÓN DE DATOS IMPORTADOS
+// ========================================
+
+// Eliminar TODOS los datos Matrix
+$('#btn-eliminar-matrix').on('click', function() {
+    const totalMatrix = parseInt($('#total-matrix-delete').text().replace(/,/g, ''));
+
+    if (totalMatrix === 0) {
+        Swal.fire({
+            icon: 'info',
+            title: 'Sin Datos',
+            text: 'No hay registros Matrix para eliminar'
+        });
+        return;
+    }
+
+    Swal.fire({
+        icon: 'warning',
+        title: '¿Eliminar TODOS los Datos Matrix?',
+        html: `
+            <p class="text-left">
+                <i class="fas fa-exclamation-triangle text-warning"></i>
+                Estás a punto de eliminar <strong>${totalMatrix.toLocaleString()} registros</strong> de la tabla Matrix.
+            </p>
+            <div class="alert alert-warning text-left mt-3 mb-0">
+                <strong>Importante:</strong>
+                <ul class="mb-0">
+                    <li>Esto NO afecta planos ya creados</li>
+                    <li>Solo elimina datos de autocompletado</li>
+                    <li>Puedes volver a importar Matrix cuando quieras</li>
+                </ul>
+            </div>
+        `,
+        showCancelButton: true,
+        confirmButtonColor: '#f39c12',
+        cancelButtonColor: '#6c757d',
+        confirmButtonText: 'Sí, Eliminar Matrix',
+        cancelButtonText: 'Cancelar'
+    }).then((result) => {
+        if (result.isConfirmed) {
+            ejecutarEliminarMatrix();
+        }
+    });
+});
+
+function ejecutarEliminarMatrix() {
+    Swal.fire({
+        title: 'Eliminando datos Matrix...',
+        text: 'Por favor espere',
+        allowOutsideClick: false,
+        allowEscapeKey: false,
+        showConfirmButton: false,
+        didOpen: () => {
+            Swal.showLoading();
+        }
+    });
+
+    $.ajax({
+        url: '{{ route("planos.importacion.eliminar-todos-matrix") }}',
+        method: 'DELETE',
+        headers: {
+            'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content')
+        },
+        success: function(response) {
+            Swal.close();
+
+            if (response.success) {
+                Swal.fire({
+                    icon: 'success',
+                    title: 'Matrix Eliminado',
+                    html: `
+                        <p>${response.message}</p>
+                        <p class="text-muted mb-0">
+                            <strong>${response.registros_eliminados.toLocaleString()}</strong> registros eliminados
+                        </p>
+                    `,
+                    confirmButtonText: 'Cerrar'
+                });
+
+                // Actualizar contadores
+                loadEstadisticas();
+            } else {
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Error',
+                    text: response.message
+                });
+            }
+        },
+        error: function(xhr) {
+            Swal.close();
+            Swal.fire({
+                icon: 'error',
+                title: 'Error al Eliminar',
+                text: xhr.responseJSON?.message || 'No se pudo completar la eliminación'
+            });
+        }
+    });
+}
+
+// Eliminar Planos Históricos - Triple confirmación
+$('#btn-eliminar-historicos').on('click', function() {
+    // Primera confirmación
+    Swal.fire({
+        icon: 'error',
+        title: 'ADVERTENCIA: Eliminar Planos Históricos',
+        html: `
+            <div class="text-left">
+                <p class="text-danger mb-3">
+                    <i class="fas fa-skull-crossbones"></i>
+                    <strong>Esta acción es IRREVERSIBLE y MUY PELIGROSA</strong>
+                </p>
+                <p>Eliminarás:</p>
+                <ul>
+                    <li>Todos los planos marcados como históricos</li>
+                    <li>Todos los folios asociados a esos planos</li>
+                    <li>Datos de personas, hectáreas, metros cuadrados</li>
+                </ul>
+                <p class="text-muted mb-0">
+                    <small><i class="fas fa-info-circle"></i> Se identifican por el campo is_historical = true</small>
+                </p>
+            </div>
+        `,
+        showCancelButton: true,
+        confirmButtonColor: '#dc3545',
+        cancelButtonColor: '#6c757d',
+        confirmButtonText: 'Continuar',
+        cancelButtonText: 'Cancelar'
+    }).then((result) => {
+        if (result.isConfirmed) {
+            // Segunda confirmación
+            mostrarSegundaConfirmacionHistoricos();
+        }
+    });
+});
+
+function mostrarSegundaConfirmacionHistoricos() {
+    Swal.fire({
+        icon: 'warning',
+        title: 'Segunda Confirmación',
+        html: `
+            <div class="text-left">
+                <p class="mb-3">
+                    <strong>¿Estás completamente seguro?</strong>
+                </p>
+                <div class="alert alert-danger mb-0">
+                    <i class="fas fa-exclamation-triangle"></i>
+                    No hay forma de recuperar los datos una vez eliminados
+                </div>
+            </div>
+        `,
+        showCancelButton: true,
+        confirmButtonColor: '#dc3545',
+        cancelButtonColor: '#6c757d',
+        confirmButtonText: 'Sí, Continuar',
+        cancelButtonText: 'Cancelar'
+    }).then((result) => {
+        if (result.isConfirmed) {
+            // Tercera confirmación - Escribir texto
+            mostrarTerceraConfirmacionHistoricos();
+        }
+    });
+}
+
+function mostrarTerceraConfirmacionHistoricos() {
+    Swal.fire({
+        icon: 'error',
+        title: 'Confirmación Final',
+        html: `
+            <div class="text-left mb-3">
+                <p>Para confirmar, escribe exactamente:</p>
+                <p class="text-center">
+                    <code class="bg-dark text-white p-2 d-inline-block">BORRAR HISTORICOS</code>
+                </p>
+            </div>
+            <input type="text" id="confirmacion-texto" class="form-control" placeholder="Escribe aquí...">
+        `,
+        showCancelButton: true,
+        confirmButtonColor: '#dc3545',
+        cancelButtonColor: '#6c757d',
+        confirmButtonText: 'ELIMINAR DEFINITIVAMENTE',
+        cancelButtonText: 'Cancelar',
+        preConfirm: () => {
+            const texto = document.getElementById('confirmacion-texto').value;
+            if (texto !== 'BORRAR HISTORICOS') {
+                Swal.showValidationMessage('Debes escribir exactamente: BORRAR HISTORICOS');
+                return false;
+            }
+            return texto;
+        }
+    }).then((result) => {
+        if (result.isConfirmed) {
+            ejecutarEliminarHistoricos(result.value);
+        }
+    });
+}
+
+function ejecutarEliminarHistoricos(confirmacion) {
+    Swal.fire({
+        title: 'Eliminando planos históricos...',
+        text: 'Esta operación puede tardar varios segundos',
+        allowOutsideClick: false,
+        allowEscapeKey: false,
+        showConfirmButton: false,
+        didOpen: () => {
+            Swal.showLoading();
+        }
+    });
+
+    $.ajax({
+        url: '{{ route("planos.importacion.eliminar-historicos") }}',
+        method: 'DELETE',
+        headers: {
+            'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content')
+        },
+        data: {
+            confirmacion: confirmacion
+        },
+        success: function(response) {
+            Swal.close();
+
+            if (response.success) {
+                Swal.fire({
+                    icon: 'success',
+                    title: 'Planos Históricos Eliminados',
+                    html: `
+                        <div class="text-left">
+                            <p>${response.message}</p>
+                            <div class="alert alert-info mt-3 mb-0">
+                                <strong>Resumen:</strong>
+                                <ul class="mb-0">
+                                    <li>Planos eliminados: <strong>${response.planos_eliminados.toLocaleString()}</strong></li>
+                                    <li>Folios eliminados: <strong>${response.folios_eliminados.toLocaleString()}</strong></li>
+                                </ul>
+                            </div>
+                        </div>
+                    `,
+                    confirmButtonText: 'Cerrar',
+                    width: 600
+                });
+
+                // Actualizar contadores
+                loadHistoricosCount();
+            } else {
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Error',
+                    text: response.message
+                });
+            }
+        },
+        error: function(xhr) {
+            Swal.close();
+            Swal.fire({
+                icon: 'error',
+                title: 'Error al Eliminar',
+                text: xhr.responseJSON?.message || 'No se pudo completar la eliminación de históricos'
+            });
+        }
+    });
+}
 </script>
 @endpush
