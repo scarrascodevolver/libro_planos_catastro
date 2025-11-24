@@ -70,6 +70,10 @@ class PlanoController extends Controller
             ->addColumn('folios_display', function ($plano) {
                 return $this->getDisplayFolios($plano);
             })
+            ->addColumn('folios_completos', function ($plano) {
+                // Columna oculta para exportación Excel con TODOS los folios
+                return $plano->folios->pluck('folio')->filter()->join(', ') ?: '-';
+            })
             ->addColumn('solicitante_display', function ($plano) {
                 return $this->getSolicitanteDisplay($plano);
             })
