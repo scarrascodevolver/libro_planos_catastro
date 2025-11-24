@@ -327,8 +327,8 @@ const toastr = {
 };
 </script>
 
-<!-- Session Control JS (solo para registro) -->
-@if(Auth::user()->isRegistro())
+<!-- Session Control JS (solo para registro y páginas que lo necesitan) -->
+@if(Auth::user()->isRegistro() && !request()->routeIs('planos.importacion.*'))
 <script>
 // Session Control Management - Centralizado en Navbar
 $(document).ready(function() {
