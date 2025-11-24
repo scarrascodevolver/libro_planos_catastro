@@ -199,23 +199,19 @@ class PlanoHistoricoController extends Controller
 
         // Si columna A tiene 5 dígitos → formato usuario compacto (08301)
         if (preg_match('/^\d{5}$/', $celdaA)) {
-            Log::info("Formato detectado: USUARIO_COMPACTO (columna A = '{$celdaA}')");
             return 'USUARIO_COMPACTO';
         }
 
         // Si columna A tiene 2 dígitos → formato separado (08)
         if (preg_match('/^\d{1,2}$/', $celdaA)) {
-            Log::info("Formato detectado: SEPARADO (columna A = '{$celdaA}')");
             return 'SEPARADO';
         }
 
         // Fallback: intentar detectar por longitud
         if (strlen($celdaA) >= 4 && strlen($celdaA) <= 5) {
-            Log::warning("Formato ambiguo, asumiendo USUARIO_COMPACTO por longitud (columna A = '{$celdaA}')");
             return 'USUARIO_COMPACTO';
         }
 
-        Log::warning("Formato desconocido, usando SEPARADO por defecto (columna A = '{$celdaA}')");
         return 'SEPARADO';
     }
 
@@ -231,8 +227,6 @@ class PlanoHistoricoController extends Controller
                 break; // Detectar solo con la primera fila válida
             }
         }
-
-        Log::info("Procesando Excel con formato: {$formato}");
 
         foreach ($datos as $index => $fila) {
             // Saltear filas vacías
@@ -394,7 +388,6 @@ class PlanoHistoricoController extends Controller
 
         // Validar número plano único en BD
         $existeEnBD = Plano::where('numero_plano', $numeroPlano)->exists();
-        Log::info("Validando plano {$numeroPlano}: existe en BD = " . ($existeEnBD ? 'SÍ' : 'NO'));
         if ($existeEnBD) {
             $errores[] = "CRÍTICO: Número de plano {$numeroPlano} ya existe en BD";
         }
@@ -530,7 +523,6 @@ class PlanoHistoricoController extends Controller
                     $warnings[] = array_merge($infoPlano, [
                         'advertencias' => $warningsGrupo
                     ]);
-                    Log::warning("Plano {$primerFila['N°_PLANO']} importado con warnings:", $warningsGrupo);
                 }
 
             } catch (\Exception $e) {
@@ -676,8 +668,6 @@ class PlanoHistoricoController extends Controller
         // Convertir a integer
         $correlativo = intval($soloCorrelativo);
 
-        Log::info("Número correlativo extraído: '{$numeroCompleto}' → {$correlativo}");
-
         return $correlativo;
     }
 
@@ -744,8 +734,6 @@ class PlanoHistoricoController extends Controller
             $carbon = Carbon::parse($fecha);
             return strtoupper($carbon->format('M'));
         } catch (\Exception $e) {
-            // Log para debugging
-            Log::warning("Mes no reconocido: '$fecha'");
             return 'DESCONOCIDO';
         }
     }
@@ -788,7 +776,6 @@ class PlanoHistoricoController extends Controller
         }
 
         // Caso sin datos de superficie - asignar valores por defecto como SITIO
-        Log::info("Fila {$fila['NUMERO_FILA']}: Sin superficie, asignando como SITIO con 0 m²");
         return [
             'tipo' => 'SITIO',
             'numero' => 1,
@@ -806,7 +793,6 @@ class PlanoHistoricoController extends Controller
             $codigo = trim($codigoComuna);
             $comuna = ComunaBiobio::where('codigo', $codigo)->first();
             if ($comuna) {
-                Log::info("Comuna encontrada por código: $codigo -> {$comuna->nombre}");
                 return $comuna;
             }
         }
@@ -831,7 +817,6 @@ class PlanoHistoricoController extends Controller
         // Si el código tiene más de 3 dígitos y empieza con 8, quitar el 8 inicial
         if (strlen($codigo) > 3 && str_starts_with($codigo, '8')) {
             $codigoNormalizado = substr($codigo, 1); // Quitar primer carácter (8)
-            Log::info("Código comuna normalizado: $codigo -> $codigoNormalizado");
             return $codigoNormalizado;
         }
 
