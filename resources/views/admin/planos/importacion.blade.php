@@ -342,9 +342,6 @@ function showPreview(data, type) {
 
     // HISTÓRICOS: Preview simple sin validación de campos
     if (type === 'historicos') {
-        console.log('📊 Datos históricos recibidos:', data);
-        console.log('📊 totalFilas:', data.totalFilas);
-
         const totalPlanos = data.totalFilas || 0;
 
         html += '<div class="alert alert-success mb-3">';

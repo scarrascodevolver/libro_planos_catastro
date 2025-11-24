@@ -74,7 +74,7 @@ class PlanoHistoricoController extends Controller
                 'mensaje' => "Archivo procesado: {$validacion['validos']} grupos válidos de " . count($grupos) . " total",
                 'headers' => $headers,
                 'preview' => $previewFilas,
-                'total_filas' => count($datos),
+                'totalFilas' => count($grupos), // Cantidad de PLANOS (grupos) no filas Excel
                 'total_grupos' => count($grupos),
                 'grupos_validos' => $validacion['validos'],
                 'grupos_invalidos' => $validacion['invalidos'],
