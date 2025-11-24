@@ -596,6 +596,9 @@ function executeHistoricosImport() {
                 $('#form-historicos-import')[0].reset();
                 $('.custom-file-label').eq(1).html('Seleccionar PLANOS-HISTORICOS.xlsx');
 
+                // ACTUALIZAR BADGE DE PLANOS HISTÓRICOS INMEDIATAMENTE
+                loadHistoricosCount();
+
             } else {
                 // Error general
                 let errorHtml = '<div class="text-left">';
