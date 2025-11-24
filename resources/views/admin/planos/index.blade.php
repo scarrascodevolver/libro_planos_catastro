@@ -12,14 +12,14 @@
 @section('content')
     <!-- Filtros Card -->
     <div class="card collapsed-card" id="filtros-card">
-        <div class="card-header">
+        <div class="card-header" style="background-color: #0f69b4; color: white;">
             <h3 class="card-title">
                 <i class="fas fa-filter"></i>
                 Filtros Avanzados
-                <span class="badge badge-info ml-2" id="filtros-activos-count">0</span>
+                <span class="badge badge-light ml-2" id="filtros-activos-count">0</span>
             </h3>
             <div class="card-tools">
-                <button type="button" class="btn btn-tool" data-card-widget="collapse" id="toggle-filtros">
+                <button type="button" class="btn btn-tool text-white" data-card-widget="collapse" id="toggle-filtros">
                     <i class="fas fa-plus"></i>
                 </button>
             </div>
@@ -2708,7 +2708,8 @@
         }
 
         #filtros-card .card-header:hover {
-            background-color: #f8f9fa !important;
+            background-color: #0d5a9a !important;
+            /* Azul más oscuro para hover */
         }
 
         /* El botón de toggle mantiene su cursor normal */
