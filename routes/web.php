@@ -56,7 +56,12 @@ Route::middleware('auth')->group(function () {
     Route::post('/planos/importacion/preview-matrix', [PlanoImportacionController::class, 'previewMatrix'])->name('planos.importacion.preview-matrix');
     Route::post('/planos/importacion/import-matrix', [PlanoImportacionController::class, 'importMatrix'])->name('planos.importacion.import-matrix');
     Route::get('/planos/importacion/estadisticas-matrix', [PlanoImportacionController::class, 'getEstadisticasMatrix'])->name('planos.importacion.estadisticas-matrix');
+    Route::get('/planos/importacion/estadisticas-historicos', [PlanoImportacionController::class, 'getEstadisticasHistoricos'])->name('planos.importacion.estadisticas-historicos');
     Route::delete('/planos/importacion/limpiar-matrix', [PlanoImportacionController::class, 'limpiarMatrix'])->name('planos.importacion.limpiar-matrix');
+
+    // Gestión de Datos Importados - SOLO rol registro
+    Route::delete('/planos/importacion/eliminar-todos-matrix', [PlanoImportacionController::class, 'eliminarTodosMatrix'])->name('planos.importacion.eliminar-todos-matrix');
+    Route::delete('/planos/importacion/eliminar-historicos', [PlanoImportacionController::class, 'eliminarHistoricos'])->name('planos.importacion.eliminar-historicos');
 
     // TAB 3: Crear Planos - PlanoCreacionController
     Route::get('/planos/crear/index', [PlanoCreacionController::class, 'index'])->name('planos.crear.index');

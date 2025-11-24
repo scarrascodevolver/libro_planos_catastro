@@ -446,6 +446,19 @@ class PlanoImportacionController extends Controller
         ]);
     }
 
+    public function getEstadisticasHistoricos()
+    {
+        $totalPlanos = Plano::where('is_historical', true)->count();
+        $totalFolios = PlanoFolio::whereIn('plano_id',
+            Plano::where('is_historical', true)->pluck('id')
+        )->count();
+
+        return response()->json([
+            'total_planos' => $totalPlanos,
+            'total_folios' => $totalFolios
+        ]);
+    }
+
     public function limpiarMatrix(Request $request)
     {
         $request->validate([
@@ -493,5 +506,163 @@ class PlanoImportacionController extends Controller
             'success' => false,
             'message' => 'Folio no encontrado en Matrix'
         ]);
+    }
+
+    /**
+     * Eliminar TODOS los datos de Matrix importados
+     * SOLO usuarios con rol 'registro'
+     */
+    public function eliminarTodosMatrix()
+    {
+        try {
+            $totalRegistros = MatrixImport::count();
+
+            if ($totalRegistros === 0) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'No hay registros Matrix para eliminar'
+                ]);
+            }
+
+            // Log crítico antes de eliminar
+            \Log::warning('ELIMINACIÓN MASIVA MATRIX', [
+                'user_id' => Auth::id(),
+                'user_email' => Auth::user()->email,
+                'total_registros' => $totalRegistros,
+                'timestamp' => now()
+            ]);
+
+            // Eliminar todos los registros
+            MatrixImport::truncate();
+
+            // Log de confirmación
+            \Log::warning('ELIMINACIÓN MASIVA MATRIX COMPLETADA', [
+                'user_id' => Auth::id(),
+                'registros_eliminados' => $totalRegistros
+            ]);
+
+            return response()->json([
+                'success' => true,
+                'message' => "Se eliminaron {$totalRegistros} registros de Matrix exitosamente",
+                'registros_eliminados' => $totalRegistros
+            ]);
+
+        } catch (\Exception $e) {
+            \Log::error('ERROR ELIMINACIÓN MATRIX', [
+                'user_id' => Auth::id(),
+                'error' => $e->getMessage()
+            ]);
+
+            return response()->json([
+                'success' => false,
+                'message' => 'Error al eliminar registros Matrix: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
+     * Eliminar planos históricos importados
+     * Identificados por is_historical = true
+     * Triple confirmación requerida en frontend
+     */
+    public function eliminarHistoricos(Request $request)
+    {
+        try {
+            // VALIDAR CONTROL DE SESIÓN - Usuario debe tener control activo
+            $tieneControl = DB::table('session_control')
+                ->where('user_id', Auth::id())
+                ->where('has_control', true)
+                ->where('is_active', true)
+                ->exists();
+
+            if (!$tieneControl) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Debes tener el control de numeración activo para eliminar planos históricos'
+                ], 403);
+            }
+
+            // Validar texto de confirmación
+            $request->validate([
+                'confirmacion' => 'required|string'
+            ]);
+
+            if ($request->confirmacion !== 'BORRAR HISTORICOS') {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Texto de confirmación incorrecto. Debe escribir exactamente: BORRAR HISTORICOS'
+                ], 422);
+            }
+
+            // Contar planos históricos
+            $totalPlanos = Plano::where('is_historical', true)->count();
+
+            if ($totalPlanos === 0) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'No hay planos históricos para eliminar'
+                ]);
+            }
+
+            // Contar folios asociados (se eliminarán por CASCADE)
+            $totalFolios = PlanoFolio::whereIn('plano_id',
+                Plano::where('is_historical', true)->pluck('id')
+            )->count();
+
+            DB::beginTransaction();
+
+            try {
+                // Log crítico antes de eliminar
+                \Log::critical('ELIMINACIÓN MASIVA PLANOS HISTÓRICOS', [
+                    'user_id' => Auth::id(),
+                    'user_email' => Auth::user()->email,
+                    'total_planos' => $totalPlanos,
+                    'total_folios' => $totalFolios,
+                    'timestamp' => now(),
+                    'confirmacion' => $request->confirmacion
+                ]);
+
+                // Eliminar planos históricos (folios se eliminan por CASCADE)
+                Plano::where('is_historical', true)->delete();
+
+                DB::commit();
+
+                // Log de confirmación
+                \Log::critical('ELIMINACIÓN MASIVA HISTÓRICOS COMPLETADA', [
+                    'user_id' => Auth::id(),
+                    'planos_eliminados' => $totalPlanos,
+                    'folios_eliminados' => $totalFolios
+                ]);
+
+                return response()->json([
+                    'success' => true,
+                    'message' => "Se eliminaron {$totalPlanos} planos históricos con {$totalFolios} folios asociados",
+                    'planos_eliminados' => $totalPlanos,
+                    'folios_eliminados' => $totalFolios
+                ]);
+
+            } catch (\Exception $e) {
+                DB::rollBack();
+                throw $e;
+            }
+
+        } catch (\Illuminate\Validation\ValidationException $e) {
+            return response()->json([
+                'success' => false,
+                'message' => $e->getMessage()
+            ], 422);
+
+        } catch (\Exception $e) {
+            \Log::error('ERROR ELIMINACIÓN HISTÓRICOS', [
+                'user_id' => Auth::id(),
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString()
+            ]);
+
+            return response()->json([
+                'success' => false,
+                'message' => 'Error al eliminar planos históricos: ' . $e->getMessage()
+            ], 500);
+        }
     }
 }
