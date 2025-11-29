@@ -1143,6 +1143,11 @@
                                 actualizarResumenEdit();
                                 $('#edit-modal').modal('show');
 
+                                // Activar conversiones bidireccionales para todas las filas cargadas
+                                $('#folios-tbody tr').each(function() {
+                                    attachEditPlanoRowListeners($(this));
+                                });
+
                                 // Activar filtrado de comunas por provincia después de cargar datos
                                 setTimeout(function() {
                                     filtrarComunasPorProvincia();
@@ -1158,6 +1163,20 @@
             function agregarFilaFolio(folio) {
                 folio = folio || {};
 
+                // Formatear valores con 2 decimales si existen
+                var haFormateado = '';
+                var m2Formateado = '';
+
+                if (folio.hectareas) {
+                    var ha = parseFloat(folio.hectareas);
+                    haFormateado = !isNaN(ha) ? formatNumber(ha, 2) : '';
+                }
+
+                if (folio.m2) {
+                    var m2 = parseFloat(folio.m2);
+                    m2Formateado = !isNaN(m2) ? formatNumber(m2, 2) : '';
+                }
+
                 var html = '<tr class="folio-row">';
                 html += '<td><input type="text" class="form-control form-control-sm folio-num" value="' + (folio.folio ||
                     '') + '"></td>';
@@ -1172,17 +1191,65 @@
                     '>HIJUELA</option>';
                 html += '<option value="SITIO"' + (folio.tipo_inmueble === 'SITIO' ? ' selected' : '') + '>SITIO</option>';
                 html += '</select></td>';
-                html += '<td><input type="number" step="0.01" class="form-control form-control-sm folio-ha" value="' + (
-                    folio.hectareas || '') + '" onchange="actualizarResumenEdit()"></td>';
-                html += '<td><input type="number" class="form-control form-control-sm folio-m2" value="' + (folio.m2 ||
-                    '') + '" onchange="actualizarResumenEdit()"></td>';
+                html += '<td><input type="text" class="form-control form-control-sm folio-ha" value="' + haFormateado + '" placeholder="0,00" inputmode="decimal" onkeypress="return validarNumeroDecimalHectareas(event)" onchange="actualizarResumenEdit()"></td>';
+                html += '<td><input type="text" class="form-control form-control-sm folio-m2" value="' + m2Formateado + '" placeholder="0,00" inputmode="decimal" onkeypress="return validarNumeroDecimal(event)" onchange="actualizarResumenEdit()"></td>';
                 html +=
                     '<td><button type="button" class="btn btn-xs btn-danger" onclick="eliminarFilaFolio(this)" title="Eliminar"><i class="fas fa-trash"></i></button>';
                 html += '<input type="hidden" class="folio-id" value="' + (folio.id || '') + '"></td>';
                 html += '</tr>';
 
                 $('#folios-tbody').append(html);
+
+                // Activar conversiones para la nueva fila
+                attachEditPlanoRowListeners($('#folios-tbody tr:last'));
+
                 actualizarResumenEdit();
+            }
+
+            // Activar conversiones bidireccionales y auto-formato para una fila específica
+            function attachEditPlanoRowListeners($row) {
+                var $haInput = $row.find('.folio-ha');
+                var $m2Input = $row.find('.folio-m2');
+
+                // Hectáreas -> M² (conversión automática)
+                $haInput.off('input blur').on('input', function() {
+                    let valor = $(this).val().replace(',', '.');
+                    if (valor && !isNaN(valor)) {
+                        const ha = parseFloat(valor);
+                        const m2 = ha * 10000;
+                        $m2Input.val(formatNumber(m2, 2));
+                        actualizarResumenEdit();
+                    }
+                });
+
+                // Auto-formato hectáreas al blur
+                $haInput.on('blur', function() {
+                    let valor = $(this).val().replace(',', '.');
+                    if (valor && !isNaN(valor)) {
+                        const ha = parseFloat(valor);
+                        $(this).val(formatNumber(ha, 2));
+                    }
+                });
+
+                // M² -> Hectáreas (conversión automática)
+                $m2Input.off('input blur').on('input', function() {
+                    let valor = $(this).val().replace(/\./g, '').replace(',', '.');
+                    if (valor && !isNaN(valor)) {
+                        const m2 = parseFloat(valor);
+                        const ha = m2 / 10000;
+                        $haInput.val(formatNumber(ha, 2));
+                        actualizarResumenEdit();
+                    }
+                });
+
+                // Auto-formato M² al blur
+                $m2Input.on('blur', function() {
+                    let valor = $(this).val().replace(/\./g, '').replace(',', '.');
+                    if (valor && !isNaN(valor)) {
+                        const m2 = parseFloat(valor);
+                        $(this).val(formatNumber(m2, 2));
+                    }
+                });
             }
 
             // Eliminar fila de folio
@@ -1203,16 +1270,21 @@
                 var totalM2 = 0;
 
                 $('#folios-tbody tr').each(function() {
-                    var ha = parseFloat($(this).find('.folio-ha').val()) || 0;
-                    var m2 = parseInt($(this).find('.folio-m2').val()) || 0;
+                    // Limpiar formato antes de parsear
+                    var haValor = $(this).find('.folio-ha').val().replace(/\./g, '').replace(',', '.');
+                    var m2Valor = $(this).find('.folio-m2').val().replace(/\./g, '').replace(',', '.');
+
+                    var ha = parseFloat(haValor) || 0;
+                    var m2 = parseFloat(m2Valor) || 0;
+
                     totalHa += ha;
                     totalM2 += m2;
                 });
 
                 $('#edit-total-folios').text(totalFolios);
                 $('#resumen-folios').text(totalFolios);
-                $('#resumen-hectareas').text(totalHa.toFixed(2));
-                $('#resumen-m2').text(totalM2.toLocaleString());
+                $('#resumen-hectareas').text(formatNumber(totalHa, 2));
+                $('#resumen-m2').text(formatNumber(totalM2, 2));
             }
 
             // Actualizar número de plano cuando cambia la comuna
