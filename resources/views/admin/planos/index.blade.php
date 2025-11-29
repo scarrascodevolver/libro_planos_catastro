@@ -340,6 +340,7 @@
             initPlanosTable();
             initFiltros();
             initModals();
+            initControlSesionValidation();
         });
 
         // Variables globales
@@ -1671,20 +1672,6 @@
             $(document).on('click', '.eliminar-plano', function(e) {
                 e.preventDefault();
 
-                // Verificar si el botón está deshabilitado (sin control de sesión)
-                if ($(this).hasClass('disabled')) {
-                    Swal.fire({
-                        icon: 'warning',
-                        title: 'Control de Sesión Requerido',
-                        html: `
-                            <p>Debes tener el <strong>control de sesión</strong> para eliminar planos.</p>
-                            <p class="text-muted mb-0">Esta acción requiere control activo para evitar conflictos con otros usuarios.</p>
-                        `,
-                        confirmButtonText: '<i class="fas fa-check"></i> Entendido'
-                    });
-                    return;
-                }
-
                 const planoId = $(this).data('id');
                 const numeroPlano = $(this).data('numero');
                 const cantidadFolios = $(this).data('folios');
@@ -2916,6 +2903,61 @@
                         text: 'No se pudo generar el archivo Excel'
                     });
                 }
+            });
+        }
+
+        // =====================================================
+        // VALIDACIÓN UNIFICADA DE CONTROL DE SESIÓN
+        // =====================================================
+        function initControlSesionValidation() {
+            // Interceptar clicks en botones que requieren control
+            $(document).on('click', '[data-requiere-control="true"]', function(e) {
+                const $button = $(this);
+
+                // Verificar si el usuario tiene control de sesión
+                $.ajax({
+                    url: '{{ url("/session-control/status") }}',
+                    method: 'GET',
+                    async: false, // Hacerlo síncrono para bloquear el click
+                    success: function(response) {
+                        if (!response.hasControl) {
+                            // Usuario NO tiene control - Mostrar aviso y prevenir acción
+                            e.preventDefault();
+                            e.stopImmediatePropagation();
+
+                            const whoHasControl = response.whoHasControl || 'Nadie';
+
+                            Swal.fire({
+                                icon: 'warning',
+                                title: 'Control de Sesión Requerido',
+                                html: `
+                                    <p>Necesitas tener el <strong>control de sesión</strong> para realizar esta acción.</p>
+                                    <hr>
+                                    <p class="mb-0"><strong>Control actual:</strong> ${whoHasControl}</p>
+                                    <p class="text-muted small mb-0">Esta restricción evita conflictos con otros usuarios.</p>
+                                `,
+                                confirmButtonText: '<i class="fas fa-check"></i> Entendido',
+                                confirmButtonColor: '#3085d6'
+                            });
+
+                            return false;
+                        }
+                        // Si tiene control, dejar que el evento continúe normalmente
+                    },
+                    error: function() {
+                        e.preventDefault();
+                        e.stopImmediatePropagation();
+
+                        Swal.fire({
+                            icon: 'error',
+                            title: 'Error de Verificación',
+                            text: 'No se pudo verificar el control de sesión',
+                            confirmButtonText: 'OK'
+                        });
+
+                        return false;
+                    }
+                });
             });
         }
     </script>

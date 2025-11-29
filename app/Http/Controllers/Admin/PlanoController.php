@@ -53,13 +53,6 @@ class PlanoController extends Controller
 
         return DataTables::of($query)
             ->addColumn('acciones', function ($plano) {
-                // Verificar si usuario tiene control de sesión
-                $tieneControl = false;
-                if (Auth::user()->isRegistro()) {
-                    $controlHolder = SessionControl::quienTieneControl();
-                    $tieneControl = $controlHolder && $controlHolder->id === Auth::id();
-                }
-
                 $acciones = '<div class="dropdown">';
                 $acciones .= '<button class="btn btn-secondary btn-sm dropdown-toggle" type="button" data-toggle="dropdown" data-boundary="viewport" aria-expanded="false">';
                 $acciones .= '<i class="fas fa-cog"></i> Acciones';
@@ -68,20 +61,11 @@ class PlanoController extends Controller
                 $acciones .= '<a class="dropdown-item ver-detalles" href="#" data-id="'.$plano->id.'"><i class="fas fa-eye mr-2 text-info"></i>Ver Detalles</a>';
 
                 if (Auth::user()->isRegistro()) {
-                    // Editar plano siempre disponible para rol registro
-                    $acciones .= '<a class="dropdown-item editar-plano" href="#" data-id="'.$plano->id.'"><i class="fas fa-edit mr-2 text-primary"></i>Editar Plano</a>';
-
-                    // Reasignar y Eliminar requieren control de sesión
-                    if ($tieneControl) {
-                        $acciones .= '<a class="dropdown-item reasignar-plano" href="#" data-id="'.$plano->id.'"><i class="fas fa-exchange-alt mr-2 text-warning"></i>Reasignar N°</a>';
-                        $acciones .= '<div class="dropdown-divider"></div>';
-                        $acciones .= '<a class="dropdown-item eliminar-plano" href="#" data-id="'.$plano->id.'" data-numero="'.$plano->numero_plano_completo.'" data-folios="'.$plano->folios->count().'"><i class="fas fa-trash-alt mr-2 text-danger"></i>Eliminar Plano</a>';
-                    } else {
-                        // Botones deshabilitados con tooltip
-                        $acciones .= '<a class="dropdown-item disabled text-muted" href="#" title="Requiere control de sesión"><i class="fas fa-exchange-alt mr-2"></i>Reasignar N° <i class="fas fa-lock ml-1"></i></a>';
-                        $acciones .= '<div class="dropdown-divider"></div>';
-                        $acciones .= '<a class="dropdown-item disabled text-muted" href="#" title="Requiere control de sesión"><i class="fas fa-trash-alt mr-2"></i>Eliminar Plano <i class="fas fa-lock ml-1"></i></a>';
-                    }
+                    // Todos los botones requieren control de sesión
+                    $acciones .= '<a class="dropdown-item editar-plano" href="#" data-id="'.$plano->id.'" data-requiere-control="true"><i class="fas fa-edit mr-2 text-primary"></i>Editar Plano</a>';
+                    $acciones .= '<a class="dropdown-item reasignar-plano" href="#" data-id="'.$plano->id.'" data-requiere-control="true"><i class="fas fa-exchange-alt mr-2 text-warning"></i>Reasignar N°</a>';
+                    $acciones .= '<div class="dropdown-divider"></div>';
+                    $acciones .= '<a class="dropdown-item eliminar-plano" href="#" data-id="'.$plano->id.'" data-numero="'.$plano->numero_plano_completo.'" data-folios="'.$plano->folios->count().'" data-requiere-control="true"><i class="fas fa-trash-alt mr-2 text-danger"></i>Eliminar Plano</a>';
                 }
 
                 $acciones .= '</div></div>';
@@ -647,6 +631,18 @@ class PlanoController extends Controller
             abort(403, 'No tienes permisos para editar planos');
         }
 
+        // Verificar control de sesión
+        $controlHolder = SessionControl::quienTieneControl();
+        $tieneControl = $controlHolder && $controlHolder->id === Auth::id();
+
+        if (!$tieneControl) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Necesitas tener el control de sesión para editar planos. ' .
+                            ($controlHolder ? 'Control actual: ' . $controlHolder->name : 'Nadie tiene control.')
+            ], 403);
+        }
+
         $plano = Plano::with('folios')->findOrFail($id);
         $comunas = ComunaBiobio::getParaSelect();
 
@@ -765,6 +761,18 @@ class PlanoController extends Controller
             abort(403, 'No tienes permisos para editar planos');
         }
 
+        // Verificar control de sesión
+        $controlHolder = SessionControl::quienTieneControl();
+        $tieneControl = $controlHolder && $controlHolder->id === Auth::id();
+
+        if (!$tieneControl) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Necesitas tener el control de sesión para editar planos. ' .
+                            ($controlHolder ? 'Control actual: ' . $controlHolder->name : 'Nadie tiene control.')
+            ], 403);
+        }
+
         $request->validate([
             'comuna' => 'required|string|max:100',
             'responsable' => 'required|string|max:255',
@@ -804,6 +812,18 @@ class PlanoController extends Controller
             return response()->json([
                 'success' => false,
                 'message' => 'No tienes permisos para editar planos'
+            ], 403);
+        }
+
+        // Verificar control de sesión
+        $controlHolder = SessionControl::quienTieneControl();
+        $tieneControl = $controlHolder && $controlHolder->id === Auth::id();
+
+        if (!$tieneControl) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Necesitas tener el control de sesión para editar planos. ' .
+                            ($controlHolder ? 'Control actual: ' . $controlHolder->name : 'Nadie tiene control.')
             ], 403);
         }
 
@@ -963,6 +983,18 @@ class PlanoController extends Controller
             abort(403, 'No tienes permisos para reasignar planos');
         }
 
+        // Verificar control de sesión
+        $controlHolder = SessionControl::quienTieneControl();
+        $tieneControl = $controlHolder && $controlHolder->id === Auth::id();
+
+        if (!$tieneControl) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Necesitas tener el control de sesión para reasignar planos. ' .
+                            ($controlHolder ? 'Control actual: ' . $controlHolder->name : 'Nadie tiene control.')
+            ], 403);
+        }
+
         $request->validate([
             'nuevo_numero' => 'required|string|max:50|unique:planos,numero_plano'
         ]);
@@ -1099,6 +1131,18 @@ class PlanoController extends Controller
             abort(403, 'No tienes permisos para editar folios');
         }
 
+        // Verificar control de sesión
+        $controlHolder = SessionControl::quienTieneControl();
+        $tieneControl = $controlHolder && $controlHolder->id === Auth::id();
+
+        if (!$tieneControl) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Necesitas tener el control de sesión para editar folios. ' .
+                            ($controlHolder ? 'Control actual: ' . $controlHolder->name : 'Nadie tiene control.')
+            ], 403);
+        }
+
         $folio = PlanoFolio::with('plano')->findOrFail($folioId);
 
         // Determinar si es rural o urbano
@@ -1118,6 +1162,18 @@ class PlanoController extends Controller
     {
         if (!Auth::user()->isRegistro()) {
             abort(403, 'No tienes permisos para editar folios');
+        }
+
+        // Verificar control de sesión
+        $controlHolder = SessionControl::quienTieneControl();
+        $tieneControl = $controlHolder && $controlHolder->id === Auth::id();
+
+        if (!$tieneControl) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Necesitas tener el control de sesión para editar folios. ' .
+                            ($controlHolder ? 'Control actual: ' . $controlHolder->name : 'Nadie tiene control.')
+            ], 403);
         }
 
         $folio = PlanoFolio::findOrFail($folioId);
