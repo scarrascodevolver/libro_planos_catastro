@@ -405,7 +405,12 @@ function validarNumeroDecimal(event) {
         return true;
     }
 
-    // Permitir coma decimal (solo una)
+    // Permitir punto (.) como separador de miles
+    if (charCode === 46) {
+        return true;
+    }
+
+    // Permitir coma (,) como separador decimal (solo una)
     if (charCode === 44 && valor.indexOf(',') === -1) {
         return true;
     }
@@ -3096,7 +3101,17 @@ function recolectarFoliosManuales() {
 }
 
 function formatNumber(num, decimals) {
-    return num.toFixed(decimals).replace('.', ',').replace(/\B(?=(\d{3})+(?!\d))/g, '.');
+    // Convertir a número con decimales fijos
+    const numStr = num.toFixed(decimals);
+
+    // Separar parte entera y decimal
+    const [parteEntera, parteDecimal] = numStr.split('.');
+
+    // Agregar separador de miles a la parte entera
+    const parteEnteraFormateada = parteEntera.replace(/\B(?=(\d{3})+(?!\d))/g, '.');
+
+    // Retornar con coma decimal
+    return parteDecimal ? `${parteEnteraFormateada},${parteDecimal}` : parteEnteraFormateada;
 }
 
 // =====================================================
