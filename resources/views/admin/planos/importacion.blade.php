@@ -25,7 +25,7 @@
                 <div class="border rounded p-3 h-100">
                     <h6 class="mb-3">
                         <i class="fas fa-file-excel text-success"></i>
-                        Matrix (Mensual)
+                        Matrix
                         <i class="fas fa-info-circle text-muted ml-1" data-toggle="tooltip"
                            title="Extrae: Tipo Inmueble, Comuna, Nombres, Apellidos, Folio, Responsable, Convenio"></i>
                     </h6>
@@ -58,7 +58,7 @@
                 <div class="border rounded p-3 h-100 border-warning">
                     <h6 class="mb-3">
                         <i class="fas fa-history text-warning"></i>
-                        Históricos (Una vez)
+                        Históricos
                         <i class="fas fa-info-circle text-muted ml-1" data-toggle="tooltip"
                            title="21 columnas: N° Plano, Comuna, Responsable, Proyecto, Folios, Datos personales, Hectáreas, M², Fechas, Archivos"></i>
                     </h6>
