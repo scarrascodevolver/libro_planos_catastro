@@ -451,11 +451,8 @@
                     "searchable": false,
                     "orderable": false,
                     "className": "never"  // Nunca mostrar en responsive
-                },
-                {
-                    "visible": false,
-                    "targets": [13, 14, 15, 16, 17]
-                } // Ocultar por defecto las nuevas columnas (índices ajustados +1)
+                }
+                // Todas las demás columnas visibles por defecto (eliminado: [13, 14, 15, 16, 17])
             ];
 
             const columns = [{
