@@ -151,7 +151,7 @@ $(document).ready(function() {
     // DataTable
     $('#usuarios-table').DataTable({
         language: {
-            url: '//cdn.datatables.net/plug-ins/1.13.7/i18n/es-ES.json'
+            url: "{{ asset('vendor/datatables/i18n/es-ES.json') }}"
         },
         order: [[3, 'desc']]
     });
