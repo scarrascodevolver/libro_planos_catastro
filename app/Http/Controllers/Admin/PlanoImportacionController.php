@@ -421,7 +421,6 @@ class PlanoImportacionController extends Controller
         return [
             'folio' => trim($datos['folio'] ?? ''),
             'tipo_inmueble' => trim($datos['tipo_inmueble'] ?? ''),
-            'provincia' => 'Biobío', // Asumimos siempre Biobío
             'comuna' => trim($datos['comuna'] ?? ''),
             'nombres' => trim($datos['nombres'] ?? ''),
             'apellido_paterno' => trim($datos['apellido_paterno'] ?? ''),

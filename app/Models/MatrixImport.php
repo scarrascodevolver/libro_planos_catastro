@@ -12,7 +12,7 @@ class MatrixImport extends Model
     protected $table = 'matrix_import';
 
     protected $fillable = [
-        'folio', 'tipo_inmueble', 'provincia', 'comuna',
+        'folio', 'tipo_inmueble', 'comuna',
         'nombres', 'apellido_paterno', 'apellido_materno',
         'responsable', 'convenio_financiamiento', 'batch_import'
     ];
