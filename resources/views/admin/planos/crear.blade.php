@@ -402,6 +402,11 @@ function validarNumeroDecimal(event) {
 
     // Permitir números (0-9)
     if (charCode >= 48 && charCode <= 57) {
+        // Si hay coma, verificar que no exceda 2 decimales
+        const partes = valor.split(',');
+        if (partes.length > 1 && partes[1].length >= 2) {
+            return false; // Ya tiene 2 decimales
+        }
         return true;
     }
 
@@ -418,13 +423,18 @@ function validarNumeroDecimal(event) {
     return false;
 }
 
-// Validación específica para hectáreas: solo números y coma (NO puntos)
+// Validación específica para hectáreas: solo números y coma (NO puntos), máximo 2 decimales
 function validarNumeroDecimalHectareas(event) {
     const charCode = event.which ? event.which : event.keyCode;
     const valor = event.target.value;
 
     // Permitir números (0-9)
     if (charCode >= 48 && charCode <= 57) {
+        // Si hay coma, verificar que no exceda 2 decimales
+        const partes = valor.split(',');
+        if (partes.length > 1 && partes[1].length >= 2) {
+            return false; // Ya tiene 2 decimales
+        }
         return true;
     }
 
@@ -1444,7 +1454,7 @@ function generarCamposMedidasMatrix(folioIndex, cantidad, esRural, tipoInmueble)
 
         html += '<div class="form-group mb-0">';
         html += '<label class="small">M² <span class="text-danger">*</span></label>';
-        html += '<input type="text" class="form-control form-control-sm m2-inmueble-matrix" data-folio="' + folioIndex + '" data-inmueble="' + i + '" placeholder="0" required inputmode="numeric" onkeypress="return validarNumeroEntero(event)">';
+        html += '<input type="text" class="form-control form-control-sm m2-inmueble-matrix" data-folio="' + folioIndex + '" data-inmueble="' + i + '" placeholder="0,00" required inputmode="decimal" onkeypress="return validarNumeroDecimal(event)">';
         html += '</div>';
         html += '</div>';
         html += '</div>';
@@ -1475,6 +1485,16 @@ function attachConversionListenersMatrixInmuebles(folioIndex, cantidad) {
             }
         });
 
+        // Auto-formato hectáreas al blur (siempre 2 decimales)
+        $(document).off('blur', `.hectareas-inmueble-matrix[data-folio="${folioIndex}"][data-inmueble="${i}"]`);
+        $(document).on('blur', `.hectareas-inmueble-matrix[data-folio="${folioIndex}"][data-inmueble="${i}"]`, function() {
+            let valor = $(this).val().replace(',', '.');
+            if (valor && !isNaN(valor)) {
+                const ha = parseFloat(valor);
+                $(this).val(formatNumber(ha, 2));
+            }
+        });
+
         // M² -> Hectáreas
         $(document).off('input', `.m2-inmueble-matrix[data-folio="${folioIndex}"][data-inmueble="${i}"]`);
         $(document).on('input', `.m2-inmueble-matrix[data-folio="${folioIndex}"][data-inmueble="${i}"]`, function() {
@@ -1483,6 +1503,16 @@ function attachConversionListenersMatrixInmuebles(folioIndex, cantidad) {
                 const m2 = parseFloat(valor);
                 const ha = m2 / 10000;
                 $(`.hectareas-inmueble-matrix[data-folio="${folioIndex}"][data-inmueble="${i}"]`).val(formatNumber(ha, 2));
+            }
+        });
+
+        // Auto-formato M² al blur (separador miles + 2 decimales)
+        $(document).off('blur', `.m2-inmueble-matrix[data-folio="${folioIndex}"][data-inmueble="${i}"]`);
+        $(document).on('blur', `.m2-inmueble-matrix[data-folio="${folioIndex}"][data-inmueble="${i}"]`, function() {
+            let valor = $(this).val().replace(/\./g, '').replace(',', '.');
+            if (valor && !isNaN(valor)) {
+                const m2 = parseFloat(valor);
+                $(this).val(formatNumber(m2, 2));
             }
         });
     }
@@ -2190,7 +2220,7 @@ function generarCamposMedidas(folioIndex, cantidad, esRural, tipoInmueble) {
 
         html += '<div class="form-group mb-0">';
         html += '<label class="small">M² <span class="text-danger">*</span></label>';
-        html += '<input type="text" class="form-control form-control-sm m2-inmueble" data-folio="' + folioIndex + '" data-inmueble="' + i + '" placeholder="0" required inputmode="numeric" onkeypress="return validarNumeroEntero(event)">';
+        html += '<input type="text" class="form-control form-control-sm m2-inmueble" data-folio="' + folioIndex + '" data-inmueble="' + i + '" placeholder="0,00" required inputmode="decimal" onkeypress="return validarNumeroDecimal(event)">';
         if (esRural) {
             html += '<small class="text-muted">Calculado desde Ha</small>';
         }
@@ -2225,6 +2255,16 @@ function attachConversionListenersInmuebles(folioIndex, cantidad) {
             }
         });
 
+        // Auto-formato hectáreas al blur
+        $(document).off('blur', `.hectareas-inmueble[data-folio="${folioIndex}"][data-inmueble="${i}"]`);
+        $(document).on('blur', `.hectareas-inmueble[data-folio="${folioIndex}"][data-inmueble="${i}"]`, function() {
+            let valor = $(this).val().replace(',', '.');
+            if (valor && !isNaN(valor)) {
+                const ha = parseFloat(valor);
+                $(this).val(formatNumber(ha, 2));
+            }
+        });
+
         // M² -> Hectáreas (conversión automática)
         $(document).off('input', `.m2-inmueble[data-folio="${folioIndex}"][data-inmueble="${i}"]`);
         $(document).on('input', `.m2-inmueble[data-folio="${folioIndex}"][data-inmueble="${i}"]`, function() {
@@ -2235,6 +2275,16 @@ function attachConversionListenersInmuebles(folioIndex, cantidad) {
                 $(`.hectareas-inmueble[data-folio="${folioIndex}"][data-inmueble="${i}"]`).val(formatNumber(ha, 2));
             } else {
                 $(`.hectareas-inmueble[data-folio="${folioIndex}"][data-inmueble="${i}"]`).val('');
+            }
+        });
+
+        // Auto-formato M² al blur
+        $(document).off('blur', `.m2-inmueble[data-folio="${folioIndex}"][data-inmueble="${i}"]`);
+        $(document).on('blur', `.m2-inmueble[data-folio="${folioIndex}"][data-inmueble="${i}"]`, function() {
+            let valor = $(this).val().replace(/\./g, '').replace(',', '.');
+            if (valor && !isNaN(valor)) {
+                const m2 = parseFloat(valor);
+                $(this).val(formatNumber(m2, 2));
             }
         });
     }
@@ -2609,7 +2659,7 @@ function generarCamposMedidasManualMultiple(folioIndex, cantidad, esRural, tipoI
 
         html += '<div class="form-group mb-0">';
         html += '<label class="small">M² <span class="text-danger">*</span></label>';
-        html += '<input type="text" class="form-control form-control-sm m2-inmueble-manual-multiple" data-folio="' + folioIndex + '" data-inmueble="' + i + '" placeholder="0" required inputmode="numeric" onkeypress="return validarNumeroEntero(event)">';
+        html += '<input type="text" class="form-control form-control-sm m2-inmueble-manual-multiple" data-folio="' + folioIndex + '" data-inmueble="' + i + '" placeholder="0,00" required inputmode="decimal" onkeypress="return validarNumeroDecimal(event)">';
         html += '</div></div>';
         html += '</div>';
     }
@@ -2643,6 +2693,15 @@ function attachConversionListenersManualMultiple(folioIndex, cantidad) {
             }
         });
 
+        // Auto-formato hectáreas al blur
+        $(`.hectareas-inmueble-manual-multiple[data-folio="${folioIndex}"][data-inmueble="${i}"]`).on('blur', function() {
+            let valor = $(this).val().replace(',', '.');
+            if (valor && !isNaN(valor)) {
+                const ha = parseFloat(valor);
+                $(this).val(formatNumber(ha, 2));
+            }
+        });
+
         // M² -> Hectáreas
         $(`.m2-inmueble-manual-multiple[data-folio="${folioIndex}"][data-inmueble="${i}"]`).on('input', function() {
             let valor = $(this).val().replace(/\./g, '').replace(',', '.');
@@ -2650,6 +2709,15 @@ function attachConversionListenersManualMultiple(folioIndex, cantidad) {
                 const m2 = parseFloat(valor);
                 const ha = m2 / 10000;
                 $(`.hectareas-inmueble-manual-multiple[data-folio="${folioIndex}"][data-inmueble="${i}"]`).val(formatNumber(ha, 2));
+            }
+        });
+
+        // Auto-formato M² al blur
+        $(`.m2-inmueble-manual-multiple[data-folio="${folioIndex}"][data-inmueble="${i}"]`).on('blur', function() {
+            let valor = $(this).val().replace(/\./g, '').replace(',', '.');
+            if (valor && !isNaN(valor)) {
+                const m2 = parseFloat(valor);
+                $(this).val(formatNumber(m2, 2));
             }
         });
     }
@@ -2827,6 +2895,15 @@ function attachConversionListenersManual(index) {
         }
     });
 
+    // Auto-formato hectáreas al blur
+    $(document).on('blur', `.hectareas-manual[data-index="${index}"]`, function() {
+        let valor = $(this).val().replace(',', '.');
+        if (valor && !isNaN(valor)) {
+            const ha = parseFloat(valor);
+            $(this).val(formatNumber(ha, 2));
+        }
+    });
+
     // M² -> Hectáreas
     $(document).on('input', `.m2-manual[data-index="${index}"]`, function() {
         let valor = $(this).val().replace(/\./g, '').replace(',', '.');
@@ -2834,6 +2911,15 @@ function attachConversionListenersManual(index) {
             const m2 = parseFloat(valor);
             const ha = m2 / 10000;
             $(`.hectareas-manual[data-index="${index}"]`).val(formatNumber(ha, 2));
+        }
+    });
+
+    // Auto-formato M² al blur
+    $(document).on('blur', `.m2-manual[data-index="${index}"]`, function() {
+        let valor = $(this).val().replace(/\./g, '').replace(',', '.');
+        if (valor && !isNaN(valor)) {
+            const m2 = parseFloat(valor);
+            $(this).val(formatNumber(m2, 2));
         }
     });
 }
