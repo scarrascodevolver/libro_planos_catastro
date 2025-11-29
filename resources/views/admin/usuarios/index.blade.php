@@ -26,6 +26,7 @@
                 <tr>
                     <th>Nombre</th>
                     <th>Email</th>
+                    <th width="150">Contraseña</th>
                     <th>Rol</th>
                     <th>Creado</th>
                     <th width="100">Acciones</th>
@@ -36,6 +37,16 @@
                 <tr>
                     <td>{{ $usuario->name }}</td>
                     <td>{{ $usuario->email }}</td>
+                    <td>
+                        @if($usuario->initial_password)
+                            <span class="password-hidden" data-password="{{ $usuario->initial_password }}">••••••••</span>
+                            <button class="btn btn-sm btn-outline-secondary toggle-password" type="button">
+                                <i class="fas fa-eye"></i>
+                            </button>
+                        @else
+                            <span class="text-muted">No disponible</span>
+                        @endif
+                    </td>
                     <td>
                         @if($usuario->role === 'registro')
                             <span class="badge badge-primary">Registro</span>
@@ -153,7 +164,22 @@ $(document).ready(function() {
         language: {
             url: "{{ asset('vendor/datatables/i18n/es-ES.json') }}"
         },
-        order: [[3, 'desc']]
+        order: [[4, 'desc']] // Ajustado porque agregamos columna contraseña
+    });
+
+    // Toggle mostrar/ocultar contraseña
+    $(document).on('click', '.toggle-password', function() {
+        var $btn = $(this);
+        var $span = $btn.prev('.password-hidden');
+        var password = $span.data('password');
+
+        if ($span.text() === '••••••••') {
+            $span.text(password);
+            $btn.find('i').removeClass('fa-eye').addClass('fa-eye-slash');
+        } else {
+            $span.text('••••••••');
+            $btn.find('i').removeClass('fa-eye-slash').addClass('fa-eye');
+        }
     });
 
     // Crear usuario
