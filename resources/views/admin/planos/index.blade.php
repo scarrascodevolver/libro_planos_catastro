@@ -1720,7 +1720,7 @@
                 });
 
                 $.ajax({
-                    url: `/planos/${planoId}`,
+                    url: '{{ url('/planos') }}/' + planoId,
                     type: 'DELETE',
                     data: {
                         _token: '{{ csrf_token() }}'
