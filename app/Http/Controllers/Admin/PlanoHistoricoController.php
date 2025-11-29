@@ -38,12 +38,12 @@ class PlanoHistoricoController extends Controller
                 array_shift($datos);
             }
 
-            // Crear headers para la vista previa (24 columnas)
+            // Crear headers para la vista previa (22 columnas)
             $headers = [
                 'CODIGO_REGIONAL', 'CODIGO_COMUNAL', 'N°_PLANO', 'URBANO/RURAL',
                 'FOLIO', 'SOLICITANTE', 'PATERNO', 'MATERNO', 'COMUNA',
                 'HIJ', 'HA', 'M²_HIJ', 'SITIO', 'M²_SITIO', 'FECHA', 'AÑO',
-                'Responsable', 'PROYECTO', 'PROVIDENCIA', 'ARCHIVO',
+                'Responsable', 'PROYECTO', 'PROVIDENCIA_ARCHIVO',
                 'OBSERVACION', 'TUBO', 'TELA', 'ARCHIVO_DIGITAL'
             ];
 
@@ -62,7 +62,7 @@ class PlanoHistoricoController extends Controller
                         $fila['CODIGO_REGIONAL'], $fila['CODIGO_COMUNAL'], $fila['N°_PLANO'], $fila['URBANO/RURAL'],
                         $fila['FOLIO'], $fila['SOLICITANTE'], $fila['PATERNO'], $fila['MATERNO'], $fila['COMUNA'],
                         $fila['HIJ'], $fila['HA'], $fila['M²_HIJ'], $fila['SITIO'], $fila['M²_SITIO'], $fila['FECHA'], $fila['AÑO'],
-                        $fila['Responsable'], $fila['PROYECTO'], $fila['PROVIDENCIA'], $fila['ARCHIVO'],
+                        $fila['Responsable'], $fila['PROYECTO'], $fila['PROVIDENCIA_ARCHIVO'],
                         $fila['OBSERVACION'], $fila['TUBO'], $fila['TELA'], $fila['ARCHIVO_DIGITAL']
                     ];
                 }
