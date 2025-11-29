@@ -1670,6 +1670,21 @@
             // ===== ELIMINAR PLANO =====
             $(document).on('click', '.eliminar-plano', function(e) {
                 e.preventDefault();
+
+                // Verificar si el botón está deshabilitado (sin control de sesión)
+                if ($(this).hasClass('disabled')) {
+                    Swal.fire({
+                        icon: 'warning',
+                        title: 'Control de Sesión Requerido',
+                        html: `
+                            <p>Debes tener el <strong>control de sesión</strong> para eliminar planos.</p>
+                            <p class="text-muted mb-0">Esta acción requiere control activo para evitar conflictos con otros usuarios.</p>
+                        `,
+                        confirmButtonText: '<i class="fas fa-check"></i> Entendido'
+                    });
+                    return;
+                }
+
                 const planoId = $(this).data('id');
                 const numeroPlano = $(this).data('numero');
                 const cantidadFolios = $(this).data('folios');

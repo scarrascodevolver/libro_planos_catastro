@@ -7,6 +7,7 @@ use App\Models\Plano;
 use App\Models\PlanoFolio;
 use App\Models\ComunaBiobio;
 use App\Models\User;
+use App\Models\SessionControl;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Auth;
@@ -52,6 +53,13 @@ class PlanoController extends Controller
 
         return DataTables::of($query)
             ->addColumn('acciones', function ($plano) {
+                // Verificar si usuario tiene control de sesión
+                $tieneControl = false;
+                if (Auth::user()->isRegistro()) {
+                    $controlHolder = SessionControl::quienTieneControl();
+                    $tieneControl = $controlHolder && $controlHolder->id === Auth::id();
+                }
+
                 $acciones = '<div class="dropdown">';
                 $acciones .= '<button class="btn btn-secondary btn-sm dropdown-toggle" type="button" data-toggle="dropdown" data-boundary="viewport" aria-expanded="false">';
                 $acciones .= '<i class="fas fa-cog"></i> Acciones';
@@ -60,10 +68,20 @@ class PlanoController extends Controller
                 $acciones .= '<a class="dropdown-item ver-detalles" href="#" data-id="'.$plano->id.'"><i class="fas fa-eye mr-2 text-info"></i>Ver Detalles</a>';
 
                 if (Auth::user()->isRegistro()) {
+                    // Editar plano siempre disponible para rol registro
                     $acciones .= '<a class="dropdown-item editar-plano" href="#" data-id="'.$plano->id.'"><i class="fas fa-edit mr-2 text-primary"></i>Editar Plano</a>';
-                    $acciones .= '<a class="dropdown-item reasignar-plano" href="#" data-id="'.$plano->id.'"><i class="fas fa-exchange-alt mr-2 text-warning"></i>Reasignar N°</a>';
-                    $acciones .= '<div class="dropdown-divider"></div>';
-                    $acciones .= '<a class="dropdown-item eliminar-plano" href="#" data-id="'.$plano->id.'" data-numero="'.$plano->numero_plano_completo.'" data-folios="'.$plano->folios->count().'"><i class="fas fa-trash-alt mr-2 text-danger"></i>Eliminar Plano</a>';
+
+                    // Reasignar y Eliminar requieren control de sesión
+                    if ($tieneControl) {
+                        $acciones .= '<a class="dropdown-item reasignar-plano" href="#" data-id="'.$plano->id.'"><i class="fas fa-exchange-alt mr-2 text-warning"></i>Reasignar N°</a>';
+                        $acciones .= '<div class="dropdown-divider"></div>';
+                        $acciones .= '<a class="dropdown-item eliminar-plano" href="#" data-id="'.$plano->id.'" data-numero="'.$plano->numero_plano_completo.'" data-folios="'.$plano->folios->count().'"><i class="fas fa-trash-alt mr-2 text-danger"></i>Eliminar Plano</a>';
+                    } else {
+                        // Botones deshabilitados con tooltip
+                        $acciones .= '<a class="dropdown-item disabled text-muted" href="#" title="Requiere control de sesión"><i class="fas fa-exchange-alt mr-2"></i>Reasignar N° <i class="fas fa-lock ml-1"></i></a>';
+                        $acciones .= '<div class="dropdown-divider"></div>';
+                        $acciones .= '<a class="dropdown-item disabled text-muted" href="#" title="Requiere control de sesión"><i class="fas fa-trash-alt mr-2"></i>Eliminar Plano <i class="fas fa-lock ml-1"></i></a>';
+                    }
                 }
 
                 $acciones .= '</div></div>';
@@ -1016,6 +1034,18 @@ class PlanoController extends Controller
     {
         if (!Auth::user()->isRegistro()) {
             abort(403, 'No tienes permisos para eliminar planos');
+        }
+
+        // Verificar control de sesión
+        $controlHolder = SessionControl::quienTieneControl();
+        $tieneControl = $controlHolder && $controlHolder->id === Auth::id();
+
+        if (!$tieneControl) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Solo el usuario con control de sesión puede eliminar planos. ' .
+                            ($controlHolder ? 'Control actual: ' . $controlHolder->name : 'Nadie tiene control.')
+            ], 403);
         }
 
         try {
