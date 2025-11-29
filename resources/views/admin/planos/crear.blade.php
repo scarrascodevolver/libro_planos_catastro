@@ -1439,24 +1439,29 @@ function generarCamposMedidasMatrix(folioIndex, cantidad, esRural, tipoInmueble)
         html += '<strong>' + tipoInmueble + ' #' + (i + 1) + '</strong>';
         html += '</div>';
 
+        // Primero M² (siempre visible)
         if (esRural) {
-            html += '<div class="col-md-4">';
-            html += '<div class="form-group mb-0">';
-            html += '<label class="small">Hectáreas</label>';
-            html += '<input type="text" class="form-control form-control-sm hectareas-inmueble-matrix" data-folio="' + folioIndex + '" data-inmueble="' + i + '" placeholder="0,00" inputmode="decimal" onkeypress="return validarNumeroDecimalHectareas(event)">';
-            html += '<small class="text-muted">Auto-convierte a M²</small>';
-            html += '</div>';
-            html += '</div>';
-            html += '<div class="col-md-4">';
+            html += '<div class="col-md-5">';
         } else {
-            html += '<div class="col-md-8">';
+            html += '<div class="col-md-10">';
         }
-
         html += '<div class="form-group mb-0">';
         html += '<label class="small">M² <span class="text-danger">*</span></label>';
         html += '<input type="text" class="form-control form-control-sm m2-inmueble-matrix" data-folio="' + folioIndex + '" data-inmueble="' + i + '" placeholder="0,00" required inputmode="decimal" onkeypress="return validarNumeroDecimal(event)">';
         html += '</div>';
         html += '</div>';
+
+        // Después Hectáreas (solo para rural)
+        if (esRural) {
+            html += '<div class="col-md-5">';
+            html += '<div class="form-group mb-0">';
+            html += '<label class="small">Hectáreas</label>';
+            html += '<input type="text" class="form-control form-control-sm hectareas-inmueble-matrix" data-folio="' + folioIndex + '" data-inmueble="' + i + '" placeholder="0,00" inputmode="decimal" onkeypress="return validarNumeroDecimalHectareas(event)">';
+            html += '<small class="text-muted">Auto-convierte desde M²</small>';
+            html += '</div>';
+            html += '</div>';
+        }
+
         html += '</div>';
     }
 
@@ -1930,15 +1935,18 @@ function generarCamposMedidasMasivo(folioIndex, cantidad, esRural, tipoInmueble)
         html += '<div class="d-flex align-items-center mb-1' + (i > 0 ? ' border-top pt-1' : '') + '">';
         html += '<small class="mr-2 text-muted" style="min-width: 50px;">#' + (i + 1) + '</small>';
 
-        if (esRural) {
-            html += '<input type="text" class="form-control form-control-sm ha-masivo mr-1" ';
-            html += 'data-folio="' + folioIndex + '" data-inmueble="' + i + '" ';
-            html += 'placeholder="Ha" style="width: 70px;" inputmode="decimal">';
-        }
-
+        // Primero M² (siempre visible)
         html += '<input type="text" class="form-control form-control-sm m2-masivo" ';
         html += 'data-folio="' + folioIndex + '" data-inmueble="' + i + '" ';
-        html += 'placeholder="M²" style="width: 80px;" required inputmode="numeric">';
+        html += 'placeholder="M²" style="width: 100px;" required inputmode="numeric">';
+
+        // Después Hectáreas (solo para rural)
+        if (esRural) {
+            html += '<input type="text" class="form-control form-control-sm ha-masivo ml-1" ';
+            html += 'data-folio="' + folioIndex + '" data-inmueble="' + i + '" ';
+            html += 'placeholder="Ha" style="width: 90px;" inputmode="decimal">';
+        }
+
         html += '</div>';
     }
 
@@ -2205,27 +2213,29 @@ function generarCamposMedidas(folioIndex, cantidad, esRural, tipoInmueble) {
         html += '<strong>' + tipoInmueble + ' #' + (i + 1) + '</strong>';
         html += '</div>';
 
+        // Primero M² (siempre visible)
         if (esRural) {
-            html += '<div class="col-md-4">';
-            html += '<div class="form-group mb-0">';
-            html += '<label class="small">Hectáreas</label>';
-            html += '<input type="text" class="form-control form-control-sm hectareas-inmueble" data-folio="' + folioIndex + '" data-inmueble="' + i + '" placeholder="0,00" inputmode="decimal" onkeypress="return validarNumeroDecimalHectareas(event)">';
-            html += '<small class="text-muted">Auto-convierte a M²</small>';
-            html += '</div>';
-            html += '</div>';
-            html += '<div class="col-md-4">';
+            html += '<div class="col-md-5">';
         } else {
-            html += '<div class="col-md-8">';
+            html += '<div class="col-md-10">';
         }
-
         html += '<div class="form-group mb-0">';
         html += '<label class="small">M² <span class="text-danger">*</span></label>';
         html += '<input type="text" class="form-control form-control-sm m2-inmueble" data-folio="' + folioIndex + '" data-inmueble="' + i + '" placeholder="0,00" required inputmode="decimal" onkeypress="return validarNumeroDecimal(event)">';
+        html += '</div>';
+        html += '</div>';
+
+        // Después Hectáreas (solo para rural)
         if (esRural) {
-            html += '<small class="text-muted">Calculado desde Ha</small>';
+            html += '<div class="col-md-5">';
+            html += '<div class="form-group mb-0">';
+            html += '<label class="small">Hectáreas</label>';
+            html += '<input type="text" class="form-control form-control-sm hectareas-inmueble" data-folio="' + folioIndex + '" data-inmueble="' + i + '" placeholder="0,00" inputmode="decimal" onkeypress="return validarNumeroDecimalHectareas(event)">';
+            html += '<small class="text-muted">Auto-convierte desde M²</small>';
+            html += '</div>';
+            html += '</div>';
         }
-        html += '</div>';
-        html += '</div>';
+
         html += '</div>';
     }
 
@@ -2646,21 +2656,27 @@ function generarCamposMedidasManualMultiple(folioIndex, cantidad, esRural, tipoI
         html += '<strong>' + tipoInmueble + ' #' + (i + 1) + '</strong>';
         html += '</div>';
 
+        // Primero M² (siempre visible)
         if (esRural) {
-            html += '<div class="col-md-4">';
-            html += '<div class="form-group mb-0">';
-            html += '<label class="small">Hectáreas</label>';
-            html += '<input type="text" class="form-control form-control-sm hectareas-inmueble-manual-multiple" data-folio="' + folioIndex + '" data-inmueble="' + i + '" placeholder="0,00" inputmode="decimal" onkeypress="return validarNumeroDecimalHectareas(event)">';
-            html += '</div></div>';
-            html += '<div class="col-md-4">';
+            html += '<div class="col-md-5">';
         } else {
-            html += '<div class="col-md-8">';
+            html += '<div class="col-md-10">';
         }
-
         html += '<div class="form-group mb-0">';
         html += '<label class="small">M² <span class="text-danger">*</span></label>';
         html += '<input type="text" class="form-control form-control-sm m2-inmueble-manual-multiple" data-folio="' + folioIndex + '" data-inmueble="' + i + '" placeholder="0,00" required inputmode="decimal" onkeypress="return validarNumeroDecimal(event)">';
         html += '</div></div>';
+
+        // Después Hectáreas (solo para rural)
+        if (esRural) {
+            html += '<div class="col-md-5">';
+            html += '<div class="form-group mb-0">';
+            html += '<label class="small">Hectáreas</label>';
+            html += '<input type="text" class="form-control form-control-sm hectareas-inmueble-manual-multiple" data-folio="' + folioIndex + '" data-inmueble="' + i + '" placeholder="0,00" inputmode="decimal" onkeypress="return validarNumeroDecimalHectareas(event)">';
+            html += '<small class="text-muted">Auto-convierte desde M²</small>';
+            html += '</div></div>';
+        }
+
         html += '</div>';
     }
 
