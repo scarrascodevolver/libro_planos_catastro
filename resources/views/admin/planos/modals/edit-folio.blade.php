@@ -94,7 +94,7 @@
                         <div class="col-md-4">
                             <div class="form-group">
                                 <label for="edit_folio_hectareas">Hectáreas</label>
-                                <input type="number" class="form-control" id="edit_folio_hectareas" name="hectareas" step="0.0001" min="0" placeholder="0.0000">
+                                <input type="text" class="form-control" id="edit_folio_hectareas" name="hectareas" placeholder="0,00" inputmode="decimal" onkeypress="return validarNumeroDecimalHectareas(event)">
                                 <small class="form-text text-muted">Solo para hijuelas</small>
                             </div>
                         </div>
@@ -103,7 +103,7 @@
                         <div class="col-md-4">
                             <div class="form-group">
                                 <label for="edit_folio_m2">M² <span class="text-danger" id="edit_folio_m2_required">*</span></label>
-                                <input type="number" class="form-control" id="edit_folio_m2" name="m2" min="0" placeholder="Metros cuadrados">
+                                <input type="text" class="form-control" id="edit_folio_m2" name="m2" placeholder="0,00" inputmode="decimal" onkeypress="return validarNumeroDecimal(event)">
                                 <div class="invalid-feedback"></div>
                                 <small class="form-text text-info d-none" id="edit_folio_rural_hint">
                                     <i class="fas fa-info-circle"></i> Para rurales: Complete hectáreas o m² (al menos uno)

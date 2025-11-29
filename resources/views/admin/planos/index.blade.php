@@ -1928,6 +1928,23 @@
                         // Ocultar loading y mostrar modal
                         $('#edit-folio-loading-overlay').hide();
                         $('#edit-folio-modal').modal('show');
+
+                        // Formatear valores con 2 decimales si existen
+                        if ($('#edit_folio_hectareas').val()) {
+                            const ha = parseFloat($('#edit_folio_hectareas').val().replace(',', '.'));
+                            if (!isNaN(ha)) {
+                                $('#edit_folio_hectareas').val(formatNumber(ha, 2));
+                            }
+                        }
+                        if ($('#edit_folio_m2').val()) {
+                            const m2 = parseFloat($('#edit_folio_m2').val().replace(/\./g, '').replace(',', '.'));
+                            if (!isNaN(m2)) {
+                                $('#edit_folio_m2').val(formatNumber(m2, 2));
+                            }
+                        }
+
+                        // Activar conversiones bidireccionales para este modal
+                        attachEditFolioConversionListeners();
                     })
                     .fail(function(xhr) {
                         $('#edit-folio-loading-overlay').hide();
@@ -1939,6 +1956,51 @@
                             confirmButtonColor: '#dc3545'
                         });
                     });
+            }
+
+            // Conversión bidireccional y auto-formato para modal edit-folio
+            function attachEditFolioConversionListeners() {
+                // Remover listeners previos para evitar duplicados
+                $('#edit_folio_hectareas').off('input blur');
+                $('#edit_folio_m2').off('input blur');
+
+                // Hectáreas -> M² (conversión automática)
+                $('#edit_folio_hectareas').on('input', function() {
+                    let valor = $(this).val().replace(',', '.');
+                    if (valor && !isNaN(valor)) {
+                        const ha = parseFloat(valor);
+                        const m2 = ha * 10000;
+                        $('#edit_folio_m2').val(formatNumber(m2, 2));
+                    }
+                });
+
+                // Auto-formato hectáreas al blur (siempre 2 decimales)
+                $('#edit_folio_hectareas').on('blur', function() {
+                    let valor = $(this).val().replace(',', '.');
+                    if (valor && !isNaN(valor)) {
+                        const ha = parseFloat(valor);
+                        $(this).val(formatNumber(ha, 2));
+                    }
+                });
+
+                // M² -> Hectáreas (conversión automática)
+                $('#edit_folio_m2').on('input', function() {
+                    let valor = $(this).val().replace(/\./g, '').replace(',', '.');
+                    if (valor && !isNaN(valor)) {
+                        const m2 = parseFloat(valor);
+                        const ha = m2 / 10000;
+                        $('#edit_folio_hectareas').val(formatNumber(ha, 2));
+                    }
+                });
+
+                // Auto-formato M² al blur (separador miles + 2 decimales)
+                $('#edit_folio_m2').on('blur', function() {
+                    let valor = $(this).val().replace(/\./g, '').replace(',', '.');
+                    if (valor && !isNaN(valor)) {
+                        const m2 = parseFloat(valor);
+                        $(this).val(formatNumber(m2, 2));
+                    }
+                });
             }
 
             function displayFolioValidationErrors(errors) {
