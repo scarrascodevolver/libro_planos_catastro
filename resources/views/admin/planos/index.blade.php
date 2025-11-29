@@ -348,6 +348,62 @@
         let currentEditPlanoId = null;
         let currentEditPlanoData = null;
 
+        // =====================================================
+        // FUNCIONES DE VALIDACIÓN DE INPUTS DECIMALES
+        // =====================================================
+
+        // Validación para M² y otros campos: permite puntos (miles) y comas (decimales), máximo 2 decimales
+        function validarNumeroDecimal(event) {
+            const charCode = event.which ? event.which : event.keyCode;
+            const valor = event.target.value;
+
+            // Permitir números (0-9)
+            if (charCode >= 48 && charCode <= 57) {
+                // Si hay coma, verificar que no exceda 2 decimales
+                const partes = valor.split(',');
+                if (partes.length > 1 && partes[1].length >= 2) {
+                    return false; // Ya tiene 2 decimales
+                }
+                return true;
+            }
+
+            // Permitir punto (.) como separador de miles
+            if (charCode === 46) {
+                return true;
+            }
+
+            // Permitir coma (,) como separador decimal (solo una)
+            if (charCode === 44 && valor.indexOf(',') === -1) {
+                return true;
+            }
+
+            return false;
+        }
+
+        // Validación específica para hectáreas: solo números y coma (NO puntos), máximo 2 decimales
+        function validarNumeroDecimalHectareas(event) {
+            const charCode = event.which ? event.which : event.keyCode;
+            const valor = event.target.value;
+
+            // Permitir números (0-9)
+            if (charCode >= 48 && charCode <= 57) {
+                // Si hay coma, verificar que no exceda 2 decimales
+                const partes = valor.split(',');
+                if (partes.length > 1 && partes[1].length >= 2) {
+                    return false; // Ya tiene 2 decimales
+                }
+                return true;
+            }
+
+            // Permitir SOLO coma (,) como separador decimal (una sola)
+            if (charCode === 44 && valor.indexOf(',') === -1) {
+                return true;
+            }
+
+            // NO permitir puntos en hectáreas
+            return false;
+        }
+
         function initPlanosTable() {
             const columnDefs = [{
                     "orderable": false,
