@@ -1434,8 +1434,8 @@ function generarCamposMedidasMatrix(folioIndex, cantidad, esRural, tipoInmueble)
     html += '<h6 class="text-secondary mb-3"><i class="fas fa-ruler-combined"></i> Medidas de cada ' + tipoInmueble.toLowerCase() + '</h6>';
 
     for (let i = 0; i < cantidad; i++) {
-        html += '<div class="row align-items-end mb-2">';
-        html += '<div class="col-md-2">';
+        html += '<div class="row mb-2">';
+        html += '<div class="col-md-2 d-flex align-items-center">';
         html += '<strong>' + tipoInmueble + ' #' + (i + 1) + '</strong>';
         html += '</div>';
 
@@ -1446,7 +1446,7 @@ function generarCamposMedidasMatrix(folioIndex, cantidad, esRural, tipoInmueble)
             html += '<div class="col-md-10">';
         }
         html += '<div class="form-group mb-0">';
-        html += '<label class="small">M² <span class="text-danger">*</span></label>';
+        html += '<label class="small mb-1">M² <span class="text-danger">*</span></label>';
         html += '<input type="text" class="form-control form-control-sm m2-inmueble-matrix" data-folio="' + folioIndex + '" data-inmueble="' + i + '" placeholder="0,00" required inputmode="decimal" onkeypress="return validarNumeroDecimal(event)">';
         html += '</div>';
         html += '</div>';
@@ -1455,9 +1455,8 @@ function generarCamposMedidasMatrix(folioIndex, cantidad, esRural, tipoInmueble)
         if (esRural) {
             html += '<div class="col-md-5">';
             html += '<div class="form-group mb-0">';
-            html += '<label class="small">Hectáreas</label>';
+            html += '<label class="small mb-1">Hectáreas</label>';
             html += '<input type="text" class="form-control form-control-sm hectareas-inmueble-matrix" data-folio="' + folioIndex + '" data-inmueble="' + i + '" placeholder="0,00" inputmode="decimal" onkeypress="return validarNumeroDecimalHectareas(event)">';
-            html += '<small class="text-muted">Auto-convierte desde M²</small>';
             html += '</div>';
             html += '</div>';
         }
@@ -2208,8 +2207,8 @@ function generarCamposMedidas(folioIndex, cantidad, esRural, tipoInmueble) {
     html += '<h6 class="text-secondary mb-3"><i class="fas fa-ruler-combined"></i> Medidas de cada ' + tipoInmueble.toLowerCase() + '</h6>';
 
     for (let i = 0; i < cantidad; i++) {
-        html += '<div class="row align-items-end mb-2">';
-        html += '<div class="col-md-2">';
+        html += '<div class="row mb-2">';
+        html += '<div class="col-md-2 d-flex align-items-center">';
         html += '<strong>' + tipoInmueble + ' #' + (i + 1) + '</strong>';
         html += '</div>';
 
@@ -2220,7 +2219,7 @@ function generarCamposMedidas(folioIndex, cantidad, esRural, tipoInmueble) {
             html += '<div class="col-md-10">';
         }
         html += '<div class="form-group mb-0">';
-        html += '<label class="small">M² <span class="text-danger">*</span></label>';
+        html += '<label class="small mb-1">M² <span class="text-danger">*</span></label>';
         html += '<input type="text" class="form-control form-control-sm m2-inmueble" data-folio="' + folioIndex + '" data-inmueble="' + i + '" placeholder="0,00" required inputmode="decimal" onkeypress="return validarNumeroDecimal(event)">';
         html += '</div>';
         html += '</div>';
@@ -2229,9 +2228,8 @@ function generarCamposMedidas(folioIndex, cantidad, esRural, tipoInmueble) {
         if (esRural) {
             html += '<div class="col-md-5">';
             html += '<div class="form-group mb-0">';
-            html += '<label class="small">Hectáreas</label>';
+            html += '<label class="small mb-1">Hectáreas</label>';
             html += '<input type="text" class="form-control form-control-sm hectareas-inmueble" data-folio="' + folioIndex + '" data-inmueble="' + i + '" placeholder="0,00" inputmode="decimal" onkeypress="return validarNumeroDecimalHectareas(event)">';
-            html += '<small class="text-muted">Auto-convierte desde M²</small>';
             html += '</div>';
             html += '</div>';
         }
@@ -2651,8 +2649,8 @@ function generarCamposMedidasManualMultiple(folioIndex, cantidad, esRural, tipoI
     html += '<h6 class="text-secondary mb-3"><i class="fas fa-ruler-combined"></i> Medidas de cada ' + tipoInmueble.toLowerCase() + '</h6>';
 
     for (let i = 0; i < cantidad; i++) {
-        html += '<div class="row align-items-end mb-2">';
-        html += '<div class="col-md-2">';
+        html += '<div class="row mb-2">';
+        html += '<div class="col-md-2 d-flex align-items-center">';
         html += '<strong>' + tipoInmueble + ' #' + (i + 1) + '</strong>';
         html += '</div>';
 
@@ -2663,7 +2661,7 @@ function generarCamposMedidasManualMultiple(folioIndex, cantidad, esRural, tipoI
             html += '<div class="col-md-10">';
         }
         html += '<div class="form-group mb-0">';
-        html += '<label class="small">M² <span class="text-danger">*</span></label>';
+        html += '<label class="small mb-1">M² <span class="text-danger">*</span></label>';
         html += '<input type="text" class="form-control form-control-sm m2-inmueble-manual-multiple" data-folio="' + folioIndex + '" data-inmueble="' + i + '" placeholder="0,00" required inputmode="decimal" onkeypress="return validarNumeroDecimal(event)">';
         html += '</div></div>';
 
@@ -2671,9 +2669,8 @@ function generarCamposMedidasManualMultiple(folioIndex, cantidad, esRural, tipoI
         if (esRural) {
             html += '<div class="col-md-5">';
             html += '<div class="form-group mb-0">';
-            html += '<label class="small">Hectáreas</label>';
+            html += '<label class="small mb-1">Hectáreas</label>';
             html += '<input type="text" class="form-control form-control-sm hectareas-inmueble-manual-multiple" data-folio="' + folioIndex + '" data-inmueble="' + i + '" placeholder="0,00" inputmode="decimal" onkeypress="return validarNumeroDecimalHectareas(event)">';
-            html += '<small class="text-muted">Auto-convierte desde M²</small>';
             html += '</div></div>';
         }
 
