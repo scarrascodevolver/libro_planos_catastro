@@ -842,8 +842,9 @@
                 const title = $(header).text().trim();
                 const isVisible = planosTable.column(index).visible();
                 const isExportable = !$(header).hasClass('no-export');
+                const isNever = $(header).hasClass('never'); // Columnas internas que nunca se deben mostrar
 
-                if (isExportable && title) {
+                if (isExportable && title && !isNever) {
                     const label = document.createElement('label');
                     label.style.cssText = `
                 display: flex !important;
