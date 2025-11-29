@@ -431,7 +431,7 @@
                     "targets": [0, 1, 2, 7, 8, 9, 10, 11]
                 }, // No wrap solo para columnas numéricas y fechas
                 {
-                    "targets": [3, 4, 5], // Solicitante, Ap.Paterno, Ap.Materno
+                    "targets": [4, 5], // Solicitante, Ap.Paterno
                     "width": "150px",
                     "className": "text-truncate-cell",
                     "render": function(data, type, row) {
@@ -442,8 +442,30 @@
                     }
                 },
                 {
-                    "targets": [6], // Comuna
+                    "targets": [6], // Ap.Materno
+                    "width": "120px",
+                    "className": "text-truncate-cell",
+                    "render": function(data, type, row) {
+                        if (type === 'display' && data && data.length > 15) {
+                            return '<span title="' + data + '">' + data + '</span>';
+                        }
+                        return data;
+                    }
+                },
+                {
+                    "targets": [7], // Comuna
                     "width": "120px"
+                },
+                {
+                    "targets": [14], // Observaciones
+                    "width": "180px",
+                    "className": "text-truncate-cell",
+                    "render": function(data, type, row) {
+                        if (type === 'display' && data && data.length > 30) {
+                            return '<span title="' + data + '">' + data + '</span>';
+                        }
+                        return data;
+                    }
                 },
                 {
                     "targets": [3], // folios_completos
