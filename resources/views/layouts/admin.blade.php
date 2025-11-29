@@ -330,6 +330,18 @@ const toastr = {
 <!-- Session Control JS (solo para registro) -->
 @if(Auth::user()->isRegistro())
 <script>
+// Configurar AJAX para enviar credenciales (cookies de sesión)
+// Soluciona error 401 Unauthorized en requests AJAX
+$.ajaxSetup({
+    headers: {
+        'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content'),
+        'X-Requested-With': 'XMLHttpRequest'
+    },
+    xhrFields: {
+        withCredentials: true  // Envía cookies de sesión
+    }
+});
+
 // Session Control Management - Centralizado en Navbar
 $(document).ready(function() {
     initSessionControl();
