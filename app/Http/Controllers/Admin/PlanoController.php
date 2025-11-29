@@ -62,6 +62,8 @@ class PlanoController extends Controller
                 if (Auth::user()->isRegistro()) {
                     $acciones .= '<a class="dropdown-item editar-plano" href="#" data-id="'.$plano->id.'"><i class="fas fa-edit mr-2 text-primary"></i>Editar Plano</a>';
                     $acciones .= '<a class="dropdown-item reasignar-plano" href="#" data-id="'.$plano->id.'"><i class="fas fa-exchange-alt mr-2 text-warning"></i>Reasignar N°</a>';
+                    $acciones .= '<div class="dropdown-divider"></div>';
+                    $acciones .= '<a class="dropdown-item eliminar-plano" href="#" data-id="'.$plano->id.'" data-numero="'.$plano->numero_plano_completo.'" data-folios="'.$plano->folios->count().'"><i class="fas fa-trash-alt mr-2 text-danger"></i>Eliminar Plano</a>';
                 }
 
                 $acciones .= '</div></div>';
@@ -1016,13 +1018,49 @@ class PlanoController extends Controller
             abort(403, 'No tienes permisos para eliminar planos');
         }
 
-        $plano = Plano::findOrFail($id);
-        $plano->delete();
+        try {
+            // Cargar plano con sus folios
+            $plano = Plano::with('folios')->findOrFail($id);
 
-        return response()->json([
-            'success' => true,
-            'message' => 'Plano eliminado correctamente'
-        ]);
+            // Capturar información ANTES de eliminar
+            $numeroPlano = $plano->numero_plano_completo;
+            $cantidadFolios = $plano->folios->count();
+            $foliosEliminados = $plano->folios->pluck('folio')->toArray();
+
+            // Logging crítico para auditoría
+            \Log::warning('ELIMINACIÓN DE PLANO', [
+                'user_id' => Auth::id(),
+                'user_email' => Auth::user()->email,
+                'plano_id' => $plano->id,
+                'numero_plano' => $numeroPlano,
+                'comuna' => $plano->comuna,
+                'cantidad_folios' => $cantidadFolios,
+                'folios' => implode(', ', $foliosEliminados),
+                'timestamp' => now()
+            ]);
+
+            // Eliminar plano (CASCADE elimina folios automáticamente)
+            $plano->delete();
+
+            return response()->json([
+                'success' => true,
+                'message' => "Plano {$numeroPlano} eliminado correctamente",
+                'plano_eliminado' => $numeroPlano,
+                'folios_eliminados' => $cantidadFolios
+            ]);
+
+        } catch (\Exception $e) {
+            \Log::error('ERROR AL ELIMINAR PLANO', [
+                'user_id' => Auth::id(),
+                'plano_id' => $id,
+                'error' => $e->getMessage()
+            ]);
+
+            return response()->json([
+                'success' => false,
+                'message' => 'Error al eliminar el plano: ' . $e->getMessage()
+            ], 500);
+        }
     }
 
     public function editFolio($folioId)

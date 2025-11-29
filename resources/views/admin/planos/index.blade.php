@@ -1667,6 +1667,93 @@
                     });
             }
 
+            // ===== ELIMINAR PLANO =====
+            $(document).on('click', '.eliminar-plano', function(e) {
+                e.preventDefault();
+                const planoId = $(this).data('id');
+                const numeroPlano = $(this).data('numero');
+                const cantidadFolios = $(this).data('folios');
+
+                Swal.fire({
+                    title: '¿Eliminar Plano?',
+                    html: `
+                        <div class="text-left">
+                            <p><strong>Número de Plano:</strong> <span class="text-primary">${numeroPlano}</span></p>
+                            <p><strong>Folios asociados:</strong> <span class="badge badge-info">${cantidadFolios}</span></p>
+                            <hr>
+                            <div class="alert alert-danger">
+                                <i class="fas fa-exclamation-triangle"></i> <strong>Esta operación es IRREVERSIBLE</strong>
+                            </div>
+                            <p>Se eliminarán permanentemente:</p>
+                            <ul class="text-left">
+                                <li>El registro del plano <strong>${numeroPlano}</strong></li>
+                                <li>Todos los folios asociados (<strong>${cantidadFolios}</strong>)</li>
+                            </ul>
+                        </div>
+                    `,
+                    icon: 'warning',
+                    showCancelButton: true,
+                    confirmButtonColor: '#d33',
+                    cancelButtonColor: '#3085d6',
+                    confirmButtonText: '<i class="fas fa-trash-alt"></i> Sí, eliminar',
+                    cancelButtonText: '<i class="fas fa-times"></i> Cancelar',
+                    reverseButtons: true,
+                    focusCancel: true
+                }).then((result) => {
+                    if (result.isConfirmed) {
+                        eliminarPlano(planoId, numeroPlano);
+                    }
+                });
+            });
+
+            function eliminarPlano(planoId, numeroPlano) {
+                // Mostrar loading
+                Swal.fire({
+                    title: 'Eliminando...',
+                    html: `Eliminando plano <strong>${numeroPlano}</strong>`,
+                    allowOutsideClick: false,
+                    allowEscapeKey: false,
+                    showConfirmButton: false,
+                    didOpen: () => {
+                        Swal.showLoading();
+                    }
+                });
+
+                $.ajax({
+                    url: `/planos/${planoId}`,
+                    type: 'DELETE',
+                    data: {
+                        _token: '{{ csrf_token() }}'
+                    },
+                    success: function(response) {
+                        if (response.success) {
+                            Swal.fire({
+                                icon: 'success',
+                                title: 'Plano Eliminado',
+                                html: `
+                                    <p>Plano <strong>${response.plano_eliminado}</strong> eliminado correctamente.</p>
+                                    <p>Se eliminaron <strong>${response.folios_eliminados}</strong> folios asociados.</p>
+                                `,
+                                timer: 3000,
+                                timerProgressBar: true,
+                                showConfirmButton: false
+                            });
+
+                            // Recargar DataTable
+                            $('#planos-table').DataTable().ajax.reload(null, false);
+                        }
+                    },
+                    error: function(xhr) {
+                        Swal.fire({
+                            icon: 'error',
+                            title: 'Error al Eliminar',
+                            html: xhr.responseJSON?.message || 'Error desconocido al eliminar el plano',
+                            confirmButtonColor: '#d33'
+                        });
+                    }
+                });
+            }
+
             function initModals() {
                 // Modal Editar - Submit con validación avanzada
                 $('#form-edit-plano').on('submit', function(e) {
