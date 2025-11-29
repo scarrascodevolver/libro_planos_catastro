@@ -117,13 +117,13 @@
                             <table class="table table-sm table-bordered mb-0" id="tabla-folios-edit">
                                 <thead class="thead-light">
                                     <tr>
-                                        <th width="100">Folio</th>
-                                        <th>Solicitante</th>
-                                        <th>Ap. Paterno</th>
-                                        <th>Ap. Materno</th>
-                                        <th width="90">Tipo</th>
-                                        <th width="80">Hectáreas</th>
-                                        <th width="80">M²</th>
+                                        <th width="120">Folio</th>
+                                        <th width="150">Solicitante</th>
+                                        <th width="120">Ap. Paterno</th>
+                                        <th width="120">Ap. Materno</th>
+                                        <th width="100">Tipo</th>
+                                        <th width="110">Hectáreas</th>
+                                        <th width="120">M²</th>
                                         <th width="40"></th>
                                     </tr>
                                 </thead>
