@@ -61,7 +61,6 @@
                         Históricos (Una vez)
                         <i class="fas fa-info-circle text-muted ml-1" data-toggle="tooltip"
                            title="21 columnas: N° Plano, Comuna, Responsable, Proyecto, Folios, Datos personales, Hectáreas, M², Fechas, Archivos"></i>
-                        <span class="badge badge-danger ml-1">Irreversible</span>
                     </h6>
 
                     <form id="form-historicos-import" enctype="multipart/form-data">
