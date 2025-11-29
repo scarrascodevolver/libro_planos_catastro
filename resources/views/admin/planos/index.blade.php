@@ -184,9 +184,9 @@
                 <div class="row">
                     <div class="col-md-2">
                         <div class="form-group">
-                            <label for="filtro_archivo">Archivo</label>
+                            <label for="filtro_archivo">Providencia Archivo</label>
                             <input type="text" class="form-control form-control-sm" id="filtro_archivo"
-                                name="archivo" placeholder="Archivo">
+                                name="archivo" placeholder="Providencia Archivo">
                         </div>
                     </div>
                     <div class="col-md-2">
@@ -277,7 +277,7 @@
                             <th>Responsable</th>
                             <th>Proyecto</th>
                             <th>Observaciones</th>
-                            <th>Archivo</th>
+                            <th>Providencia Archivo</th>
                             <th>Tubo</th>
                             <th>Tela</th>
                             <th>Archivo Digital</th>
