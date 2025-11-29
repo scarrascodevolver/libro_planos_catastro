@@ -285,14 +285,13 @@ class PlanoHistoricoController extends Controller
                 'M²_SITIO' => floatval($fila[12] ?? 0), // Col M (era N)
                 'FECHA' => $fila[13] ?? '',             // Col N (era O)
                 'AÑO' => intval($fila[14] ?? 0),        // Col O (era P)
-                'Responsable' => $fila[15] ?? '',       // Col P (era Q)
-                'PROYECTO' => $fila[16] ?? '',          // Col Q (era R)
-                'PROVIDENCIA' => $fila[17] ?? '',       // Col R (era S)
-                'ARCHIVO' => $fila[18] ?? '',           // Col S (era T)
-                'OBSERVACION' => $fila[19] ?? '',       // Col T (era U)
-                'TUBO' => $fila[20] ?? '',              // Col U (era V)
-                'TELA' => $fila[21] ?? '',              // Col V (era W)
-                'ARCHIVO_DIGITAL' => $fila[22] ?? ''    // Col W (era X)
+                'Responsable' => $fila[15] ?? '',           // Col P: EMPRESA TECNICO
+                'PROYECTO' => $fila[16] ?? '',              // Col Q: PROYECTO
+                'PROVIDENCIA_ARCHIVO' => $fila[17] ?? '',   // Col R: PROVIDENCIA ARCHIVO
+                'OBSERVACION' => $fila[18] ?? '',           // Col S: OBSERVACION
+                'TUBO' => $fila[19] ?? '',                  // Col T: TUBO
+                'TELA' => $fila[20] ?? '',                  // Col U: TELA
+                'ARCHIVO_DIGITAL' => $fila[21] ?? ''        // Col V: ARCHIVO DIGITAL
             ];
 
         } else {
@@ -330,14 +329,13 @@ class PlanoHistoricoController extends Controller
                 'M²_SITIO' => floatval($fila[13] ?? 0), // Segunda columna M² - Con decimales
                 'FECHA' => $fila[14] ?? '',
                 'AÑO' => intval($fila[15] ?? 0),
-                'Responsable' => $fila[16] ?? '',
-                'PROYECTO' => $fila[17] ?? '',
-                'PROVIDENCIA' => $fila[18] ?? '',
-                'ARCHIVO' => $fila[19] ?? '',
-                'OBSERVACION' => $fila[20] ?? '',
-                'TUBO' => $fila[21] ?? '',
-                'TELA' => $fila[22] ?? '',
-                'ARCHIVO_DIGITAL' => $fila[23] ?? ''
+                'Responsable' => $fila[15] ?? '',           // Col P: EMPRESA TECNICO
+                'PROYECTO' => $fila[16] ?? '',              // Col Q: PROYECTO
+                'PROVIDENCIA_ARCHIVO' => $fila[17] ?? '',   // Col R: PROVIDENCIA ARCHIVO
+                'OBSERVACION' => $fila[18] ?? '',           // Col S: OBSERVACION
+                'TUBO' => $fila[19] ?? '',                  // Col T: TUBO
+                'TELA' => $fila[20] ?? '',                  // Col U: TELA
+                'ARCHIVO_DIGITAL' => $fila[21] ?? ''        // Col V: ARCHIVO DIGITAL
             ];
         }
     }
@@ -626,12 +624,11 @@ class PlanoHistoricoController extends Controller
             'ano' => $primerFila['AÑO'],
             'responsable' => $primerFila['Responsable'],
             'proyecto' => $primerFila['PROYECTO'],
-            'providencia' => $primerFila['PROVIDENCIA'],
             'total_hectareas' => $totalHectareas > 0 ? $totalHectareas : null,
             'total_m2' => $totalM2,
             'cantidad_folios' => count($grupo),
             'observaciones' => $primerFila['OBSERVACION'],
-            'archivo' => $primerFila['ARCHIVO'],
+            'providencia_archivo' => $primerFila['PROVIDENCIA_ARCHIVO'],
             'tubo' => $primerFila['TUBO'],
             'tela' => $primerFila['TELA'],
             'archivo_digital' => $primerFila['ARCHIVO_DIGITAL'],

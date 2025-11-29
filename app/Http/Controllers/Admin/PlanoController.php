@@ -102,7 +102,7 @@ class PlanoController extends Controller
                 return $plano->observaciones ?: '-';
             })
             ->addColumn('archivo_display', function ($plano) {
-                return $plano->archivo ?: '-';
+                return $plano->providencia_archivo ?: '-';
             })
             ->addColumn('tubo_display', function ($plano) {
                 return $plano->tubo ?: '-';
@@ -130,7 +130,7 @@ class PlanoController extends Controller
                           ->orWhere('mes', 'LIKE', "%{$searchValue}%")
                           ->orWhere('ano', 'LIKE', "%{$searchValue}%")
                           ->orWhere('observaciones', 'LIKE', "%{$searchValue}%")
-                          ->orWhere('archivo', 'LIKE', "%{$searchValue}%")
+                          ->orWhere('providencia_archivo', 'LIKE', "%{$searchValue}%")
                           ->orWhere('tubo', 'LIKE', "%{$searchValue}%")
                           ->orWhere('tela', 'LIKE', "%{$searchValue}%")
                           ->orWhere('archivo_digital', 'LIKE', "%{$searchValue}%")
@@ -175,7 +175,7 @@ class PlanoController extends Controller
                       ->orWhere('mes', 'LIKE', "%{$searchValue}%")
                       ->orWhere('ano', 'LIKE', "%{$searchValue}%")
                       ->orWhere('observaciones', 'LIKE', "%{$searchValue}%")
-                      ->orWhere('archivo', 'LIKE', "%{$searchValue}%")
+                      ->orWhere('providencia_archivo', 'LIKE', "%{$searchValue}%")
                       ->orWhere('tubo', 'LIKE', "%{$searchValue}%")
                       ->orWhere('tela', 'LIKE', "%{$searchValue}%")
                       ->orWhere('archivo_digital', 'LIKE', "%{$searchValue}%")
@@ -265,7 +265,7 @@ class PlanoController extends Controller
         }
 
         if ($request->filled('archivo')) {
-            $query->where('archivo', 'LIKE', '%' . $request->archivo . '%');
+            $query->where('providencia_archivo', 'LIKE', '%' . $request->archivo . '%');
         }
 
         if ($request->filled('tubo')) {
@@ -405,8 +405,8 @@ class PlanoController extends Controller
                                 <td>' . ($plano->providencia ?: '-') . '</td>
                             </tr>
                             <tr>
-                                <td><strong>Archivo:</strong></td>
-                                <td>' . ($plano->archivo ?: '-') . '</td>
+                                <td><strong>Providencia Archivo:</strong></td>
+                                <td>' . ($plano->providencia_archivo ?: '-') . '</td>
                             </tr>
                             <tr>
                                 <td><strong>Tubo:</strong></td>
@@ -756,7 +756,7 @@ class PlanoController extends Controller
             'total_hectareas' => 'nullable|numeric|min:0',
             'total_m2' => 'required|numeric|min:0.01',
             'observaciones' => 'nullable|string|max:1000',
-            'archivo' => 'nullable|string|max:255',
+            'providencia_archivo' => 'nullable|string|max:255',
             'tubo' => 'nullable|string|max:255',
             'tela' => 'nullable|string|max:255',
             'archivo_digital' => 'nullable|string|max:255',
@@ -766,7 +766,7 @@ class PlanoController extends Controller
         $plano->update($request->only([
             'comuna', 'responsable', 'proyecto', 'tipo_saneamiento',
             'provincia', 'mes', 'ano', 'total_hectareas', 'total_m2',
-            'observaciones', 'archivo', 'tubo', 'tela', 'archivo_digital'
+            'observaciones', 'providencia_archivo', 'tubo', 'tela', 'archivo_digital'
         ]));
 
         return response()->json([
@@ -977,7 +977,7 @@ class PlanoController extends Controller
             'total_m2' => $planoOriginal->total_m2,
             'cantidad_folios' => $planoOriginal->cantidad_folios,
             'observaciones' => $planoOriginal->observaciones,
-            'archivo' => $planoOriginal->archivo,
+            'providencia_archivo' => $planoOriginal->providencia_archivo,
             'tubo' => $planoOriginal->tubo,
             'tela' => $planoOriginal->tela,
             'archivo_digital' => $planoOriginal->archivo_digital,

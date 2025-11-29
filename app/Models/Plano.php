@@ -12,9 +12,9 @@ class Plano extends Model
     protected $fillable = [
         'numero_plano', 'codigo_region', 'codigo_comuna', 'numero_correlativo',
         'tipo_saneamiento', 'provincia', 'comuna', 'mes', 'ano',
-        'responsable', 'proyecto', 'providencia', 'total_hectareas', 'total_m2',
-        'cantidad_folios', 'observaciones', 'archivo', 'tubo', 'tela',
-        'archivo_digital', 'created_by'
+        'responsable', 'proyecto', 'total_hectareas', 'total_m2',
+        'cantidad_folios', 'observaciones', 'providencia_archivo', 'tubo', 'tela',
+        'archivo_digital', 'created_by', 'is_historical'
     ];
 
     protected $casts = [
