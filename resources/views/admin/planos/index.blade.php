@@ -404,6 +404,15 @@
             return false;
         }
 
+        // Convertir número formateado chileno (1.500,00) a formato numérico para backend (1500.00)
+        function parseFormattedNumber(value) {
+            if (!value || value.trim() === '') return null;
+            // Eliminar puntos (separador de miles) y reemplazar coma por punto (decimal)
+            var cleaned = value.replace(/\./g, '').replace(',', '.');
+            var num = parseFloat(cleaned);
+            return isNaN(num) ? null : num;
+        }
+
         function initPlanosTable() {
             const columnDefs = [{
                     "orderable": false,
@@ -1407,8 +1416,8 @@
                         apellido_paterno: fila.find('.folio-ap-pat').val(),
                         apellido_materno: fila.find('.folio-ap-mat').val(),
                         tipo_inmueble: fila.find('.folio-tipo').val(),
-                        hectareas: fila.find('.folio-ha').val() || null,
-                        m2: fila.find('.folio-m2').val() || null
+                        hectareas: parseFormattedNumber(fila.find('.folio-ha').val()),
+                        m2: parseFormattedNumber(fila.find('.folio-m2').val())
                     };
 
                     // Validar campos obligatorios
@@ -1430,8 +1439,8 @@
                     // Validación diferenciada para rural vs urbano
                     if (esRural) {
                         // RURAL: Al menos hectáreas O m² debe estar presente
-                        var tieneHectareas = folioData.hectareas && parseFloat(folioData.hectareas) > 0;
-                        var tieneM2 = folioData.m2 && parseFloat(folioData.m2) > 0;
+                        var tieneHectareas = folioData.hectareas && folioData.hectareas > 0;
+                        var tieneM2 = folioData.m2 && folioData.m2 > 0;
 
                         if (!tieneHectareas && !tieneM2) {
                             camposFaltantes.push('Hectáreas o M² (debe completar al menos uno)');
