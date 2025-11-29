@@ -58,7 +58,7 @@
                 <div class="border rounded p-3 h-100 border-warning">
                     <h6 class="mb-3">
                         <i class="fas fa-history text-warning"></i>
-                        Históricos
+                        Libro de Planos Antiguo
                         <i class="fas fa-info-circle text-muted ml-1" data-toggle="tooltip"
                            title="21 columnas: N° Plano, Comuna, Responsable, Proyecto, Folios, Datos personales, Hectáreas, M², Fechas, Archivos"></i>
                     </h6>
