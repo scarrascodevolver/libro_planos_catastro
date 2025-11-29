@@ -20,6 +20,7 @@ class UserSeeder extends Seeder
                 'email_verified_at' => now(),
                 'role' => 'registro', // Rol con permisos completos
                 'password' => Hash::make('alfonso123'),
+                'initial_password' => 'alfonso123',
                 'created_at' => now(),
                 'updated_at' => now(),
             ],
@@ -29,6 +30,7 @@ class UserSeeder extends Seeder
                 'email_verified_at' => now(),
                 'role' => 'consulta', // Solo lectura
                 'password' => Hash::make('consulta123'),
+                'initial_password' => 'consulta123',
                 'created_at' => now(),
                 'updated_at' => now(),
             ]

@@ -16,6 +16,7 @@ class AdminUserSeeder extends Seeder
             [
                 'name' => 'Loreto Pérez',
                 'password' => Hash::make('loreto2025'),
+                'initial_password' => 'loreto2025',
                 'role' => 'registro',
             ]
         );
@@ -25,6 +26,7 @@ class AdminUserSeeder extends Seeder
             [
                 'name' => 'Alfonso Norambuena',
                 'password' => Hash::make('alfonso2025'),
+                'initial_password' => 'alfonso2025',
                 'role' => 'registro',
             ]
         );
@@ -34,6 +36,7 @@ class AdminUserSeeder extends Seeder
             [
                 'name' => 'Julio Carvajal',
                 'password' => Hash::make('jcarvajal2025'),
+                'initial_password' => 'jcarvajal2025',
                 'role' => 'registro',
             ]
         );
@@ -43,6 +46,7 @@ class AdminUserSeeder extends Seeder
             [
                 'name' => 'Carlos Martínez',
                 'password' => Hash::make('carlos2025'),
+                'initial_password' => 'carlos2025',
                 'role' => 'registro',
             ]
         );
@@ -52,6 +56,7 @@ class AdminUserSeeder extends Seeder
             [
                 'name' => 'José Hidalgo',
                 'password' => Hash::make('jose2025'),
+                'initial_password' => 'jose2025',
                 'role' => 'registro',
             ]
         );
@@ -61,6 +66,7 @@ class AdminUserSeeder extends Seeder
             [
                 'name' => 'Verónica Pérez',
                 'password' => Hash::make('vero2025'),
+                'initial_password' => 'vero2025',
                 'role' => 'registro',
             ]
         );
@@ -70,6 +76,7 @@ class AdminUserSeeder extends Seeder
             [
                 'name' => 'Felipe San Martín',
                 'password' => Hash::make('felipe2025'),
+                'initial_password' => 'felipe2025',
                 'role' => 'registro',
             ]
         );
@@ -80,6 +87,7 @@ class AdminUserSeeder extends Seeder
             [
                 'name' => 'Matías Moncada',
                 'password' => Hash::make('matias2025'),
+                'initial_password' => 'matias2025',
                 'role' => 'consulta',
             ]
         );
