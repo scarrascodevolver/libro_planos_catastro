@@ -350,9 +350,12 @@ $(document).ready(function() {
 function initSessionControl() {
     console.log('🔄 Inicializando control de sesión...');
 
-    // Verificar estado inicial
-    checkSessionStatus();
-    checkPendingRequests();
+    // Delay inicial de 500ms para permitir que la sesión se establezca completamente
+    // Esto evita errores 401 al recargar la página rápidamente
+    setTimeout(function() {
+        checkSessionStatus();
+        checkPendingRequests();
+    }, 500);
 
     // Bind eventos
     $('#request-control-btn').on('click', requestControl);
@@ -369,13 +372,26 @@ function initSessionControl() {
 }
 
 function checkSessionStatus() {
-    $.get('{{ route("session-control.status") }}')
-        .done(function(response) {
-            updateSessionUI(response);
-        })
-        .fail(function() {
-            updateSessionUI({hasControl: false, canRequest: false});
-        });
+    $.ajax({
+        url: '{{ route("session-control.status") }}',
+        method: 'GET',
+        statusCode: {
+            401: function() {
+                // Sesión no disponible - actualizar UI silenciosamente sin mostrar error
+                updateSessionUI({hasControl: false, canRequest: false});
+            }
+        }
+    })
+    .done(function(response) {
+        updateSessionUI(response);
+    })
+    .fail(function(xhr) {
+        // Solo mostrar error si NO es 401 (ya manejado arriba)
+        if (xhr.status !== 401) {
+            console.error('Error verificando sesión:', xhr.status);
+        }
+        updateSessionUI({hasControl: false, canRequest: false});
+    });
 }
 
 function updateSessionUI(status) {
@@ -435,60 +451,74 @@ function updateSessionUI(status) {
 let lastPendingCount = 0;
 
 function checkPendingRequests() {
-    $.get('{{ route("session-control.pending-requests") }}')
-        .done(function(response) {
-            // console.log('📬 Solicitudes pendientes:', response);
+    $.ajax({
+        url: '{{ route("session-control.pending-requests") }}',
+        method: 'GET',
+        statusCode: {
+            401: function() {
+                // Sesión no disponible - ocultar secciones silenciosamente
+                $('#pending-requests-count').hide();
+                $('#pending-requests-section').hide();
+            }
+        }
+    })
+    .done(function(response) {
+        // console.log('📬 Solicitudes pendientes:', response);
 
-            const section = $('#pending-requests-section');
-            const list = $('#pending-requests-list');
-            const countBadge = $('#pending-requests-count');
+        const section = $('#pending-requests-section');
+        const list = $('#pending-requests-list');
+        const countBadge = $('#pending-requests-count');
 
-            if (response.count > 0) {
-                // Notificar si hay nuevas solicitudes - abrir dropdown automáticamente
-                if (response.count > lastPendingCount) {
-                    // Abrir el dropdown para mostrar la solicitud
-                    $('#session-status-btn').dropdown('show');
-                }
-                lastPendingCount = response.count;
+        if (response.count > 0) {
+            // Notificar si hay nuevas solicitudes - abrir dropdown automáticamente
+            if (response.count > lastPendingCount) {
+                // Abrir el dropdown para mostrar la solicitud
+                $('#session-status-btn').dropdown('show');
+            }
+            lastPendingCount = response.count;
 
-                // Mostrar contador en badge
-                countBadge.text(response.count).show();
+            // Mostrar contador en badge
+            countBadge.text(response.count).show();
 
-                // Construir lista de solicitudes
-                let html = '';
-                response.requests.forEach(function(req) {
-                    html += `
-                        <div class="dropdown-item py-2" style="white-space: normal;">
-                            <div class="d-flex justify-content-between align-items-start">
-                                <div>
-                                    <strong>${req.from_user_name}</strong>
-                                    <small class="d-block text-muted">${req.message || 'Solicita control'}</small>
-                                </div>
-                                <div class="btn-group btn-group-sm ml-2">
-                                    <button class="btn btn-success btn-xs" onclick="respondRequest(${req.id}, 'accept')">
-                                        <i class="fas fa-check"></i>
-                                    </button>
-                                    <button class="btn btn-danger btn-xs" onclick="respondRequest(${req.id}, 'reject')">
-                                        <i class="fas fa-times"></i>
-                                    </button>
-                                </div>
+            // Construir lista de solicitudes
+            let html = '';
+            response.requests.forEach(function(req) {
+                html += `
+                    <div class="dropdown-item py-2" style="white-space: normal;">
+                        <div class="d-flex justify-content-between align-items-start">
+                            <div>
+                                <strong>${req.from_user_name}</strong>
+                                <small class="d-block text-muted">${req.message || 'Solicita control'}</small>
+                            </div>
+                            <div class="btn-group btn-group-sm ml-2">
+                                <button class="btn btn-success btn-xs" onclick="respondRequest(${req.id}, 'accept')">
+                                    <i class="fas fa-check"></i>
+                                </button>
+                                <button class="btn btn-danger btn-xs" onclick="respondRequest(${req.id}, 'reject')">
+                                    <i class="fas fa-times"></i>
+                                </button>
                             </div>
                         </div>
-                    `;
-                });
+                    </div>
+                `;
+            });
 
-                list.html(html);
-                section.show();
-            } else {
-                lastPendingCount = 0;
-                countBadge.hide();
-                section.hide();
-            }
-        })
-        .fail(function() {
-            $('#pending-requests-count').hide();
-            $('#pending-requests-section').hide();
-        });
+            list.html(html);
+            section.show();
+        } else {
+            lastPendingCount = 0;
+            countBadge.hide();
+            section.hide();
+        }
+    })
+    .fail(function(xhr) {
+        // Solo mostrar error si NO es 401 (ya manejado arriba)
+        if (xhr.status !== 401) {
+            console.error('Error verificando solicitudes pendientes:', xhr.status);
+        }
+        $('#pending-requests-count').hide();
+        $('#pending-requests-section').hide();
+    });
 }
 
 function requestControl() {
