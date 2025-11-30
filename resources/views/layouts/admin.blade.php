@@ -395,6 +395,15 @@ function checkSessionStatus() {
 }
 
 function updateSessionUI(status) {
+    // ✅ GUARDAR EN VARIABLE GLOBAL para acceso inmediato sin AJAX
+    window.sessionControlStatus = {
+        hasControl: status.hasControl || false,
+        whoHasControl: status.whoHasControl || null,
+        canRequest: status.canRequest || false,
+        proximoCorrelativo: status.proximoCorrelativo || null,
+        lastUpdate: new Date().getTime()
+    };
+
     const icon = $('#session-status-icon');
     const text = $('#session-status-text');
     const title = $('#control-status-title');

@@ -2918,64 +2918,39 @@
                 e.preventDefault();
                 e.stopImmediatePropagation();
 
-                // Mostrar loading mientras verificamos
-                Swal.fire({
-                    title: 'Verificando permisos...',
-                    allowOutsideClick: false,
-                    allowEscapeKey: false,
-                    didOpen: () => {
-                        Swal.showLoading();
-                    }
-                });
+                // ✅ LEER DE VARIABLE GLOBAL (0ms latencia, sin AJAX)
+                // Esta variable se actualiza cada 5 segundos desde admin.blade.php
+                const controlStatus = window.sessionControlStatus || {hasControl: false, whoHasControl: null};
 
-                // Verificar si el usuario tiene control de sesión (ASÍNCRONO)
-                $.ajax({
-                    url: '{{ url("/session-control/status") }}',
-                    method: 'GET',
-                    success: function(response) {
-                        Swal.close(); // Cerrar loading
+                if (!controlStatus.hasControl) {
+                    // Usuario NO tiene control - Mostrar aviso INMEDIATO
+                    const whoHasControl = controlStatus.whoHasControl || 'Nadie';
 
-                        if (!response.hasControl) {
-                            // Usuario NO tiene control - Mostrar aviso
-                            const whoHasControl = response.whoHasControl || 'Nadie';
+                    Swal.fire({
+                        icon: 'warning',
+                        title: 'Control de Sesión Requerido',
+                        html: `
+                            <p>Necesitas tener el <strong>control de sesión</strong> para realizar esta acción.</p>
+                            <hr>
+                            <p class="mb-0"><strong>Control actual:</strong> ${whoHasControl}</p>
+                            <p class="text-muted small mb-0">Esta restricción evita conflictos con otros usuarios.</p>
+                        `,
+                        confirmButtonText: '<i class="fas fa-check"></i> Entendido',
+                        confirmButtonColor: '#3085d6'
+                    });
+                } else {
+                    // Usuario SÍ tiene control - Ejecutar la acción del botón INMEDIATO
+                    // Remover temporalmente el atributo para evitar loop infinito
+                    $button.attr('data-requiere-control', 'false');
 
-                            Swal.fire({
-                                icon: 'warning',
-                                title: 'Control de Sesión Requerido',
-                                html: `
-                                    <p>Necesitas tener el <strong>control de sesión</strong> para realizar esta acción.</p>
-                                    <hr>
-                                    <p class="mb-0"><strong>Control actual:</strong> ${whoHasControl}</p>
-                                    <p class="text-muted small mb-0">Esta restricción evita conflictos con otros usuarios.</p>
-                                `,
-                                confirmButtonText: '<i class="fas fa-check"></i> Entendido',
-                                confirmButtonColor: '#3085d6'
-                            });
-                        } else {
-                            // Usuario SÍ tiene control - Ejecutar la acción del botón
-                            // Remover temporalmente el atributo para evitar loop infinito
-                            $button.attr('data-requiere-control', 'false');
+                    // Re-disparar el click
+                    $button[0].click();
 
-                            // Re-disparar el click
-                            $button[0].click();
-
-                            // Restaurar el atributo después de un momento
-                            setTimeout(function() {
-                                $button.attr('data-requiere-control', 'true');
-                            }, 100);
-                        }
-                    },
-                    error: function() {
-                        Swal.close(); // Cerrar loading
-
-                        Swal.fire({
-                            icon: 'error',
-                            title: 'Error de Verificación',
-                            text: 'No se pudo verificar el control de sesión',
-                            confirmButtonText: 'OK'
-                        });
-                    }
-                });
+                    // Restaurar el atributo después de un momento
+                    setTimeout(function() {
+                        $button.attr('data-requiere-control', 'true');
+                    }, 100);
+                }
 
                 return false;
             });
