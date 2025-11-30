@@ -2914,17 +2914,29 @@
             $(document).on('click', '[data-requiere-control="true"]', function(e) {
                 const $button = $(this);
 
-                // Verificar si el usuario tiene control de sesión
+                // SIEMPRE prevenir el evento original inmediatamente
+                e.preventDefault();
+                e.stopImmediatePropagation();
+
+                // Mostrar loading mientras verificamos
+                Swal.fire({
+                    title: 'Verificando permisos...',
+                    allowOutsideClick: false,
+                    allowEscapeKey: false,
+                    didOpen: () => {
+                        Swal.showLoading();
+                    }
+                });
+
+                // Verificar si el usuario tiene control de sesión (ASÍNCRONO)
                 $.ajax({
                     url: '{{ url("/session-control/status") }}',
                     method: 'GET',
-                    async: false, // Hacerlo síncrono para bloquear el click
                     success: function(response) {
-                        if (!response.hasControl) {
-                            // Usuario NO tiene control - Mostrar aviso y prevenir acción
-                            e.preventDefault();
-                            e.stopImmediatePropagation();
+                        Swal.close(); // Cerrar loading
 
+                        if (!response.hasControl) {
+                            // Usuario NO tiene control - Mostrar aviso
                             const whoHasControl = response.whoHasControl || 'Nadie';
 
                             Swal.fire({
@@ -2939,14 +2951,22 @@
                                 confirmButtonText: '<i class="fas fa-check"></i> Entendido',
                                 confirmButtonColor: '#3085d6'
                             });
+                        } else {
+                            // Usuario SÍ tiene control - Ejecutar la acción del botón
+                            // Remover temporalmente el atributo para evitar loop infinito
+                            $button.attr('data-requiere-control', 'false');
 
-                            return false;
+                            // Re-disparar el click
+                            $button[0].click();
+
+                            // Restaurar el atributo después de un momento
+                            setTimeout(function() {
+                                $button.attr('data-requiere-control', 'true');
+                            }, 100);
                         }
-                        // Si tiene control, dejar que el evento continúe normalmente
                     },
                     error: function() {
-                        e.preventDefault();
-                        e.stopImmediatePropagation();
+                        Swal.close(); // Cerrar loading
 
                         Swal.fire({
                             icon: 'error',
@@ -2954,10 +2974,10 @@
                             text: 'No se pudo verificar el control de sesión',
                             confirmButtonText: 'OK'
                         });
-
-                        return false;
                     }
                 });
+
+                return false;
             });
         }
     </script>
