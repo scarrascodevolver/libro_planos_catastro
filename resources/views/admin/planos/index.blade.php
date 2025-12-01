@@ -1297,44 +1297,66 @@
                 var $haInput = $row.find('.folio-ha');
                 var $m2Input = $row.find('.folio-m2');
 
-                // Hectáreas -> M² (conversión automática)
-                $haInput.off('input blur').on('input', function() {
-                    let valor = $(this).val().replace(',', '.');
-                    if (valor && !isNaN(valor)) {
-                        const ha = parseFloat(valor);
-                        const m2 = ha * 10000;
-                        $m2Input.val(formatNumber(m2, 2));
-                        actualizarResumenEdit();
-                    }
+                // ===== HECTÁREAS - FORMATEO PROGRESIVO =====
+                let timeoutHaRow;
+                $haInput.off('input blur keyup').on('input', function() {
+                    const $this = $(this);
+
+                    // Formatear progresivamente
+                    formatearHectareasInput($this);
+
+                    // Conversión con debounce
+                    clearTimeout(timeoutHaRow);
+                    timeoutHaRow = setTimeout(function() {
+                        let valor = $this.val().replace(',', '.');
+                        if (valor && !isNaN(valor) && parseFloat(valor) > 0) {
+                            const ha = parseFloat(valor);
+                            const m2 = ha * 10000;
+                            $m2Input.val(formatNumber(m2, 2));
+                            actualizarResumenEdit();
+                        }
+                    }, 300);
                 });
 
-                // Auto-formato hectáreas al blur
+                // Formateo final al salir
                 $haInput.on('blur', function() {
                     let valor = $(this).val().replace(',', '.');
                     if (valor && !isNaN(valor)) {
                         const ha = parseFloat(valor);
                         $(this).val(formatNumber(ha, 2));
                     }
+                    actualizarResumenEdit();
                 });
 
-                // M² -> Hectáreas (conversión automática)
-                $m2Input.off('input blur').on('input', function() {
-                    let valor = $(this).val().replace(/\./g, '').replace(',', '.');
-                    if (valor && !isNaN(valor)) {
-                        const m2 = parseFloat(valor);
-                        const ha = m2 / 10000;
-                        $haInput.val(formatNumber(ha, 2));
-                        actualizarResumenEdit();
-                    }
+                // ===== M² - FORMATEO PROGRESIVO =====
+                let timeoutM2Row;
+                $m2Input.off('input blur keyup').on('input', function() {
+                    const $this = $(this);
+
+                    // Formatear progresivamente con puntos de miles
+                    formatearM2Input($this);
+
+                    // Conversión con debounce
+                    clearTimeout(timeoutM2Row);
+                    timeoutM2Row = setTimeout(function() {
+                        let valor = $this.val().replace(/\./g, '').replace(',', '.');
+                        if (valor && !isNaN(valor) && parseFloat(valor) > 0) {
+                            const m2 = parseFloat(valor);
+                            const ha = m2 / 10000;
+                            $haInput.val(formatNumber(ha, 2));
+                            actualizarResumenEdit();
+                        }
+                    }, 300);
                 });
 
-                // Auto-formato M² al blur
+                // Formateo final al salir
                 $m2Input.on('blur', function() {
                     let valor = $(this).val().replace(/\./g, '').replace(',', '.');
                     if (valor && !isNaN(valor)) {
                         const m2 = parseFloat(valor);
                         $(this).val(formatNumber(m2, 2));
                     }
+                    actualizarResumenEdit();
                 });
             }
 
@@ -2207,44 +2229,70 @@
             // Conversión bidireccional y auto-formato para modal edit-folio
             function attachEditFolioConversionListeners() {
                 // Remover listeners previos para evitar duplicados
-                $('#edit_folio_hectareas').off('input blur');
-                $('#edit_folio_m2').off('input blur');
+                $('#edit_folio_hectareas').off('input blur keyup');
+                $('#edit_folio_m2').off('input blur keyup');
 
-                // Hectáreas -> M² (conversión automática)
+                // ===== HECTÁREAS - FORMATEO PROGRESIVO =====
+                let timeoutHectareas;
                 $('#edit_folio_hectareas').on('input', function() {
-                    let valor = $(this).val().replace(',', '.');
-                    if (valor && !isNaN(valor)) {
-                        const ha = parseFloat(valor);
-                        const m2 = ha * 10000;
-                        $('#edit_folio_m2').val(formatNumber(m2, 2));
-                    }
+                    const $this = $(this);
+
+                    // Formatear progresivamente
+                    formatearHectareasInput($this);
+
+                    // Conversión Hectáreas → M² con debounce para evitar conversiones constantes
+                    clearTimeout(timeoutHectareas);
+                    timeoutHectareas = setTimeout(function() {
+                        let valor = $this.val().replace(',', '.');
+                        if (valor && !isNaN(valor) && parseFloat(valor) > 0) {
+                            const ha = parseFloat(valor);
+                            const m2 = ha * 10000;
+                            $('#edit_folio_m2').val(formatNumber(m2, 2));
+                        }
+                    }, 300); // Esperar 300ms después de dejar de escribir
                 });
 
-                // Auto-formato hectáreas al blur (siempre 2 decimales)
+                // Formateo final al salir del campo (asegurar ,00)
                 $('#edit_folio_hectareas').on('blur', function() {
                     let valor = $(this).val().replace(',', '.');
                     if (valor && !isNaN(valor)) {
                         const ha = parseFloat(valor);
                         $(this).val(formatNumber(ha, 2));
+                    } else if (!valor) {
+                        // Si está vacío y es rural, dejarlo vacío (validación del backend lo atrapará)
+                        $(this).val('');
                     }
                 });
 
-                // M² -> Hectáreas (conversión automática)
+                // ===== M² - FORMATEO PROGRESIVO =====
+                let timeoutM2;
                 $('#edit_folio_m2').on('input', function() {
-                    let valor = $(this).val().replace(/\./g, '').replace(',', '.');
-                    if (valor && !isNaN(valor)) {
-                        const m2 = parseFloat(valor);
-                        const ha = m2 / 10000;
-                        $('#edit_folio_hectareas').val(formatNumber(ha, 2));
-                    }
+                    const $this = $(this);
+
+                    // Formatear progresivamente con puntos de miles
+                    formatearM2Input($this);
+
+                    // Conversión M² → Hectáreas con debounce
+                    clearTimeout(timeoutM2);
+                    timeoutM2 = setTimeout(function() {
+                        let valor = $this.val().replace(/\./g, '').replace(',', '.');
+                        if (valor && !isNaN(valor) && parseFloat(valor) > 0) {
+                            const m2 = parseFloat(valor);
+                            const ha = m2 / 10000;
+                            $('#edit_folio_hectareas').val(formatNumber(ha, 2));
+                        }
+                    }, 300); // Esperar 300ms después de dejar de escribir
                 });
 
-                // Auto-formato M² al blur (separador miles + 2 decimales)
+                // Formateo final al salir del campo (asegurar formato completo)
                 $('#edit_folio_m2').on('blur', function() {
                     let valor = $(this).val().replace(/\./g, '').replace(',', '.');
                     if (valor && !isNaN(valor)) {
                         const m2 = parseFloat(valor);
                         $(this).val(formatNumber(m2, 2));
+                    } else if (!valor) {
+                        // Si está vacío, dejarlo vacío (validación del backend lo atrapará)
+                        $(this).val('');
                     }
                 });
             }
@@ -2586,6 +2634,132 @@
 
             function formatNumber(num, decimals) {
                 return num.toFixed(decimals).replace('.', ',').replace(/\B(?=(\d{3})+(?!\d))/g, '.');
+            }
+
+            // =====================================================
+            // FUNCIONES DE FORMATEO PROGRESIVO INTELIGENTE
+            // =====================================================
+
+            /**
+             * Formatear hectáreas en tiempo real (solo coma decimal, sin miles)
+             * Ejemplo: "10,8" → "10,80" cuando completa decimales
+             */
+            function formatearHectareasInput($input) {
+                let valor = $input.val();
+                let cursorPos = $input[0].selectionStart;
+
+                // Eliminar todo excepto números y coma
+                let cleaned = valor.replace(/[^\d,]/g, '');
+
+                // Permitir solo una coma
+                let parts = cleaned.split(',');
+                if (parts.length > 2) {
+                    cleaned = parts[0] + ',' + parts.slice(1).join('');
+                }
+
+                // Si tiene coma, limitar a 2 decimales y auto-completar
+                if (cleaned.includes(',')) {
+                    parts = cleaned.split(',');
+                    let entero = parts[0];
+                    let decimales = parts[1] || '';
+
+                    // Limitar a 2 decimales
+                    if (decimales.length > 2) {
+                        decimales = decimales.substring(0, 2);
+                    }
+
+                    // Auto-completar con 0 si solo tiene 1 decimal
+                    if (decimales.length === 1) {
+                        cleaned = entero + ',' + decimales + '0';
+                        cursorPos = cleaned.length; // Mover cursor al final
+                    } else if (decimales.length === 2) {
+                        cleaned = entero + ',' + decimales;
+                    } else {
+                        cleaned = entero + ',';
+                    }
+                } else if (cleaned && !cleaned.includes(',')) {
+                    // Si es número entero sin coma, dejarlo así (no forzar coma aún)
+                    cleaned = cleaned;
+                }
+
+                // Aplicar el valor formateado
+                if (valor !== cleaned) {
+                    $input.val(cleaned);
+                    // Ajustar cursor
+                    if (cursorPos > cleaned.length) cursorPos = cleaned.length;
+                    $input[0].setSelectionRange(cursorPos, cursorPos);
+                }
+
+                return cleaned;
+            }
+
+            /**
+             * Formatear metros cuadrados en tiempo real (con puntos de miles y coma decimal)
+             * Ejemplo: "25000" → "25.000" → "25.000,50"
+             */
+            function formatearM2Input($input) {
+                let valor = $input.val();
+                let cursorPos = $input[0].selectionStart;
+
+                // Separar parte entera y decimal
+                let parts = valor.split(',');
+                let entero = parts[0] || '';
+                let decimal = parts[1] || '';
+
+                // Limpiar parte entera: solo números y puntos
+                let enteroLimpio = entero.replace(/[^\d.]/g, '');
+
+                // Contar cuántos puntos había antes del cursor
+                let puntosAntesCursor = (entero.substring(0, cursorPos).match(/\./g) || []).length;
+
+                // Eliminar todos los puntos para reformatear
+                let soloNumeros = enteroLimpio.replace(/\./g, '');
+
+                // Agregar puntos de miles
+                let enteroFormateado = '';
+                let counter = 0;
+                for (let i = soloNumeros.length - 1; i >= 0; i--) {
+                    if (counter === 3) {
+                        enteroFormateado = '.' + enteroFormateado;
+                        counter = 0;
+                    }
+                    enteroFormateado = soloNumeros[i] + enteroFormateado;
+                    counter++;
+                }
+
+                // Limpiar parte decimal: solo números, máximo 2
+                let decimalLimpio = decimal.replace(/[^\d]/g, '');
+                if (decimalLimpio.length > 2) {
+                    decimalLimpio = decimalLimpio.substring(0, 2);
+                }
+
+                // Auto-completar decimales si tiene 1 solo
+                if (parts.length > 1 && decimalLimpio.length === 1) {
+                    decimalLimpio = decimalLimpio + '0';
+                }
+
+                // Construir valor final
+                let valorFormateado = enteroFormateado;
+                if (parts.length > 1) {
+                    valorFormateado += ',' + decimalLimpio;
+                }
+
+                // Aplicar el valor formateado
+                if (valor !== valorFormateado) {
+                    $input.val(valorFormateado);
+
+                    // Ajustar posición del cursor
+                    let nuevoPuntos = (enteroFormateado.substring(0, cursorPos).match(/\./g) || []).length;
+                    let diferenciaPuntos = nuevoPuntos - puntosAntesCursor;
+                    let nuevoCursor = cursorPos + diferenciaPuntos;
+
+                    if (nuevoCursor > valorFormateado.length) nuevoCursor = valorFormateado.length;
+                    if (nuevoCursor < 0) nuevoCursor = 0;
+
+                    $input[0].setSelectionRange(nuevoCursor, nuevoCursor);
+                }
+
+                return valorFormateado;
             }
 
             // Búsqueda en Matrix (opcional)
