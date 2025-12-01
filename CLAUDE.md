@@ -668,3 +668,63 @@ resources/views/admin/planos/modals/gestionar-folios.blade.php - NUEVO
 
 **📌 URL PROYECTO:** http://localhost:8080/libro_planos/public
 **📌 USUARIO:** alfonso.norambuena@biobio.cl / alfonso123
+
+---
+
+## 🐛 **PROBLEMAS COMUNES Y SOLUCIONES**
+**Fecha actualización:** 2025-12-02
+
+### **Error 401 (Unauthorized) en peticiones AJAX después de autenticarse**
+
+**📋 SÍNTOMAS:**
+```
+❌ GET /planos/crear/ultimo-correlativo 401 (Unauthorized)
+❌ GET /session-control/status 401 (Unauthorized)
+```
+
+El usuario puede ver la página de creación de planos (está autenticado), pero las peticiones AJAX fallan con 401.
+
+**🔍 CAUSA:**
+Configuración incorrecta de `SESSION_PATH` en `.env`. Las cookies de sesión no se envían en las peticiones AJAX porque el path de la cookie no coincide con las rutas solicitadas.
+
+**✅ SOLUCIÓN:**
+Editar `.env` y cambiar:
+
+```env
+# ❌ INCORRECTO (causa 401 en AJAX):
+SESSION_PATH=/libro_planos/public
+
+# ✅ CORRECTO:
+SESSION_PATH=/
+```
+
+Luego ejecutar:
+```bash
+php artisan config:cache
+```
+
+**🔄 VERIFICACIÓN:**
+1. Recargar página con Ctrl+Shift+R (forzar recarga)
+2. Si persiste, cerrar sesión y volver a entrar
+3. O abrir en ventana incógnita
+
+**📌 NOTA TÉCNICA:**
+El archivo `.env` NO se sube a git (está en `.gitignore`). Este cambio debe hacerse **manualmente en cada entorno** (desarrollo, producción, etc.).
+
+---
+
+## 📋 **CONFIGURACIÓN RECOMENDADA .env**
+
+```env
+# SESIONES - CONFIGURACIÓN CORRECTA
+SESSION_DRIVER=file
+SESSION_LIFETIME=120
+SESSION_ENCRYPT=false
+SESSION_PATH=/              # ← IMPORTANTE: Debe ser / para AJAX
+SESSION_DOMAIN=null
+
+# URL BASE
+APP_URL=http://localhost:8080/libro_planos/public
+```
+
+**ADVERTENCIA:** Si trabajas con subdirectorios (como `/libro_planos/public`), el `SESSION_PATH` debe ser `/` para que las cookies funcionen en todas las rutas de la aplicación.
