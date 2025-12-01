@@ -65,7 +65,7 @@ class PlanoController extends Controller
                     $acciones .= '<a class="dropdown-item editar-plano" href="#" data-id="'.$plano->id.'" data-requiere-control="true"><i class="fas fa-edit mr-2 text-primary"></i>Editar Plano</a>';
                     $acciones .= '<a class="dropdown-item reasignar-plano" href="#" data-id="'.$plano->id.'" data-requiere-control="true"><i class="fas fa-exchange-alt mr-2 text-warning"></i>Reasignar N°</a>';
                     $acciones .= '<div class="dropdown-divider"></div>';
-                    $acciones .= '<a class="dropdown-item eliminar-plano" href="#" data-id="'.$plano->id.'" data-numero="'.$plano->numero_plano_completo.'" data-folios="'.$plano->folios->count().'" data-requiere-control="true"><i class="fas fa-trash-alt mr-2 text-danger"></i>Eliminar Plano</a>';
+                    $acciones .= '<a class="dropdown-item eliminar-plano" href="#" data-id="'.$plano->id.'" data-numero="'.$this->formatNumeroPlanoCompleto($plano).'" data-folios="'.$plano->folios->count().'" data-requiere-control="true"><i class="fas fa-trash-alt mr-2 text-danger"></i>Eliminar Plano</a>';
                 }
 
                 $acciones .= '</div></div>';
