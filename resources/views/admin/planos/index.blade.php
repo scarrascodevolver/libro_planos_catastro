@@ -1763,6 +1763,9 @@
                                 showConfirmButton: false
                             });
 
+                            // Limpiar estado de expansión del plano eliminado
+                            delete expandedRows[planoId];
+
                             // Recargar DataTable
                             $('#planos-table').DataTable().ajax.reload(null, false);
                         }
