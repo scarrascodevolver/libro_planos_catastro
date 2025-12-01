@@ -1052,7 +1052,7 @@ class PlanoController extends Controller
             $plano = Plano::with('folios')->findOrFail($id);
 
             // Capturar información ANTES de eliminar
-            $numeroPlano = $plano->numero_plano_completo;
+            $numeroPlano = $this->formatNumeroPlanoCompleto($plano);
             $cantidadFolios = $plano->folios->count();
             $foliosEliminados = $plano->folios->pluck('folio')->toArray();
 
