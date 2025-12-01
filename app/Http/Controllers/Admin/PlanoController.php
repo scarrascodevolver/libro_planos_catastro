@@ -681,35 +681,20 @@ class PlanoController extends Controller
             'apellido_paterno' => 'nullable|string|max:255',
             'apellido_materno' => 'nullable|string|max:255',
             'tipo_inmueble' => 'required|in:HIJUELA,SITIO',
-            'hectareas' => 'nullable|numeric|min:0',
         ];
 
-        // Validación diferenciada de m² según tipo de plano
+        // Validación diferenciada según tipo de plano
         if ($esRural) {
-            // Rural: m² es opcional
-            $rules['m2'] = 'nullable|numeric|min:0';
+            // Rural: hectáreas Y m² son OBLIGATORIOS
+            $rules['hectareas'] = 'required|numeric|min:0.0001';
+            $rules['m2'] = 'required|numeric|min:1';
         } else {
-            // Urbano: m² es obligatorio
+            // Urbano: solo m² es obligatorio, hectáreas no aplica
+            $rules['hectareas'] = 'nullable|numeric|min:0';
             $rules['m2'] = 'required|numeric|min:1';
         }
 
         $request->validate($rules);
-
-        // Validación adicional para rurales: al menos hectáreas O m² debe estar presente
-        if ($esRural) {
-            $hectareas = $request->input('hectareas');
-            $m2 = $request->input('m2');
-
-            $tieneHectareas = !empty($hectareas) && $hectareas > 0;
-            $tieneM2 = !empty($m2) && $m2 > 0;
-
-            if (!$tieneHectareas && !$tieneM2) {
-                return response()->json([
-                    'success' => false,
-                    'message' => 'Para planos rurales debe completar al menos Hectáreas o M²'
-                ], 422);
-            }
-        }
 
         // Crear el nuevo folio
         $folio = PlanoFolio::create([
@@ -847,38 +832,20 @@ class PlanoController extends Controller
             'folios.*.apellido_paterno' => 'nullable|string|max:255',
             'folios.*.apellido_materno' => 'nullable|string|max:255',
             'folios.*.tipo_inmueble' => 'required|in:HIJUELA,SITIO',
-            'folios.*.hectareas' => 'nullable|numeric|min:0',
         ];
 
-        // Validación diferenciada de m² según tipo de plano
+        // Validación diferenciada según tipo de plano
         if ($esRural) {
-            // Rural: m² es opcional
-            $rules['folios.*.m2'] = 'nullable|numeric|min:0';
+            // Rural: hectáreas Y m² son OBLIGATORIOS
+            $rules['folios.*.hectareas'] = 'required|numeric|min:0.0001';
+            $rules['folios.*.m2'] = 'required|numeric|min:1';
         } else {
-            // Urbano: m² es obligatorio
+            // Urbano: solo m² es obligatorio, hectáreas no aplica
+            $rules['folios.*.hectareas'] = 'nullable|numeric|min:0';
             $rules['folios.*.m2'] = 'required|numeric|min:0.01';
         }
 
         $request->validate($rules);
-
-        // Validación adicional para rurales: cada folio debe tener al menos hectáreas O m²
-        if ($esRural) {
-            $folios = $request->input('folios', []);
-            foreach ($folios as $index => $folio) {
-                $hectareas = $folio['hectareas'] ?? null;
-                $m2 = $folio['m2'] ?? null;
-
-                $tieneHectareas = !empty($hectareas) && $hectareas > 0;
-                $tieneM2 = !empty($m2) && $m2 > 0;
-
-                if (!$tieneHectareas && !$tieneM2) {
-                    return response()->json([
-                        'success' => false,
-                        'message' => "Folio #" . ($index + 1) . ": Para planos rurales debe completar al menos Hectáreas o M²"
-                    ], 422);
-                }
-            }
-        }
 
         $plano = Plano::with('folios')->findOrFail($id);
 
@@ -1190,37 +1157,22 @@ class PlanoController extends Controller
             'apellido_materno' => 'nullable|string|max:255',
             'tipo_inmueble' => 'required|in:HIJUELA,SITIO',
             'numero_inmueble' => 'nullable|integer|min:1',
-            'hectareas' => 'nullable|numeric|min:0',
             'matrix_folio' => 'nullable|string|max:50',
             'is_from_matrix' => 'required|boolean',
         ];
 
-        // Validación diferenciada para m² según tipo de plano
+        // Validación diferenciada según tipo de plano
         if ($esRural) {
-            // Rural: m² es opcional, pero al menos hectáreas o m² debe estar presente
-            $rules['m2'] = 'nullable|numeric|min:0';
+            // Rural: hectáreas Y m² son OBLIGATORIOS
+            $rules['hectareas'] = 'required|numeric|min:0.0001';
+            $rules['m2'] = 'required|numeric|min:1';
         } else {
-            // Urbano: m² es obligatorio
+            // Urbano: solo m² es obligatorio, hectáreas no aplica
+            $rules['hectareas'] = 'nullable|numeric|min:0';
             $rules['m2'] = 'required|numeric|min:0.01';
         }
 
         $request->validate($rules);
-
-        // Validación adicional para rurales: al menos hectáreas O m² debe estar presente
-        if ($esRural) {
-            $hectareas = $request->input('hectareas');
-            $m2 = $request->input('m2');
-
-            $tieneHectareas = !empty($hectareas) && $hectareas > 0;
-            $tieneM2 = !empty($m2) && $m2 > 0;
-
-            if (!$tieneHectareas && !$tieneM2) {
-                return response()->json([
-                    'success' => false,
-                    'message' => 'Para planos rurales debe completar al menos Hectáreas o M²'
-                ], 422);
-            }
-        }
 
         // Si cambia el tipo de inmueble a SITIO, limpiar hectáreas
         $data = $request->all();
