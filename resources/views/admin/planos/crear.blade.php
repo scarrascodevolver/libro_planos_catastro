@@ -396,56 +396,8 @@ function validarNumeroEntero(event) {
     return true;
 }
 
-function validarNumeroDecimal(event) {
-    const charCode = event.which ? event.which : event.keyCode;
-    const valor = event.target.value;
-
-    // Permitir números (0-9)
-    if (charCode >= 48 && charCode <= 57) {
-        // Si hay coma, verificar que no exceda 2 decimales
-        const partes = valor.split(',');
-        if (partes.length > 1 && partes[1].length >= 2) {
-            return false; // Ya tiene 2 decimales
-        }
-        return true;
-    }
-
-    // Permitir punto (.) como separador de miles
-    if (charCode === 46) {
-        return true;
-    }
-
-    // Permitir coma (,) como separador decimal (solo una)
-    if (charCode === 44 && valor.indexOf(',') === -1) {
-        return true;
-    }
-
-    return false;
-}
-
-// Validación específica para hectáreas: solo números y coma (NO puntos), máximo 2 decimales
-function validarNumeroDecimalHectareas(event) {
-    const charCode = event.which ? event.which : event.keyCode;
-    const valor = event.target.value;
-
-    // Permitir números (0-9)
-    if (charCode >= 48 && charCode <= 57) {
-        // Si hay coma, verificar que no exceda 2 decimales
-        const partes = valor.split(',');
-        if (partes.length > 1 && partes[1].length >= 2) {
-            return false; // Ya tiene 2 decimales
-        }
-        return true;
-    }
-
-    // Permitir SOLO coma (,) como separador decimal (una sola)
-    if (charCode === 44 && valor.indexOf(',') === -1) {
-        return true;
-    }
-
-    // NO permitir puntos en hectáreas
-    return false;
-}
+// Funciones de validación eliminadas - inputs ahora son libres
+// El formateo y validación se hace al salir del campo (blur) y en el backend
 
 $(document).ready(function() {
     cargarNumeracionCorrelativa();
@@ -1447,7 +1399,7 @@ function generarCamposMedidasMatrix(folioIndex, cantidad, esRural, tipoInmueble)
         }
         html += '<div class="form-group mb-0">';
         html += '<label class="small mb-1">M² <span class="text-danger">*</span></label>';
-        html += '<input type="text" class="form-control form-control-sm m2-inmueble-matrix" data-folio="' + folioIndex + '" data-inmueble="' + i + '" placeholder="0,00" required inputmode="decimal" onkeypress="return validarNumeroDecimal(event)">';
+        html += '<input type="text" class="form-control form-control-sm m2-inmueble-matrix" data-folio="' + folioIndex + '" data-inmueble="' + i + '" placeholder="Ej: 520.21 o 520,21" required inputmode="decimal">';
         html += '</div>';
         html += '</div>';
 
@@ -1456,7 +1408,7 @@ function generarCamposMedidasMatrix(folioIndex, cantidad, esRural, tipoInmueble)
             html += '<div class="col-md-5">';
             html += '<div class="form-group mb-0">';
             html += '<label class="small mb-1">Hectáreas</label>';
-            html += '<input type="text" class="form-control form-control-sm hectareas-inmueble-matrix" data-folio="' + folioIndex + '" data-inmueble="' + i + '" placeholder="0,00" inputmode="decimal" onkeypress="return validarNumeroDecimalHectareas(event)">';
+            html += '<input type="text" class="form-control form-control-sm hectareas-inmueble-matrix" data-folio="' + folioIndex + '" data-inmueble="' + i + '" placeholder="Ej: 2.5 o 2,5" inputmode="decimal">';
             html += '</div>';
             html += '</div>';
         }
@@ -1474,49 +1426,38 @@ function generarCamposMedidasMatrix(folioIndex, cantidad, esRural, tipoInmueble)
     }
 }
 
-// Conversión hectáreas ↔ m² para inmuebles Matrix
+// Conversión hectáreas ↔ m² para inmuebles Matrix (sin formateo automático)
 function attachConversionListenersMatrixInmuebles(folioIndex, cantidad) {
     for (let i = 0; i < cantidad; i++) {
-        // Hectáreas -> M²
-        $(document).off('input', `.hectareas-inmueble-matrix[data-folio="${folioIndex}"][data-inmueble="${i}"]`);
-        $(document).on('input', `.hectareas-inmueble-matrix[data-folio="${folioIndex}"][data-inmueble="${i}"]`, function() {
-            // Solo permitir comas (no puntos) en hectáreas
-            let valor = $(this).val().replace(',', '.');
-            if (valor && !isNaN(valor)) {
-                const ha = parseFloat(valor);
-                const m2 = ha * 10000;
-                $(`.m2-inmueble-matrix[data-folio="${folioIndex}"][data-inmueble="${i}"]`).val(formatNumber(m2, 2));
-            }
-        });
-
-        // Auto-formato hectáreas al blur (siempre 2 decimales)
+        // Hectáreas -> M² (conversión al salir del campo)
         $(document).off('blur', `.hectareas-inmueble-matrix[data-folio="${folioIndex}"][data-inmueble="${i}"]`);
         $(document).on('blur', `.hectareas-inmueble-matrix[data-folio="${folioIndex}"][data-inmueble="${i}"]`, function() {
-            let valor = $(this).val().replace(',', '.');
+            let valor = $(this).val()
+                .trim()
+                .replace(/\s/g, '')      // quitar espacios
+                .replace(/\./g, '')      // quitar puntos (separador miles)
+                .replace(',', '.');      // coma a punto (decimal)
+
             if (valor && !isNaN(valor)) {
                 const ha = parseFloat(valor);
-                $(this).val(formatNumber(ha, 2));
+                const m2 = Math.round(ha * 10000); // entero sin decimales
+                $(`.m2-inmueble-matrix[data-folio="${folioIndex}"][data-inmueble="${i}"]`).val(m2);
             }
         });
 
-        // M² -> Hectáreas
-        $(document).off('input', `.m2-inmueble-matrix[data-folio="${folioIndex}"][data-inmueble="${i}"]`);
-        $(document).on('input', `.m2-inmueble-matrix[data-folio="${folioIndex}"][data-inmueble="${i}"]`, function() {
-            let valor = $(this).val().replace(/\./g, '').replace(',', '.');
-            if (valor && !isNaN(valor)) {
-                const m2 = parseFloat(valor);
-                const ha = m2 / 10000;
-                $(`.hectareas-inmueble-matrix[data-folio="${folioIndex}"][data-inmueble="${i}"]`).val(formatNumber(ha, 2));
-            }
-        });
-
-        // Auto-formato M² al blur (separador miles + 2 decimales)
+        // M² -> Hectáreas (conversión al salir del campo)
         $(document).off('blur', `.m2-inmueble-matrix[data-folio="${folioIndex}"][data-inmueble="${i}"]`);
         $(document).on('blur', `.m2-inmueble-matrix[data-folio="${folioIndex}"][data-inmueble="${i}"]`, function() {
-            let valor = $(this).val().replace(/\./g, '').replace(',', '.');
+            let valor = $(this).val()
+                .trim()
+                .replace(/\s/g, '')      // quitar espacios
+                .replace(/\./g, '')      // quitar puntos (separador miles)
+                .replace(',', '.');      // coma a punto (decimal)
+
             if (valor && !isNaN(valor)) {
                 const m2 = parseFloat(valor);
-                $(this).val(formatNumber(m2, 2));
+                const ha = (m2 / 10000).toFixed(4); // máximo 4 decimales, sin formato miles
+                $(`.hectareas-inmueble-matrix[data-folio="${folioIndex}"][data-inmueble="${i}"]`).val(ha);
             }
         });
     }
@@ -2220,7 +2161,7 @@ function generarCamposMedidas(folioIndex, cantidad, esRural, tipoInmueble) {
         }
         html += '<div class="form-group mb-0">';
         html += '<label class="small mb-1">M² <span class="text-danger">*</span></label>';
-        html += '<input type="text" class="form-control form-control-sm m2-inmueble" data-folio="' + folioIndex + '" data-inmueble="' + i + '" placeholder="0,00" required inputmode="decimal" onkeypress="return validarNumeroDecimal(event)">';
+        html += '<input type="text" class="form-control form-control-sm m2-inmueble" data-folio="' + folioIndex + '" data-inmueble="' + i + '" placeholder="Ej: 520.21 o 520,21" required inputmode="decimal">';
         html += '</div>';
         html += '</div>';
 
@@ -2229,7 +2170,7 @@ function generarCamposMedidas(folioIndex, cantidad, esRural, tipoInmueble) {
             html += '<div class="col-md-5">';
             html += '<div class="form-group mb-0">';
             html += '<label class="small mb-1">Hectáreas</label>';
-            html += '<input type="text" class="form-control form-control-sm hectareas-inmueble" data-folio="' + folioIndex + '" data-inmueble="' + i + '" placeholder="0,00" inputmode="decimal" onkeypress="return validarNumeroDecimalHectareas(event)">';
+            html += '<input type="text" class="form-control form-control-sm hectareas-inmueble" data-folio="' + folioIndex + '" data-inmueble="' + i + '" placeholder="Ej: 2.5 o 2,5" inputmode="decimal">';
             html += '</div>';
             html += '</div>';
         }
@@ -2246,53 +2187,42 @@ function generarCamposMedidas(folioIndex, cantidad, esRural, tipoInmueble) {
     }
 }
 
-// Conversión hectáreas -> m² para inmuebles individuales (hijuelas/sitios)
+// Conversión hectáreas ↔ m² para inmuebles individuales (sin formateo automático)
 function attachConversionListenersInmuebles(folioIndex, cantidad) {
     for (let i = 0; i < cantidad; i++) {
-        // Hectáreas -> M² (conversión automática)
-        $(document).off('input', `.hectareas-inmueble[data-folio="${folioIndex}"][data-inmueble="${i}"]`);
-        $(document).on('input', `.hectareas-inmueble[data-folio="${folioIndex}"][data-inmueble="${i}"]`, function() {
-            // Solo permitir comas (no puntos) en hectáreas
-            let valor = $(this).val().replace(',', '.');
+        // Hectáreas -> M² (conversión al salir del campo)
+        $(document).off('blur', `.hectareas-inmueble[data-folio="${folioIndex}"][data-inmueble="${i}"]`);
+        $(document).on('blur', `.hectareas-inmueble[data-folio="${folioIndex}"][data-inmueble="${i}"]`, function() {
+            let valor = $(this).val()
+                .trim()
+                .replace(/\s/g, '')      // quitar espacios
+                .replace(/\./g, '')      // quitar puntos (separador miles)
+                .replace(',', '.');      // coma a punto (decimal)
+
             if (valor && !isNaN(valor)) {
                 const ha = parseFloat(valor);
-                const m2 = ha * 10000; // 1 ha = 10,000 m²
-                $(`.m2-inmueble[data-folio="${folioIndex}"][data-inmueble="${i}"]`).val(formatNumber(m2, 2));
+                const m2 = Math.round(ha * 10000); // entero sin decimales
+                $(`.m2-inmueble[data-folio="${folioIndex}"][data-inmueble="${i}"]`).val(m2);
             } else {
                 $(`.m2-inmueble[data-folio="${folioIndex}"][data-inmueble="${i}"]`).val('');
             }
         });
 
-        // Auto-formato hectáreas al blur
-        $(document).off('blur', `.hectareas-inmueble[data-folio="${folioIndex}"][data-inmueble="${i}"]`);
-        $(document).on('blur', `.hectareas-inmueble[data-folio="${folioIndex}"][data-inmueble="${i}"]`, function() {
-            let valor = $(this).val().replace(',', '.');
-            if (valor && !isNaN(valor)) {
-                const ha = parseFloat(valor);
-                $(this).val(formatNumber(ha, 2));
-            }
-        });
-
-        // M² -> Hectáreas (conversión automática)
-        $(document).off('input', `.m2-inmueble[data-folio="${folioIndex}"][data-inmueble="${i}"]`);
-        $(document).on('input', `.m2-inmueble[data-folio="${folioIndex}"][data-inmueble="${i}"]`, function() {
-            let valor = $(this).val().replace(/\./g, '').replace(',', '.');
-            if (valor && !isNaN(valor)) {
-                const m2 = parseFloat(valor);
-                const ha = m2 / 10000;
-                $(`.hectareas-inmueble[data-folio="${folioIndex}"][data-inmueble="${i}"]`).val(formatNumber(ha, 2));
-            } else {
-                $(`.hectareas-inmueble[data-folio="${folioIndex}"][data-inmueble="${i}"]`).val('');
-            }
-        });
-
-        // Auto-formato M² al blur
+        // M² -> Hectáreas (conversión al salir del campo)
         $(document).off('blur', `.m2-inmueble[data-folio="${folioIndex}"][data-inmueble="${i}"]`);
         $(document).on('blur', `.m2-inmueble[data-folio="${folioIndex}"][data-inmueble="${i}"]`, function() {
-            let valor = $(this).val().replace(/\./g, '').replace(',', '.');
+            let valor = $(this).val()
+                .trim()
+                .replace(/\s/g, '')      // quitar espacios
+                .replace(/\./g, '')      // quitar puntos (separador miles)
+                .replace(',', '.');      // coma a punto (decimal)
+
             if (valor && !isNaN(valor)) {
                 const m2 = parseFloat(valor);
-                $(this).val(formatNumber(m2, 2));
+                const ha = (m2 / 10000).toFixed(4); // máximo 4 decimales, sin formato miles
+                $(`.hectareas-inmueble[data-folio="${folioIndex}"][data-inmueble="${i}"]`).val(ha);
+            } else {
+                $(`.hectareas-inmueble[data-folio="${folioIndex}"][data-inmueble="${i}"]`).val('');
             }
         });
     }

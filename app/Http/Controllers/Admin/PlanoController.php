@@ -1174,10 +1174,19 @@ class PlanoController extends Controller
 
         $request->validate($rules);
 
-        // Si cambia el tipo de inmueble a SITIO, limpiar hectáreas
+        // Preparar datos normalizando números
         $data = $request->all();
+
+        // Normalizar M² (siempre requerido)
+        if (isset($data['m2'])) {
+            $data['m2'] = normalizarM2($data['m2']);
+        }
+
+        // Normalizar hectáreas o limpiar según tipo
         if ($data['tipo_inmueble'] === 'SITIO') {
             $data['hectareas'] = null;
+        } elseif (isset($data['hectareas'])) {
+            $data['hectareas'] = normalizarHectareas($data['hectareas']);
         }
 
         $folio->update($data);
