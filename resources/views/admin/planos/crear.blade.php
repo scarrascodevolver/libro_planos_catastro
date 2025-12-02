@@ -1426,6 +1426,23 @@ function generarCamposMedidasMatrix(folioIndex, cantidad, esRural, tipoInmueble)
     }
 }
 
+// Sistema de flags para prevenir recursión en conversiones Ha ↔ M²
+let conversionFlags = {};
+
+function getConversionKey(folioIndex, inmuebleIndex) {
+    return `${folioIndex}_${inmuebleIndex}`;
+}
+
+function isConverting(folioIndex, inmuebleIndex) {
+    const key = getConversionKey(folioIndex, inmuebleIndex);
+    return conversionFlags[key] === true;
+}
+
+function setConverting(folioIndex, inmuebleIndex, value) {
+    const key = getConversionKey(folioIndex, inmuebleIndex);
+    conversionFlags[key] = value;
+}
+
 // Función helper para normalizar números (detecta formato automáticamente)
 function normalizarNumeroJS(valor) {
     if (!valor || valor === '') return null;
@@ -1466,27 +1483,37 @@ function normalizarNumeroJS(valor) {
     return parseFloat(valor);
 }
 
-// Conversión hectáreas ↔ m² para inmuebles Matrix (sin formateo automático)
+// Conversión hectáreas ↔ m² para inmuebles Matrix (con prevención de recursión)
 function attachConversionListenersMatrixInmuebles(folioIndex, cantidad) {
     for (let i = 0; i < cantidad; i++) {
         // Hectáreas -> M² (conversión al salir del campo)
         $(document).off('blur', `.hectareas-inmueble-matrix[data-folio="${folioIndex}"][data-inmueble="${i}"]`);
         $(document).on('blur', `.hectareas-inmueble-matrix[data-folio="${folioIndex}"][data-inmueble="${i}"]`, function() {
+            // Prevenir recursión
+            if (isConverting(folioIndex, i)) return;
+
+            setConverting(folioIndex, i, true);
             const ha = normalizarNumeroJS($(this).val());
             if (ha !== null && !isNaN(ha)) {
                 const m2 = Math.round(ha * 10000);
                 $(`.m2-inmueble-matrix[data-folio="${folioIndex}"][data-inmueble="${i}"]`).val(m2);
             }
+            setConverting(folioIndex, i, false);
         });
 
         // M² -> Hectáreas (conversión al salir del campo)
         $(document).off('blur', `.m2-inmueble-matrix[data-folio="${folioIndex}"][data-inmueble="${i}"]`);
         $(document).on('blur', `.m2-inmueble-matrix[data-folio="${folioIndex}"][data-inmueble="${i}"]`, function() {
+            // Prevenir recursión
+            if (isConverting(folioIndex, i)) return;
+
+            setConverting(folioIndex, i, true);
             const m2 = normalizarNumeroJS($(this).val());
             if (m2 !== null && !isNaN(m2)) {
                 const ha = (m2 / 10000).toFixed(4);
                 $(`.hectareas-inmueble-matrix[data-folio="${folioIndex}"][data-inmueble="${i}"]`).val(ha);
             }
+            setConverting(folioIndex, i, false);
         });
     }
 }
@@ -2215,12 +2242,16 @@ function generarCamposMedidas(folioIndex, cantidad, esRural, tipoInmueble) {
     }
 }
 
-// Conversión hectáreas ↔ m² para inmuebles individuales (sin formateo automático)
+// Conversión hectáreas ↔ m² para inmuebles individuales (con prevención de recursión)
 function attachConversionListenersInmuebles(folioIndex, cantidad) {
     for (let i = 0; i < cantidad; i++) {
         // Hectáreas -> M² (conversión al salir del campo)
         $(document).off('blur', `.hectareas-inmueble[data-folio="${folioIndex}"][data-inmueble="${i}"]`);
         $(document).on('blur', `.hectareas-inmueble[data-folio="${folioIndex}"][data-inmueble="${i}"]`, function() {
+            // Prevenir recursión
+            if (isConverting(folioIndex, i)) return;
+
+            setConverting(folioIndex, i, true);
             const ha = normalizarNumeroJS($(this).val());
             if (ha !== null && !isNaN(ha)) {
                 const m2 = Math.round(ha * 10000);
@@ -2228,11 +2259,16 @@ function attachConversionListenersInmuebles(folioIndex, cantidad) {
             } else {
                 $(`.m2-inmueble[data-folio="${folioIndex}"][data-inmueble="${i}"]`).val('');
             }
+            setConverting(folioIndex, i, false);
         });
 
         // M² -> Hectáreas (conversión al salir del campo)
         $(document).off('blur', `.m2-inmueble[data-folio="${folioIndex}"][data-inmueble="${i}"]`);
         $(document).on('blur', `.m2-inmueble[data-folio="${folioIndex}"][data-inmueble="${i}"]`, function() {
+            // Prevenir recursión
+            if (isConverting(folioIndex, i)) return;
+
+            setConverting(folioIndex, i, true);
             const m2 = normalizarNumeroJS($(this).val());
             if (m2 !== null && !isNaN(m2)) {
                 const ha = (m2 / 10000).toFixed(4);
@@ -2240,6 +2276,7 @@ function attachConversionListenersInmuebles(folioIndex, cantidad) {
             } else {
                 $(`.hectareas-inmueble[data-folio="${folioIndex}"][data-inmueble="${i}"]`).val('');
             }
+            setConverting(folioIndex, i, false);
         });
     }
 }
