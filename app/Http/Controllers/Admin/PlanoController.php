@@ -559,22 +559,71 @@ class PlanoController extends Controller
         $html = '';
         foreach ($plano->folios as $folio) {
             $html .= '<tr class="child-row bg-light">';
-            // Columna EDITAR - Botón para editar folio individual
+
+            // COLUMNA 1: Acciones - Botón para editar folio individual
             if (Auth::user()->isRegistro()) {
                 $html .= '<td class="text-center"><button class="btn btn-sm btn-primary editar-folio" data-folio-id="' . $folio->id . '" title="Editar folio"><i class="fas fa-edit"></i></button></td>';
             } else {
                 $html .= '<td></td>';
             }
-            $html .= '<td class="pl-4">└ Folio</td>'; // Columna REASIGNAR -> muestra "└ Folio"
-            $html .= '<td>' . $folio->folio . '</td>'; // Columna N° PLANO -> muestra folio individual
-            $html .= '<td>' . ($folio->solicitante ?: '-') . '</td>'; // Columna FOLIOS -> muestra solicitante
-            $html .= '<td>' . ($folio->apellido_paterno ?: '-') . '</td>'; // Columna SOLICITANTE -> muestra apellido paterno
-            $html .= '<td>' . ($folio->apellido_materno ?: '-') . '</td>'; // Columna APELLIDO PATERNO -> muestra apellido materno
-            $html .= '<td></td>'; // Columna APELLIDO MATERNO -> vacía
-            $html .= '<td></td>'; // Columna COMUNA -> vacía
-            $html .= '<td>' . ($folio->hectareas ? number_format($folio->hectareas, 2, ',', '') : '-') . '</td>'; // Columna HECTÁREAS
-            $html .= '<td>' . number_format($folio->m2 ?: 0, 2, ',', '.') . '</td>'; // Columna M²
-            $html .= '<td colspan="11"></td>'; // Resto vacío - ajustado para columnas (sin detalles)
+
+            // COLUMNA 2: N° Plano -> muestra "└ Folio"
+            $html .= '<td class="pl-4">└ Folio</td>';
+
+            // COLUMNA 3: Folios -> muestra folio individual
+            $html .= '<td>' . ($folio->folio ?: 'S/F') . '</td>';
+
+            // COLUMNA 4: Folios Completos (oculta) -> vacía
+            $html .= '<td style="display:none;"></td>';
+
+            // COLUMNA 5: Solicitante
+            $html .= '<td>' . ($folio->solicitante ?: '-') . '</td>';
+
+            // COLUMNA 6: Apellido Paterno
+            $html .= '<td>' . ($folio->apellido_paterno ?: '-') . '</td>';
+
+            // COLUMNA 7: Apellido Materno
+            $html .= '<td>' . ($folio->apellido_materno ?: '-') . '</td>';
+
+            // COLUMNA 8: Comuna -> vacía
+            $html .= '<td></td>';
+
+            // COLUMNA 9: Hectáreas
+            $html .= '<td>' . ($folio->hectareas ? number_format($folio->hectareas, 2, ',', '.') : '-') . '</td>';
+
+            // COLUMNA 10: M²
+            $html .= '<td>' . number_format($folio->m2 ?: 0, 0, ',', '.') . '</td>';
+
+            // COLUMNA 11: Mes -> vacía
+            $html .= '<td></td>';
+
+            // COLUMNA 12: Año -> vacía
+            $html .= '<td></td>';
+
+            // COLUMNA 13: Responsable -> vacía
+            $html .= '<td></td>';
+
+            // COLUMNA 14: Proyecto -> vacía
+            $html .= '<td></td>';
+
+            // COLUMNA 15: Observaciones -> vacía
+            $html .= '<td></td>';
+
+            // COLUMNA 16: Providencia Archivo -> vacía
+            $html .= '<td></td>';
+
+            // COLUMNA 17: Tubo -> vacía
+            $html .= '<td></td>';
+
+            // COLUMNA 18: Tela -> vacía
+            $html .= '<td></td>';
+
+            // COLUMNA 19: Archivo Digital -> vacía
+            $html .= '<td></td>';
+
+            // COLUMNA 20: Fecha Creación -> vacía
+            $html .= '<td></td>';
+
             $html .= '</tr>';
         }
 
