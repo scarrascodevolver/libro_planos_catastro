@@ -279,10 +279,10 @@ class PlanoHistoricoController extends Controller
                 'MATERNO' => $fila[6] ?? '',            // Col G (era H)
                 'COMUNA' => $fila[7] ?? '',             // Col H (era I)
                 'HIJ' => intval($fila[8] ?? 0),         // Col I (era J)
-                'HA' => floatval($fila[9] ?? 0),        // Col J (era K)
-                'M²_HIJ' => floatval($fila[10] ?? 0),   // Col K (era L)
+                'HA' => $this->parseDecimal($fila[9] ?? 0),        // Col J (era K)
+                'M²_HIJ' => $this->parseDecimal($fila[10] ?? 0),   // Col K (era L)
                 'SITIO' => intval($fila[11] ?? 0),      // Col L (era M)
-                'M²_SITIO' => floatval($fila[12] ?? 0), // Col M (era N)
+                'M²_SITIO' => $this->parseDecimal($fila[12] ?? 0), // Col M (era N)
                 'FECHA' => $fila[13] ?? '',             // Col N (era O)
                 'AÑO' => intval($fila[14] ?? 0),        // Col O (era P)
                 'Responsable' => $fila[15] ?? '',           // Col P: EMPRESA TECNICO
@@ -323,10 +323,10 @@ class PlanoHistoricoController extends Controller
                 'MATERNO' => $fila[7] ?? '',
                 'COMUNA' => $fila[8] ?? '',
                 'HIJ' => intval($fila[9] ?? 0),
-                'HA' => floatval($fila[10] ?? 0),
-                'M²_HIJ' => floatval($fila[11] ?? 0),   // Primera columna M² - Con decimales
+                'HA' => $this->parseDecimal($fila[10] ?? 0),
+                'M²_HIJ' => $this->parseDecimal($fila[11] ?? 0),   // Primera columna M² - Con decimales
                 'SITIO' => intval($fila[12] ?? 0),
-                'M²_SITIO' => floatval($fila[13] ?? 0), // Segunda columna M² - Con decimales
+                'M²_SITIO' => $this->parseDecimal($fila[13] ?? 0), // Segunda columna M² - Con decimales
                 'FECHA' => $fila[14] ?? '',
                 'AÑO' => intval($fila[15] ?? 0),
                 'Responsable' => $fila[15] ?? '',           // Col P: EMPRESA TECNICO
@@ -818,5 +818,30 @@ class PlanoHistoricoController extends Controller
         }
 
         return $codigo;
+    }
+
+    /**
+     * Parsea un valor decimal normalizando comas por puntos
+     * Maneja tanto formato chileno (1,25) como internacional (1.25)
+     *
+     * @param mixed $value Valor a convertir (string o numérico)
+     * @return float Valor decimal normalizado
+     */
+    private function parseDecimal($value)
+    {
+        // Si es null o vacío, retornar 0
+        if (empty($value) && $value !== 0 && $value !== '0') {
+            return 0.0;
+        }
+
+        // Si ya es numérico, retornar directamente
+        if (is_numeric($value)) {
+            return floatval($value);
+        }
+
+        // Si es string, normalizar: reemplazar coma por punto
+        $normalized = str_replace(',', '.', trim($value));
+
+        return floatval($normalized);
     }
 }
