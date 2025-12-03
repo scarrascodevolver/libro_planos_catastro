@@ -1229,7 +1229,7 @@
                                 actualizarResumenEdit();
                                 $('#edit-modal').modal('show');
 
-                                // Activar conversiones bidireccionales para todas las filas cargadas
+                                // Activar formateo y conversión M² → Ha para todas las filas cargadas
                                 $('#folios-tbody tr').each(function() {
                                     attachEditPlanoRowListeners($(this));
                                 });
@@ -1292,10 +1292,11 @@
                 actualizarResumenEdit();
             }
 
-            // Activar auto-formato para una fila específica (sin conversión automática)
+            // Activar auto-formato y conversión para una fila específica
             function attachEditPlanoRowListeners($row) {
                 var $haInput = $row.find('.folio-ha');
                 var $m2Input = $row.find('.folio-m2');
+                var $tipoInput = $row.find('.folio-tipo');
 
                 // ===== HECTÁREAS - FORMATEO PROGRESIVO =====
                 $haInput.off('input blur keyup').on('input', function() {
@@ -1325,6 +1326,25 @@
                         $(this).val(formatNumber(m2, 2));
                     }
                     actualizarResumenEdit();
+                });
+
+                // ===== CONVERSIÓN M² → HECTÁREAS (solo para HIJUELA) =====
+                function attachConversionIfNeeded() {
+                    var tipoInmueble = $tipoInput.val();
+                    if (tipoInmueble === 'HIJUELA') {
+                        attachM2ToHaListenerDirect($m2Input, $haInput);
+                    } else {
+                        // Si es SITIO, remover conversión
+                        $m2Input.off('blur.conversion');
+                    }
+                }
+
+                // Activar conversión inicial
+                attachConversionIfNeeded();
+
+                // Re-activar conversión si cambia el tipo
+                $tipoInput.off('change.conversion').on('change.conversion', function() {
+                    attachConversionIfNeeded();
                 });
             }
 
@@ -1628,21 +1648,32 @@
                                             $('#nuevo_numero').val(response.numeroCompleto)
                                                 .removeClass('bg-light')
                                                 .addClass('bg-success');
+
+                                            // Solo mostrar modal si se generó correctamente
+                                            $('#reasignar-modal').modal('show');
                                         } else {
                                             $('#nuevo_numero').val('Error al generar');
-                                            Swal.fire('Error', response.message ||
-                                                'No se pudo generar el número automático', 'error');
+                                            Swal.fire({
+                                                icon: 'error',
+                                                title: 'Error al generar número',
+                                                html: response.message ||
+                                                    'No se pudo generar el número automático.<br>Por favor, intenta nuevamente.',
+                                                confirmButtonColor: '#dc3545'
+                                            });
                                         }
                                     },
                                     error: function(xhr) {
                                         $('#nuevo_numero').val('Error al generar');
                                         const errorMsg = xhr.responseJSON?.message ||
                                             'No se pudo generar el número automático';
-                                        Swal.fire('Error', errorMsg, 'error');
+                                        Swal.fire({
+                                            icon: 'error',
+                                            title: 'Error',
+                                            text: errorMsg + '\nPor favor, intenta nuevamente.',
+                                            confirmButtonColor: '#dc3545'
+                                        });
                                     }
                                 });
-
-                                $('#reasignar-modal').modal('show');
                             })
                             .fail(function() {
                                 Swal.fire('Error', 'No se pudieron obtener los datos del plano', 'error');
@@ -2182,8 +2213,8 @@
                             }
                         }
 
-                        // Activar conversiones bidireccionales para este modal
-                        attachEditFolioConversionListeners();
+                        // Activar formateo y conversión M² → Ha para este modal
+                        attachEditFolioConversionListeners(esRural);
                     })
                     .fail(function(xhr) {
                         $('#edit-folio-loading-overlay').hide();
@@ -2197,8 +2228,8 @@
                     });
             }
 
-            // Auto-formato para modal edit-folio (sin conversión automática)
-            function attachEditFolioConversionListeners() {
+            // Auto-formato y conversión para modal edit-folio
+            function attachEditFolioConversionListeners(esRural) {
                 // Remover listeners previos para evitar duplicados
                 $('#edit_folio_hectareas').off('input blur keyup');
                 $('#edit_folio_m2').off('input blur keyup');
@@ -2234,6 +2265,14 @@
                         $(this).val('');
                     }
                 });
+
+                // ===== CONVERSIÓN M² → HECTÁREAS (solo para planos rurales) =====
+                if (esRural) {
+                    attachM2ToHaListenerDirect($('#edit_folio_m2'), $('#edit_folio_hectareas'));
+                } else {
+                    // Remover conversión si es urbano
+                    $('#edit_folio_m2').off('blur.conversion');
+                }
             }
 
             function displayFolioValidationErrors(errors) {
@@ -2543,13 +2582,85 @@
                 return num.toFixed(decimals).replace('.', ',').replace(/\B(?=(\d{3})+(?!\d))/g, '.');
             }
 
+            // Función helper para normalizar números (detecta formato automáticamente)
+            function normalizarNumeroJS(valor) {
+                if (!valor || valor === '') return null;
+
+                valor = String(valor).trim().replace(/\s/g, ''); // quitar espacios
+
+                const tienePunto = valor.includes('.');
+                const tieneComa = valor.includes(',');
+
+                if (tienePunto && tieneComa) {
+                    const posPunto = valor.lastIndexOf('.');
+                    const posComa = valor.lastIndexOf(',');
+
+                    if (posPunto > posComa) {
+                        valor = valor.replace(/,/g, '');
+                    } else {
+                        valor = valor.replace(/\./g, '').replace(',', '.');
+                    }
+                } else if (tieneComa) {
+                    valor = valor.replace(',', '.');
+                } else if (tienePunto) {
+                    const partes = valor.split('.');
+                    if (partes.length > 2) {
+                        valor = valor.replace(/\./g, '');
+                    } else if (partes[1] && partes[1].length > 2) {
+                        valor = valor.replace(/\./g, '');
+                    }
+                }
+
+                return parseFloat(valor);
+            }
+
+            // Conversión automática M² → Hectáreas (solo una dirección)
+            function attachM2ToHaListener(m2Selector, haSelector) {
+                $(document).off('blur', m2Selector);
+                $(document).on('blur', m2Selector, function() {
+                    const m2Valor = $(this).val();
+                    if (!m2Valor) return;
+
+                    const m2 = normalizarNumeroJS(m2Valor);
+                    if (m2 !== null && !isNaN(m2) && m2 > 0) {
+                        const ha = m2 / 10000;
+                        const folioIndex = $(this).data('index');
+
+                        let $haInput;
+                        if (folioIndex !== undefined) {
+                            $haInput = $(haSelector + `[data-index="${folioIndex}"]`);
+                        } else {
+                            $haInput = $(haSelector);
+                        }
+
+                        $haInput.val(formatNumber(ha, 2));
+                    }
+                });
+            }
+
+            // Conversión automática M² → Hectáreas para elementos específicos (usado en modales)
+            function attachM2ToHaListenerDirect($m2Input, $haInput) {
+                if (!$m2Input || !$haInput || $m2Input.length === 0 || $haInput.length === 0) return;
+
+                $m2Input.off('blur.conversion').on('blur.conversion', function() {
+                    const m2Valor = $(this).val();
+                    if (!m2Valor) return;
+
+                    const m2 = normalizarNumeroJS(m2Valor);
+                    if (m2 !== null && !isNaN(m2) && m2 > 0) {
+                        const ha = m2 / 10000;
+                        $haInput.val(formatNumber(ha, 2));
+                    }
+                });
+            }
+
             // =====================================================
             // FUNCIONES DE FORMATEO PROGRESIVO INTELIGENTE
             // =====================================================
 
             /**
              * Formatear hectáreas en tiempo real (solo coma decimal, sin miles)
-             * Ejemplo: "10,8" → "10,80" cuando completa decimales
+             * Permite escribir libremente, sin auto-completar decimales
              */
             function formatearHectareasInput($input) {
                 let valor = $input.val();
@@ -2564,7 +2675,7 @@
                     cleaned = parts[0] + ',' + parts.slice(1).join('');
                 }
 
-                // Si tiene coma, limitar a 2 decimales y auto-completar
+                // Si tiene coma, limitar a 2 decimales (SIN auto-completar)
                 if (cleaned.includes(',')) {
                     parts = cleaned.split(',');
                     let entero = parts[0];
@@ -2575,18 +2686,7 @@
                         decimales = decimales.substring(0, 2);
                     }
 
-                    // Auto-completar con 0 si solo tiene 1 decimal
-                    if (decimales.length === 1) {
-                        cleaned = entero + ',' + decimales + '0';
-                        cursorPos = cleaned.length; // Mover cursor al final
-                    } else if (decimales.length === 2) {
-                        cleaned = entero + ',' + decimales;
-                    } else {
-                        cleaned = entero + ',';
-                    }
-                } else if (cleaned && !cleaned.includes(',')) {
-                    // Si es número entero sin coma, dejarlo así (no forzar coma aún)
-                    cleaned = cleaned;
+                    cleaned = entero + ',' + decimales;
                 }
 
                 // Aplicar el valor formateado
@@ -2602,7 +2702,7 @@
 
             /**
              * Formatear metros cuadrados en tiempo real (con puntos de miles y coma decimal)
-             * Ejemplo: "25000" → "25.000" → "25.000,50"
+             * Permite escribir libremente, sin auto-completar decimales
              */
             function formatearM2Input($input) {
                 let valor = $input.val();
@@ -2634,15 +2734,10 @@
                     counter++;
                 }
 
-                // Limpiar parte decimal: solo números, máximo 2
+                // Limpiar parte decimal: solo números, máximo 2 (SIN auto-completar)
                 let decimalLimpio = decimal.replace(/[^\d]/g, '');
                 if (decimalLimpio.length > 2) {
                     decimalLimpio = decimalLimpio.substring(0, 2);
-                }
-
-                // Auto-completar decimales si tiene 1 solo
-                if (parts.length > 1 && decimalLimpio.length === 1) {
-                    decimalLimpio = decimalLimpio + '0';
                 }
 
                 // Construir valor final
