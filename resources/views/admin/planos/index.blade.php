@@ -1648,21 +1648,32 @@
                                             $('#nuevo_numero').val(response.numeroCompleto)
                                                 .removeClass('bg-light')
                                                 .addClass('bg-success');
+
+                                            // Solo mostrar modal si se generó correctamente
+                                            $('#reasignar-modal').modal('show');
                                         } else {
                                             $('#nuevo_numero').val('Error al generar');
-                                            Swal.fire('Error', response.message ||
-                                                'No se pudo generar el número automático', 'error');
+                                            Swal.fire({
+                                                icon: 'error',
+                                                title: 'Error al generar número',
+                                                html: response.message ||
+                                                    'No se pudo generar el número automático.<br>Por favor, intenta nuevamente.',
+                                                confirmButtonColor: '#dc3545'
+                                            });
                                         }
                                     },
                                     error: function(xhr) {
                                         $('#nuevo_numero').val('Error al generar');
                                         const errorMsg = xhr.responseJSON?.message ||
                                             'No se pudo generar el número automático';
-                                        Swal.fire('Error', errorMsg, 'error');
+                                        Swal.fire({
+                                            icon: 'error',
+                                            title: 'Error',
+                                            text: errorMsg + '\nPor favor, intenta nuevamente.',
+                                            confirmButtonColor: '#dc3545'
+                                        });
                                     }
                                 });
-
-                                $('#reasignar-modal').modal('show');
                             })
                             .fail(function() {
                                 Swal.fire('Error', 'No se pudieron obtener los datos del plano', 'error');
