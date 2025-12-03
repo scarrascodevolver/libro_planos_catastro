@@ -1292,30 +1292,14 @@
                 actualizarResumenEdit();
             }
 
-            // Activar conversiones bidireccionales y auto-formato para una fila específica
+            // Activar auto-formato para una fila específica (sin conversión automática)
             function attachEditPlanoRowListeners($row) {
                 var $haInput = $row.find('.folio-ha');
                 var $m2Input = $row.find('.folio-m2');
 
                 // ===== HECTÁREAS - FORMATEO PROGRESIVO =====
-                let timeoutHaRow;
                 $haInput.off('input blur keyup').on('input', function() {
-                    const $this = $(this);
-
-                    // Formatear progresivamente
-                    formatearHectareasInput($this);
-
-                    // Conversión con debounce
-                    clearTimeout(timeoutHaRow);
-                    timeoutHaRow = setTimeout(function() {
-                        let valor = $this.val().replace(',', '.');
-                        if (valor && !isNaN(valor) && parseFloat(valor) > 0) {
-                            const ha = parseFloat(valor);
-                            const m2 = ha * 10000;
-                            $m2Input.val(formatNumber(m2, 2));
-                            actualizarResumenEdit();
-                        }
-                    }, 300);
+                    formatearHectareasInput($(this));
                 });
 
                 // Formateo final al salir
@@ -1329,24 +1313,8 @@
                 });
 
                 // ===== M² - FORMATEO PROGRESIVO =====
-                let timeoutM2Row;
                 $m2Input.off('input blur keyup').on('input', function() {
-                    const $this = $(this);
-
-                    // Formatear progresivamente con puntos de miles
-                    formatearM2Input($this);
-
-                    // Conversión con debounce
-                    clearTimeout(timeoutM2Row);
-                    timeoutM2Row = setTimeout(function() {
-                        let valor = $this.val().replace(/\./g, '').replace(',', '.');
-                        if (valor && !isNaN(valor) && parseFloat(valor) > 0) {
-                            const m2 = parseFloat(valor);
-                            const ha = m2 / 10000;
-                            $haInput.val(formatNumber(ha, 2));
-                            actualizarResumenEdit();
-                        }
-                    }, 300);
+                    formatearM2Input($(this));
                 });
 
                 // Formateo final al salir
@@ -2229,30 +2197,15 @@
                     });
             }
 
-            // Conversión bidireccional y auto-formato para modal edit-folio
+            // Auto-formato para modal edit-folio (sin conversión automática)
             function attachEditFolioConversionListeners() {
                 // Remover listeners previos para evitar duplicados
                 $('#edit_folio_hectareas').off('input blur keyup');
                 $('#edit_folio_m2').off('input blur keyup');
 
                 // ===== HECTÁREAS - FORMATEO PROGRESIVO =====
-                let timeoutHectareas;
                 $('#edit_folio_hectareas').on('input', function() {
-                    const $this = $(this);
-
-                    // Formatear progresivamente
-                    formatearHectareasInput($this);
-
-                    // Conversión Hectáreas → M² con debounce para evitar conversiones constantes
-                    clearTimeout(timeoutHectareas);
-                    timeoutHectareas = setTimeout(function() {
-                        let valor = $this.val().replace(',', '.');
-                        if (valor && !isNaN(valor) && parseFloat(valor) > 0) {
-                            const ha = parseFloat(valor);
-                            const m2 = ha * 10000;
-                            $('#edit_folio_m2').val(formatNumber(m2, 2));
-                        }
-                    }, 300); // Esperar 300ms después de dejar de escribir
+                    formatearHectareasInput($(this));
                 });
 
                 // Formateo final al salir del campo (asegurar ,00)
@@ -2262,29 +2215,13 @@
                         const ha = parseFloat(valor);
                         $(this).val(formatNumber(ha, 2));
                     } else if (!valor) {
-                        // Si está vacío y es rural, dejarlo vacío (validación del backend lo atrapará)
                         $(this).val('');
                     }
                 });
 
                 // ===== M² - FORMATEO PROGRESIVO =====
-                let timeoutM2;
                 $('#edit_folio_m2').on('input', function() {
-                    const $this = $(this);
-
-                    // Formatear progresivamente con puntos de miles
-                    formatearM2Input($this);
-
-                    // Conversión M² → Hectáreas con debounce
-                    clearTimeout(timeoutM2);
-                    timeoutM2 = setTimeout(function() {
-                        let valor = $this.val().replace(/\./g, '').replace(',', '.');
-                        if (valor && !isNaN(valor) && parseFloat(valor) > 0) {
-                            const m2 = parseFloat(valor);
-                            const ha = m2 / 10000;
-                            $('#edit_folio_hectareas').val(formatNumber(ha, 2));
-                        }
-                    }, 300); // Esperar 300ms después de dejar de escribir
+                    formatearM2Input($(this));
                 });
 
                 // Formateo final al salir del campo (asegurar formato completo)
@@ -2294,7 +2231,6 @@
                         const m2 = parseFloat(valor);
                         $(this).val(formatNumber(m2, 2));
                     } else if (!valor) {
-                        // Si está vacío, dejarlo vacío (validación del backend lo atrapará)
                         $(this).val('');
                     }
                 });
@@ -2601,38 +2537,6 @@
                 }
 
                 $('#contenedor-inmuebles').html(html);
-
-                // Agregar listeners conversión ha ↔ m²
-                if (esRural) {
-                    attachConversionListeners();
-                }
-            }
-
-            // BLOQUE 5: Conversión hectáreas ↔ m²
-            function attachConversionListeners() {
-                // Hectáreas -> M²
-                $(document).on('input', '.hectareas-input', function() {
-                    const index = $(this).data('index');
-                    let valor = $(this).val().replace(/\./g, '').replace(',', '.');
-
-                    if (valor && !isNaN(valor)) {
-                        const ha = parseFloat(valor);
-                        const m2 = ha * 10000;
-                        $(`.m2-input[data-index="${index}"]`).val(formatNumber(m2, 2));
-                    }
-                });
-
-                // M² -> Hectáreas
-                $(document).on('input', '.m2-input', function() {
-                    const index = $(this).data('index');
-                    let valor = $(this).val().replace(/\./g, '').replace(',', '.');
-
-                    if (valor && !isNaN(valor) && esRuralGlobal) {
-                        const m2 = parseFloat(valor);
-                        const ha = m2 / 10000;
-                        $(`.hectareas-input[data-index="${index}"]`).val(formatNumber(ha, 4));
-                    }
-                });
             }
 
             function formatNumber(num, decimals) {
