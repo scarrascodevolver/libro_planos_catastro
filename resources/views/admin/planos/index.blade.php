@@ -2649,7 +2649,7 @@
 
             /**
              * Formatear hectáreas en tiempo real (solo coma decimal, sin miles)
-             * Ejemplo: "10,8" → "10,80" cuando completa decimales
+             * Permite escribir libremente, sin auto-completar decimales
              */
             function formatearHectareasInput($input) {
                 let valor = $input.val();
@@ -2664,7 +2664,7 @@
                     cleaned = parts[0] + ',' + parts.slice(1).join('');
                 }
 
-                // Si tiene coma, limitar a 2 decimales y auto-completar
+                // Si tiene coma, limitar a 2 decimales (SIN auto-completar)
                 if (cleaned.includes(',')) {
                     parts = cleaned.split(',');
                     let entero = parts[0];
@@ -2675,18 +2675,7 @@
                         decimales = decimales.substring(0, 2);
                     }
 
-                    // Auto-completar con 0 si solo tiene 1 decimal
-                    if (decimales.length === 1) {
-                        cleaned = entero + ',' + decimales + '0';
-                        cursorPos = cleaned.length; // Mover cursor al final
-                    } else if (decimales.length === 2) {
-                        cleaned = entero + ',' + decimales;
-                    } else {
-                        cleaned = entero + ',';
-                    }
-                } else if (cleaned && !cleaned.includes(',')) {
-                    // Si es número entero sin coma, dejarlo así (no forzar coma aún)
-                    cleaned = cleaned;
+                    cleaned = entero + ',' + decimales;
                 }
 
                 // Aplicar el valor formateado
@@ -2702,7 +2691,7 @@
 
             /**
              * Formatear metros cuadrados en tiempo real (con puntos de miles y coma decimal)
-             * Ejemplo: "25000" → "25.000" → "25.000,50"
+             * Permite escribir libremente, sin auto-completar decimales
              */
             function formatearM2Input($input) {
                 let valor = $input.val();
@@ -2734,15 +2723,10 @@
                     counter++;
                 }
 
-                // Limpiar parte decimal: solo números, máximo 2
+                // Limpiar parte decimal: solo números, máximo 2 (SIN auto-completar)
                 let decimalLimpio = decimal.replace(/[^\d]/g, '');
                 if (decimalLimpio.length > 2) {
                     decimalLimpio = decimalLimpio.substring(0, 2);
-                }
-
-                // Auto-completar decimales si tiene 1 solo
-                if (parts.length > 1 && decimalLimpio.length === 1) {
-                    decimalLimpio = decimalLimpio + '0';
                 }
 
                 // Construir valor final
