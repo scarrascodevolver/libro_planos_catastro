@@ -2199,7 +2199,8 @@
                             }
                         }
                         if ($('#edit_folio_m2').val()) {
-                            const m2 = parseFloat($('#edit_folio_m2').val().replace(/\./g, '').replace(',', '.'));
+                            // Backend devuelve número puro (1519.67), no formateado
+                            const m2 = parseFloat($('#edit_folio_m2').val());
                             if (!isNaN(m2)) {
                                 $('#edit_folio_m2').val(formatNumber(m2, 2));
                             }
