@@ -489,7 +489,7 @@ class PlanoController extends Controller
                     $hectareasDisplay = $inmueble->hectareas
                         ? number_format($inmueble->hectareas, 4, ',', '.') . ' ha'
                         : '-';
-                    $m2Display = number_format($inmueble->m2 ?: 0, 0, ',', '.') . ' m²';
+                    $m2Display = number_format($inmueble->m2 ?: 0, 2, ',', '.') . ' m²';
 
                     $html .= '
                                     <tr>
@@ -510,7 +510,7 @@ class PlanoController extends Controller
                 $hectareasDisplay = $folio->hectareas
                     ? number_format($folio->hectareas, 4, ',', '.') . ' ha'
                     : '-';
-                $m2Display = number_format($folio->m2 ?: 0, 0, ',', '.') . ' m²';
+                $m2Display = number_format($folio->m2 ?: 0, 2, ',', '.') . ' m²';
 
                 $html .= '
                                     <tr>
@@ -531,7 +531,7 @@ class PlanoController extends Controller
         $totalHa = $plano->total_hectareas
             ? number_format($plano->total_hectareas, 4, ',', '.') . ' ha'
             : '-';
-        $totalM2 = number_format($plano->total_m2 ?: 0, 0, ',', '.') . ' m²';
+        $totalM2 = number_format($plano->total_m2 ?: 0, 2, ',', '.') . ' m²';
 
         $html .= '
                                 </tbody>
@@ -592,7 +592,7 @@ class PlanoController extends Controller
             $html .= '<td>' . ($folio->hectareas ? number_format($folio->hectareas, 2, ',', '.') : '-') . '</td>';
 
             // COLUMNA 10: M²
-            $html .= '<td>' . number_format($folio->m2 ?: 0, 0, ',', '.') . '</td>';
+            $html .= '<td>' . number_format($folio->m2 ?: 0, 2, ',', '.') . '</td>';
 
             // COLUMNA 11: Mes -> vacía
             $html .= '<td></td>';
@@ -1396,7 +1396,7 @@ class PlanoController extends Controller
                     'tipo_inmueble' => $folio->tipo_inmueble,
                     'numero_inmueble' => $folio->numero_inmueble ?: '-',
                     'hectareas' => $folio->hectareas ? number_format($folio->hectareas, 4, ',', '.') : '-',
-                    'm2' => $folio->m2 ? number_format($folio->m2, 0, ',', '.') : '-',
+                    'm2' => $folio->m2 ? number_format($folio->m2, 2, ',', '.') : '-',
                     'mes' => $plano->mes,
                     'ano' => $plano->ano,
                     'responsable' => $plano->responsable,
