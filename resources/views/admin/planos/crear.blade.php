@@ -1628,8 +1628,8 @@ function recolectarMedidasMatrix() {
         folio.apellido_paterno = apPaterno || null;
         folio.apellido_materno = apMaterno || null;
         folio.numero_inmueble = 1; // Ya no se usa individual, se usa array
-        folio.m2 = totalM2;
-        folio.hectareas = esRural ? totalHectareas : null;
+        folio.m2 = totalM2 > 0 ? totalM2 : null;
+        folio.hectareas = totalHectareas > 0 ? totalHectareas : null;
         folio.inmuebles = inmuebles;
 
         // Leer datos del plano (solo en primer folio)

@@ -64,7 +64,7 @@ class AdminUserSeeder extends Seeder
         User::updateOrCreate(
             ['email' => 'vsepulveda@mbienes.cl'],
             [
-                'name' => 'Verónica Pérez',
+                'name' => 'Verónica Sepúlveda',
                 'password' => Hash::make('vero2025'),
                 'initial_password' => 'vero2025',
                 'role' => 'registro',
