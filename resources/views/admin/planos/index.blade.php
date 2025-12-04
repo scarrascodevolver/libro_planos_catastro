@@ -1298,33 +1298,25 @@
                 var $m2Input = $row.find('.folio-m2');
                 var $tipoInput = $row.find('.folio-tipo');
 
-                // ===== HECTÁREAS - FORMATEO PROGRESIVO =====
-                $haInput.off('input blur keyup').on('input', function() {
-                    formatearHectareasInput($(this));
+                // ===== HECTÁREAS - SIN FORMATEO AUTOMÁTICO =====
+                // Seleccionar todo al hacer focus (facilita sobrescritura)
+                $haInput.off('focus').on('focus', function() {
+                    $(this).select();
                 });
 
-                // Formateo final al salir
-                $haInput.on('blur', function() {
-                    let valor = $(this).val().replace(',', '.');
-                    if (valor && !isNaN(valor)) {
-                        const ha = parseFloat(valor);
-                        $(this).val(formatNumber(ha, 2));
-                    }
+                // Actualizar resumen al cambiar (sin reformatear)
+                $haInput.off('input blur').on('blur', function() {
                     actualizarResumenEdit();
                 });
 
-                // ===== M² - FORMATEO PROGRESIVO =====
-                $m2Input.off('input blur keyup').on('input', function() {
-                    formatearM2Input($(this));
+                // ===== M² - SIN FORMATEO AUTOMÁTICO =====
+                // Seleccionar todo al hacer focus (facilita sobrescritura)
+                $m2Input.off('focus').on('focus', function() {
+                    $(this).select();
                 });
 
-                // Formateo final al salir
-                $m2Input.on('blur', function() {
-                    let valor = $(this).val().replace(/\./g, '').replace(',', '.');
-                    if (valor && !isNaN(valor)) {
-                        const m2 = parseFloat(valor);
-                        $(this).val(formatNumber(m2, 2));
-                    }
+                // Actualizar resumen al cambiar (sin reformatear)
+                $m2Input.off('input blur').on('blur', function() {
                     actualizarResumenEdit();
                 });
 
@@ -2234,36 +2226,16 @@
                 $('#edit_folio_hectareas').off('input blur keyup');
                 $('#edit_folio_m2').off('input blur keyup');
 
-                // ===== HECTÁREAS - FORMATEO PROGRESIVO =====
-                $('#edit_folio_hectareas').on('input', function() {
-                    formatearHectareasInput($(this));
+                // ===== HECTÁREAS - SIN FORMATEO AUTOMÁTICO =====
+                // Seleccionar todo al hacer focus (facilita sobrescritura)
+                $('#edit_folio_hectareas').off('focus').on('focus', function() {
+                    $(this).select();
                 });
 
-                // Formateo final al salir del campo (asegurar ,00)
-                $('#edit_folio_hectareas').on('blur', function() {
-                    let valor = $(this).val().replace(',', '.');
-                    if (valor && !isNaN(valor)) {
-                        const ha = parseFloat(valor);
-                        $(this).val(formatNumber(ha, 2));
-                    } else if (!valor) {
-                        $(this).val('');
-                    }
-                });
-
-                // ===== M² - FORMATEO PROGRESIVO =====
-                $('#edit_folio_m2').on('input', function() {
-                    formatearM2Input($(this));
-                });
-
-                // Formateo final al salir del campo (asegurar formato completo)
-                $('#edit_folio_m2').on('blur', function() {
-                    let valor = $(this).val().replace(/\./g, '').replace(',', '.');
-                    if (valor && !isNaN(valor)) {
-                        const m2 = parseFloat(valor);
-                        $(this).val(formatNumber(m2, 2));
-                    } else if (!valor) {
-                        $(this).val('');
-                    }
+                // ===== M² - SIN FORMATEO AUTOMÁTICO =====
+                // Seleccionar todo al hacer focus (facilita sobrescritura)
+                $('#edit_folio_m2').off('focus').on('focus', function() {
+                    $(this).select();
                 });
 
                 // ===== CONVERSIÓN M² → HECTÁREAS (solo para planos rurales) =====
