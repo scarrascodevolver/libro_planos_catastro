@@ -758,7 +758,7 @@ class PlanoController extends Controller
             'apellido_paterno' => $request->apellido_paterno,
             'apellido_materno' => $request->apellido_materno,
             'tipo_inmueble' => $request->tipo_inmueble,
-            'hectareas' => $request->tipo_inmueble === 'HIJUELA' ? $request->hectareas : null,
+            'hectareas' => $request->hectareas,
             'm2' => $request->m2,
             'is_from_matrix' => false,
         ]);
@@ -962,7 +962,7 @@ class PlanoController extends Controller
                     'apellido_paterno' => $folioData['apellido_paterno'] ?: null,
                     'apellido_materno' => $folioData['apellido_materno'] ?: null,
                     'tipo_inmueble' => $folioData['tipo_inmueble'],
-                    'hectareas' => $folioData['tipo_inmueble'] === 'HIJUELA' ? ($folioData['hectareas'] ?: null) : null,
+                    'hectareas' => !empty($folioData['hectareas']) ? $folioData['hectareas'] : null,
                     'm2' => !empty($folioData['m2']) ? $folioData['m2'] : 0,
                     'is_from_matrix' => false,
                 ];
@@ -1230,10 +1230,8 @@ class PlanoController extends Controller
             $data['m2'] = normalizarM2($data['m2']);
         }
 
-        // Normalizar hectáreas o limpiar según tipo
-        if ($data['tipo_inmueble'] === 'SITIO') {
-            $data['hectareas'] = null;
-        } elseif (isset($data['hectareas'])) {
+        // Normalizar hectáreas si están presentes (sin importar tipo inmueble)
+        if (isset($data['hectareas'])) {
             $data['hectareas'] = normalizarHectareas($data['hectareas']);
         }
 
