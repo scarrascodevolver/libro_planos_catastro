@@ -734,16 +734,29 @@ class PlanoController extends Controller
 
         // Validación diferenciada según tipo de plano
         if ($esRural) {
-            // Rural: hectáreas Y m² son OBLIGATORIOS
-            $rules['hectareas'] = 'required|numeric|min:0.0001';
-            $rules['m2'] = 'required|numeric|min:1';
+            // Rural: hectáreas O m² (al menos uno debe tener valor)
+            $rules['hectareas'] = 'nullable|numeric|min:0.0001';
+            $rules['m2'] = 'nullable|numeric|min:0.01';
         } else {
             // Urbano: solo m² es obligatorio, hectáreas no aplica
             $rules['hectareas'] = 'nullable|numeric|min:0';
-            $rules['m2'] = 'required|numeric|min:1';
+            $rules['m2'] = 'required|numeric|min:0.01';
         }
 
         $request->validate($rules);
+
+        // Validación adicional para rurales: al menos uno (hectáreas o m²) debe tener valor
+        if ($esRural) {
+            $tieneHectareas = !empty($request->hectareas) && $request->hectareas > 0;
+            $tieneM2 = !empty($request->m2) && $request->m2 > 0;
+
+            if (!$tieneHectareas && !$tieneM2) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Para planos rurales, debe ingresar al menos Hectáreas o M²'
+                ], 422);
+            }
+        }
 
         // Crear el nuevo folio
         $folio = PlanoFolio::create([
@@ -885,9 +898,9 @@ class PlanoController extends Controller
 
         // Validación diferenciada según tipo de plano
         if ($esRural) {
-            // Rural: hectáreas Y m² son OBLIGATORIOS
-            $rules['folios.*.hectareas'] = 'required|numeric|min:0.0001';
-            $rules['folios.*.m2'] = 'required|numeric|min:1';
+            // Rural: hectáreas O m² (al menos uno debe tener valor)
+            $rules['folios.*.hectareas'] = 'nullable|numeric|min:0.0001';
+            $rules['folios.*.m2'] = 'nullable|numeric|min:0.01';
         } else {
             // Urbano: solo m² es obligatorio, hectáreas no aplica
             $rules['folios.*.hectareas'] = 'nullable|numeric|min:0';
@@ -895,6 +908,21 @@ class PlanoController extends Controller
         }
 
         $request->validate($rules);
+
+        // Validación adicional para rurales: cada folio debe tener al menos hectáreas o m²
+        if ($esRural) {
+            foreach ($request->folios as $index => $folio) {
+                $tieneHectareas = !empty($folio['hectareas']) && $folio['hectareas'] > 0;
+                $tieneM2 = !empty($folio['m2']) && $folio['m2'] > 0;
+
+                if (!$tieneHectareas && !$tieneM2) {
+                    return response()->json([
+                        'success' => false,
+                        'message' => "Folio #" . ($index + 1) . ": Para planos rurales, debe ingresar al menos Hectáreas o M²"
+                    ], 422);
+                }
+            }
+        }
 
         $plano = Plano::with('folios')->findOrFail($id);
 
@@ -1227,9 +1255,9 @@ class PlanoController extends Controller
 
         // Validación diferenciada según tipo de plano
         if ($esRural) {
-            // Rural: hectáreas Y m² son OBLIGATORIOS
-            $rules['hectareas'] = 'required|numeric|min:0.0001';
-            $rules['m2'] = 'required|numeric|min:0.01';
+            // Rural: hectáreas O m² (al menos uno debe tener valor)
+            $rules['hectareas'] = 'nullable|numeric|min:0.0001';
+            $rules['m2'] = 'nullable|numeric|min:0.01';
         } else {
             // Urbano: solo m² es obligatorio, hectáreas no aplica
             $rules['hectareas'] = 'nullable|numeric|min:0';
@@ -1245,6 +1273,23 @@ class PlanoController extends Controller
                 'message' => 'Errores de validación',
                 'errors' => $validator->errors()
             ], 422);
+        }
+
+        // Validación adicional para rurales: al menos uno (hectáreas o m²) debe tener valor
+        if ($esRural) {
+            $tieneHectareas = !empty($data['hectareas']) && $data['hectareas'] > 0;
+            $tieneM2 = !empty($data['m2']) && $data['m2'] > 0;
+
+            if (!$tieneHectareas && !$tieneM2) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Validación fallida',
+                    'errors' => [
+                        'hectareas' => ['Para planos rurales, debe ingresar al menos Hectáreas o M²'],
+                        'm2' => ['Para planos rurales, debe ingresar al menos Hectáreas o M²']
+                    ]
+                ], 422);
+            }
         }
 
         $folio->update($data);
