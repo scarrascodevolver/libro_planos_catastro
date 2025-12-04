@@ -443,7 +443,8 @@ class PlanoHistoricoController extends Controller
         $planosCreados = 0;
         $foliosCreados = 0;
         $errores = []; // Errores críticos con info detallada
-        $warnings = []; // Warnings con info detallada
+        $warnings = []; // Warnings normales con info detallada
+        $warningsCriticos = []; // Warnings críticos (M² altos) con info detallada
         $erroresCriticos = 0;
         $numerosProcessados = []; // Track números ya procesados en este lote
 
@@ -493,7 +494,8 @@ class PlanoHistoricoController extends Controller
 
                 // DETECTAR WARNINGS ADICIONALES (superficies vacías, datos incompletos)
                 $warningsAdicionales = $this->detectarWarningsGrupo($grupo);
-                $warningsGrupo = array_merge($warningsGrupo, $warningsAdicionales);
+                $warningsCriticosGrupo = $warningsAdicionales['criticos'] ?? [];
+                $warningsNormalesGrupo = array_merge($warningsGrupo, $warningsAdicionales['normales'] ?? []);
 
                 // Crear plano
                 $plano = $this->crearPlanoDesdeGrupo($grupo);
@@ -508,8 +510,23 @@ class PlanoHistoricoController extends Controller
                     $foliosCreados++;
                 }
 
-                // Si hay warnings para este grupo → agregar al reporte
-                if (!empty($warningsGrupo)) {
+                // Agregar warnings críticos al reporte (primero, en rojo)
+                if (!empty($warningsCriticosGrupo)) {
+                    $infoPlano = [
+                        'numero_plano' => $primerFila['N°_PLANO'],
+                        'fila_excel' => $primerFila['NUMERO_FILA'],
+                        'comuna' => $primerFila['COMUNA'],
+                        'solicitante' => $primerFila['SOLICITANTE'],
+                        'folio' => $primerFila['FOLIO'] ?: '[VACÍO]',
+                        'tipo' => $primerFila['URBANO/RURAL']
+                    ];
+                    $warningsCriticos[] = array_merge($infoPlano, [
+                        'advertencias' => $warningsCriticosGrupo
+                    ]);
+                }
+
+                // Agregar warnings normales al reporte (después, en amarillo)
+                if (!empty($warningsNormalesGrupo)) {
                     $infoPlano = [
                         'numero_plano' => $primerFila['N°_PLANO'],
                         'fila_excel' => $primerFila['NUMERO_FILA'],
@@ -519,7 +536,7 @@ class PlanoHistoricoController extends Controller
                         'tipo' => $primerFila['URBANO/RURAL']
                     ];
                     $warnings[] = array_merge($infoPlano, [
-                        'advertencias' => $warningsGrupo
+                        'advertencias' => $warningsNormalesGrupo
                     ]);
                 }
 
@@ -543,42 +560,23 @@ class PlanoHistoricoController extends Controller
             'planos_creados' => $planosCreados,
             'folios_creados' => $foliosCreados,
             'errores' => $errores, // Array de objetos con info detallada
-            'warnings' => $warnings, // Array de objetos con info detallada
+            'warnings' => $warnings, // Warnings normales (amarillo)
+            'warnings_criticos' => $warningsCriticos, // Warnings críticos (rojo, primero)
             'errores_criticos' => $erroresCriticos
         ];
     }
 
     /**
-     * Detecta warnings no críticos en el grupo (superficies vacías, datos incompletos)
+     * Detecta warnings en el grupo, separados por criticidad
+     * Retorna array con 'criticos' y 'normales'
      */
     private function detectarWarningsGrupo($grupo)
     {
-        $warnings = [];
+        $warningsCriticos = []; // M² muy altos (posible error grave)
+        $warningsNormales = []; // Datos vacíos o incompletos
 
         foreach ($grupo as $fila) {
-            // Warning: Sin superficie
-            $hayHectareas = !empty($fila['HA']) && floatval($fila['HA']) > 0;
-            $hayM2Hij = !empty($fila['M²_HIJ']) && floatval($fila['M²_HIJ']) > 0;
-            $hayM2Sitio = !empty($fila['M²_SITIO']) && floatval($fila['M²_SITIO']) > 0;
-
-            if (!$hayHectareas && !$hayM2Hij && !$hayM2Sitio) {
-                $warnings[] = "Folio {$fila['FOLIO']}: Sin superficie (Hectáreas y M² vacíos)";
-            }
-
-            // Warning: Solicitante vacío
-            if (empty(trim($fila['SOLICITANTE']))) {
-                $warnings[] = "Folio {$fila['FOLIO']}: Solicitante vacío";
-            }
-
-            // Warning: Apellidos vacíos (solo si no es FISCO)
-            $solicitante = strtoupper(trim($fila['SOLICITANTE']));
-            if ($solicitante !== 'FISCO' && $solicitante !== 'FISCO DE CHILE') {
-                if (empty(trim($fila['PATERNO']))) {
-                    $warnings[] = "Folio {$fila['FOLIO']}: Apellido paterno vacío";
-                }
-            }
-
-            // Warning: M² muy altos (posible error de coma decimal)
+            // WARNING CRÍTICO: M² muy altos (posible error de coma decimal)
             // 100.000 m² = 10 hectáreas (valor inusualmente alto)
             $m2Hij = floatval($fila['M²_HIJ'] ?? 0);
             $m2Sitio = floatval($fila['M²_SITIO'] ?? 0);
@@ -586,11 +584,36 @@ class PlanoHistoricoController extends Controller
 
             if ($m2Total > 100000) {
                 $m2Formateado = number_format($m2Total, 0, ',', '.');
-                $warnings[] = "Folio {$fila['FOLIO']}: M² muy altos ({$m2Formateado} m²). ¿Olvidó coma decimal?";
+                $warningsCriticos[] = "Folio {$fila['FOLIO']}: M² muy altos ({$m2Formateado} m²). ¿Olvidó coma decimal?";
+            }
+
+            // Warning: Sin superficie
+            $hayHectareas = !empty($fila['HA']) && floatval($fila['HA']) > 0;
+            $hayM2Hij = !empty($fila['M²_HIJ']) && floatval($fila['M²_HIJ']) > 0;
+            $hayM2Sitio = !empty($fila['M²_SITIO']) && floatval($fila['M²_SITIO']) > 0;
+
+            if (!$hayHectareas && !$hayM2Hij && !$hayM2Sitio) {
+                $warningsNormales[] = "Folio {$fila['FOLIO']}: Sin superficie (Hectáreas y M² vacíos)";
+            }
+
+            // Warning: Solicitante vacío
+            if (empty(trim($fila['SOLICITANTE']))) {
+                $warningsNormales[] = "Folio {$fila['FOLIO']}: Solicitante vacío";
+            }
+
+            // Warning: Apellidos vacíos (solo si no es FISCO)
+            $solicitante = strtoupper(trim($fila['SOLICITANTE']));
+            if ($solicitante !== 'FISCO' && $solicitante !== 'FISCO DE CHILE') {
+                if (empty(trim($fila['PATERNO']))) {
+                    $warningsNormales[] = "Folio {$fila['FOLIO']}: Apellido paterno vacío";
+                }
             }
         }
 
-        return array_unique($warnings);
+        return [
+            'criticos' => array_unique($warningsCriticos),
+            'normales' => array_unique($warningsNormales)
+        ];
     }
 
     private function crearPlanoDesdeGrupo($grupo)

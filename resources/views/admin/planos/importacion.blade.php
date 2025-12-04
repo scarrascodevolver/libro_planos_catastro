@@ -557,7 +557,27 @@ function executeHistoricosImport() {
                 html += '<div class="col-6">✓ Folios creados: <strong>' + response.resultado.folios_creados + '</strong></div>';
                 html += '</div></div>';
 
-                // Warnings (planos con datos incompletos pero importados)
+                // Warnings CRÍTICOS (M² muy altos - posible error grave)
+                if (response.resultado.warnings_criticos && response.resultado.warnings_criticos.length > 0) {
+                    html += '<div class="alert alert-danger mb-3">';
+                    html += '<h6><i class="fas fa-exclamation-triangle"></i> Advertencias Críticas (' + response.resultado.warnings_criticos.length + ' plano(s) con posibles errores graves)</h6>';
+                    html += '<div style="max-height: 200px; overflow-y: auto; font-size: 13px;">';
+                    response.resultado.warnings_criticos.forEach(function(warning) {
+                        html += '<div class="border-bottom pb-2 mb-2">';
+                        html += '<strong>• Plano ' + warning.numero_plano + '</strong> <span class="badge badge-dark">Fila Excel: ' + warning.fila_excel + '</span><br>';
+                        html += '<small>';
+                        html += '&nbsp;&nbsp;Comuna: ' + warning.comuna + ' | ';
+                        html += 'Solicitante: ' + warning.solicitante + ' | ';
+                        html += 'Folio: ' + warning.folio + '<br>';
+                        warning.advertencias.forEach(function(adv) {
+                            html += '&nbsp;&nbsp;<span class="text-danger">⚠</span> ' + adv + '<br>';
+                        });
+                        html += '</small></div>';
+                    });
+                    html += '</div></div>';
+                }
+
+                // Warnings normales (planos con datos incompletos pero importados)
                 if (response.resultado.warnings && response.resultado.warnings.length > 0) {
                     html += '<div class="alert alert-warning mb-3">';
                     html += '<h6><i class="fas fa-exclamation-triangle"></i> Advertencias (' + response.resultado.warnings.length + ' plano(s) con datos incompletos - importados igual)</h6>';
