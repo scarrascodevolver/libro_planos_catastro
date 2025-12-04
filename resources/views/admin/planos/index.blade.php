@@ -1459,20 +1459,13 @@
                         camposFaltantes.push('Apellido Materno');
                     }
 
-                    // Validación diferenciada para rural vs urbano
-                    if (esRural) {
-                        // RURAL: Al menos hectáreas O m² debe estar presente
-                        var tieneHectareas = folioData.hectareas && folioData.hectareas > 0;
-                        var tieneM2 = folioData.m2 && folioData.m2 > 0;
+                    // Validación unificada para rural y urbano
+                    // Al menos hectáreas O m² debe estar presente
+                    var tieneHectareas = folioData.hectareas && folioData.hectareas > 0;
+                    var tieneM2 = folioData.m2 && folioData.m2 > 0;
 
-                        if (!tieneHectareas && !tieneM2) {
-                            camposFaltantes.push('Hectáreas o M² (debe completar al menos uno)');
-                        }
-                    } else {
-                        // URBANO: M² es obligatorio
-                        if (!folioData.m2 || folioData.m2 <= 0) {
-                            camposFaltantes.push('M²');
-                        }
+                    if (!tieneHectareas && !tieneM2) {
+                        camposFaltantes.push('Hectáreas o M² (debe completar al menos uno)');
                     }
 
                     if (camposFaltantes.length > 0) {
