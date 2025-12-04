@@ -1590,39 +1590,37 @@ function recolectarMedidasMatrix() {
         const esRural = folio.tipo_inmueble === 'HIJUELA';
 
         for (let i = 0; i < cantidadInmuebles; i++) {
+            // Leer ambos campos (M² y Hectáreas)
             const m2Input = $(`.m2-inmueble-matrix[data-folio="${index}"][data-inmueble="${i}"]`).val();
+            const haInput = $(`.hectareas-inmueble-matrix[data-folio="${index}"][data-inmueble="${i}"]`).val();
 
-            if (!m2Input) {
-                errores.push(`Folio ${folio.folio}: M² del ${folio.tipo_inmueble} #${i + 1} es obligatorio`);
-                continue;
-            }
+            const m2 = m2Input ? normalizarNumeroJS(m2Input) : 0;
+            const ha = haInput ? normalizarNumeroJS(haInput) : 0;
 
-            const m2 = normalizarNumeroJS(m2Input);
-            if (isNaN(m2) || m2 <= 0) {
-                errores.push(`Folio ${folio.folio}: M² del ${folio.tipo_inmueble} #${i + 1} es inválido`);
+            // Validar que al menos uno de los dos tenga valor
+            if ((!m2 || m2 <= 0) && (!ha || ha <= 0)) {
+                errores.push(`Folio ${folio.folio}: ${folio.tipo_inmueble} #${i + 1} debe tener al menos Hectáreas o M²`);
                 continue;
             }
 
             const inmueble = {
                 numero_inmueble: i + 1,
-                tipo_inmueble: folio.tipo_inmueble,
-                m2: m2
+                tipo_inmueble: folio.tipo_inmueble
             };
 
-            // Agregar hectáreas si es rural
-            if (esRural) {
-                const haInput = $(`.hectareas-inmueble-matrix[data-folio="${index}"][data-inmueble="${i}"]`).val();
-                if (haInput) {
-                    const ha = normalizarNumeroJS(haInput);
-                    if (!isNaN(ha)) {
-                        inmueble.hectareas = ha;
-                        totalHectareas += ha;
-                    }
-                }
+            // Agregar M² si tiene valor
+            if (m2 && m2 > 0) {
+                inmueble.m2 = m2;
+                totalM2 += m2;
+            }
+
+            // Agregar Hectáreas si tiene valor
+            if (ha && ha > 0) {
+                inmueble.hectareas = ha;
+                totalHectareas += ha;
             }
 
             inmuebles.push(inmueble);
-            totalM2 += m2;
         }
 
         // Actualizar folio con TODOS los datos editados
@@ -1993,43 +1991,42 @@ function recolectarFoliosMasivos() {
         let totalHa = 0;
 
         for (let i = 0; i < cantidad; i++) {
+            // Leer ambos campos (M² y Hectáreas)
             const m2Input = $(`.m2-masivo[data-folio="${index}"][data-inmueble="${i}"]`).val();
+            const haInput = $(`.ha-masivo[data-folio="${index}"][data-inmueble="${i}"]`).val();
 
-            if (!m2Input) {
-                errores.push(`Folio ${folio.folio}: M² del ${tipoInmueble.toLowerCase()} #${i + 1} es obligatorio`);
-                continue;
-            }
+            const m2 = m2Input ? parseFloat(m2Input.replace(/\./g, '').replace(',', '.')) : 0;
+            const ha = haInput ? parseFloat(haInput.replace(/\./g, '').replace(',', '.')) : 0;
 
-            const m2 = parseFloat(m2Input.replace(/\./g, '').replace(',', '.'));
-            if (isNaN(m2) || m2 <= 0) {
-                errores.push(`Folio ${folio.folio}: M² del ${tipoInmueble.toLowerCase()} #${i + 1} es inválido`);
+            // Validar que al menos uno de los dos tenga valor
+            if ((!m2 || isNaN(m2) || m2 <= 0) && (!ha || isNaN(ha) || ha <= 0)) {
+                errores.push(`Folio ${folio.folio}: ${tipoInmueble} #${i + 1} debe tener al menos Hectáreas o M²`);
                 continue;
             }
 
             const inmueble = {
                 numero_inmueble: i + 1,
-                tipo_inmueble: tipoInmueble,
-                m2: m2
+                tipo_inmueble: tipoInmueble
             };
 
-            if (esRural) {
-                const haInput = $(`.ha-masivo[data-folio="${index}"][data-inmueble="${i}"]`).val();
-                if (haInput) {
-                    const ha = parseFloat(haInput.replace(/\./g, '').replace(',', '.'));
-                    if (!isNaN(ha) && ha > 0) {
-                        inmueble.hectareas = ha;
-                        totalHa += ha;
-                    }
-                }
+            // Agregar M² si tiene valor
+            if (m2 && !isNaN(m2) && m2 > 0) {
+                inmueble.m2 = m2;
+                totalM2 += m2;
+            }
+
+            // Agregar Hectáreas si tiene valor
+            if (ha && !isNaN(ha) && ha > 0) {
+                inmueble.hectareas = ha;
+                totalHa += ha;
             }
 
             inmuebles.push(inmueble);
-            totalM2 += m2;
         }
 
         // Actualizar folio con totales
-        folio.m2 = totalM2;
-        folio.hectareas = esRural && totalHa > 0 ? totalHa : null;
+        folio.m2 = totalM2 > 0 ? totalM2 : null;
+        folio.hectareas = totalHa > 0 ? totalHa : null;
         folio.tipo_inmueble = tipoInmueble;
         folio.inmuebles = inmuebles;
         folio.numero_inmueble = cantidad;
