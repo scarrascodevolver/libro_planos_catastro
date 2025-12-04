@@ -211,7 +211,7 @@ class PlanoCreacionController extends Controller
             'folios.*.tipo_inmueble' => 'required|in:HIJUELA,SITIO',
             'folios.*.numero_inmueble' => 'nullable|integer',
             'folios.*.hectareas' => 'nullable|numeric|min:0',
-            'folios.*.m2' => 'required|numeric|min:1',
+            'folios.*.m2' => 'nullable|numeric|min:0',
             'folios.*.is_from_matrix' => 'required|boolean',
         ]);
 
@@ -221,6 +221,19 @@ class PlanoCreacionController extends Controller
                 'message' => 'Datos inválidos',
                 'errors' => $validator->errors()
             ], 422);
+        }
+
+        // Validación adicional: cada folio debe tener al menos hectáreas o m²
+        foreach ($request->folios as $index => $folio) {
+            $tieneHectareas = !empty($folio['hectareas']) && $folio['hectareas'] > 0;
+            $tieneM2 = !empty($folio['m2']) && $folio['m2'] > 0;
+
+            if (!$tieneHectareas && !$tieneM2) {
+                return response()->json([
+                    'success' => false,
+                    'message' => "Folio " . ($folio['folio'] ?? '#' . ($index + 1)) . ": Debe ingresar al menos Hectáreas o M²"
+                ], 422);
+            }
         }
 
         // Validar que el usuario tenga control de sesión activo
@@ -311,6 +324,10 @@ class PlanoCreacionController extends Controller
 
             // Crear folios con sus inmuebles
             foreach ($request->folios as $folioData) {
+                // Convertir 0 a null para campos vacíos
+                $hectareas = (!empty($folioData['hectareas']) && $folioData['hectareas'] > 0) ? $folioData['hectareas'] : null;
+                $m2 = (!empty($folioData['m2']) && $folioData['m2'] > 0) ? $folioData['m2'] : null;
+
                 $planoFolio = PlanoFolio::create([
                     'plano_id' => $plano->id,
                     'folio' => $folioData['folio'],
@@ -319,8 +336,8 @@ class PlanoCreacionController extends Controller
                     'apellido_materno' => $folioData['apellido_materno'],
                     'tipo_inmueble' => $folioData['tipo_inmueble'],
                     'numero_inmueble' => $folioData['numero_inmueble'],
-                    'hectareas' => $folioData['hectareas'],
-                    'm2' => $folioData['m2'],
+                    'hectareas' => $hectareas,
+                    'm2' => $m2,
                     'is_from_matrix' => $folioData['is_from_matrix'],
                     'matrix_folio' => $folioData['is_from_matrix'] ? $folioData['folio'] : null
                 ]);
