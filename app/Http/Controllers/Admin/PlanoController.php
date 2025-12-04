@@ -1210,20 +1210,7 @@ class PlanoController extends Controller
             'is_from_matrix' => 'required|boolean',
         ];
 
-        // Validación diferenciada según tipo de plano
-        if ($esRural) {
-            // Rural: hectáreas Y m² son OBLIGATORIOS
-            $rules['hectareas'] = 'required|numeric|min:0.0001';
-            $rules['m2'] = 'required|numeric|min:1';
-        } else {
-            // Urbano: solo m² es obligatorio, hectáreas no aplica
-            $rules['hectareas'] = 'nullable|numeric|min:0';
-            $rules['m2'] = 'required|numeric|min:0.01';
-        }
-
-        $request->validate($rules);
-
-        // Preparar datos normalizando números
+        // PRIMERO: Preparar y normalizar datos (ANTES de validar)
         $data = $request->all();
 
         // Normalizar M² (siempre requerido)
@@ -1236,6 +1223,28 @@ class PlanoController extends Controller
             $data['hectareas'] = null;
         } elseif (isset($data['hectareas'])) {
             $data['hectareas'] = normalizarHectareas($data['hectareas']);
+        }
+
+        // Validación diferenciada según tipo de plano
+        if ($esRural) {
+            // Rural: hectáreas Y m² son OBLIGATORIOS
+            $rules['hectareas'] = 'required|numeric|min:0.0001';
+            $rules['m2'] = 'required|numeric|min:0.01';
+        } else {
+            // Urbano: solo m² es obligatorio, hectáreas no aplica
+            $rules['hectareas'] = 'nullable|numeric|min:0';
+            $rules['m2'] = 'required|numeric|min:0.01';
+        }
+
+        // SEGUNDO: Validar datos YA normalizados
+        $validator = \Validator::make($data, $rules);
+
+        if ($validator->fails()) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Errores de validación',
+                'errors' => $validator->errors()
+            ], 422);
         }
 
         $folio->update($data);

@@ -80,14 +80,15 @@ if (!function_exists('normalizarHectareas')) {
 
 if (!function_exists('normalizarM2')) {
     /**
-     * Normaliza metros cuadrados (siempre entero)
+     * Normaliza metros cuadrados (decimal con 2 decimales)
+     * Actualizado para mantener decimales ya que vienen del Excel
      *
      * @param string|float|int|null $valor
-     * @return int|null
+     * @return float|null
      */
     function normalizarM2($valor)
     {
         $normalizado = normalizarNumero($valor);
-        return $normalizado !== null ? (int) round($normalizado) : null;
+        return $normalizado !== null ? round($normalizado, 2) : null;
     }
 }
