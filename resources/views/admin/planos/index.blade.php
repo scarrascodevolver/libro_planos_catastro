@@ -2165,20 +2165,12 @@
                         $('#edit_folio_matrix_folio').val(response.folio.matrix_folio || '');
                         $('#edit_folio_is_from_matrix').val(response.folio.is_from_matrix ? '1' : '0');
 
-                        // Ajustar validaciones según tipo de plano (rural/urbano)
-                        var esRural = response.plano && response.plano.es_rural;
-
-                        if (esRural) {
-                            // Rural: M² es opcional, mostrar hint
-                            $('#edit_folio_m2').removeAttr('required');
-                            $('#edit_folio_m2_required').hide();
-                            $('#edit_folio_rural_hint').removeClass('d-none');
-                        } else {
-                            // Urbano: M² es obligatorio
-                            $('#edit_folio_m2').attr('required', 'required');
-                            $('#edit_folio_m2_required').show();
-                            $('#edit_folio_rural_hint').addClass('d-none');
-                        }
+                        // Validación unificada: ambos campos opcionales (al menos uno requerido en backend)
+                        // Remover atributo 'required' de HTML5 para evitar validación del navegador
+                        $('#edit_folio_m2').removeAttr('required');
+                        $('#edit_folio_hectareas').removeAttr('required');
+                        $('#edit_folio_m2_required').hide();
+                        $('#edit_folio_rural_hint').removeClass('d-none');
 
                         // Ocultar loading y mostrar modal
                         $('#edit-folio-loading-overlay').hide();

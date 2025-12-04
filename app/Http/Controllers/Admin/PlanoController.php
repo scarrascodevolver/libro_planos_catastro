@@ -891,7 +891,7 @@ class PlanoController extends Controller
         // Validación unificada para rurales y urbanos
         // Ambos campos opcionales, pero al menos uno debe tener valor
         $rules['folios.*.hectareas'] = 'nullable|numeric|min:0.0001';
-        $rules['folios.*.m2'] = 'nullable|numeric|min:0.01';
+        $rules['folios.*.m2'] = 'nullable|numeric|min:0';
 
         $request->validate($rules);
 
@@ -962,8 +962,8 @@ class PlanoController extends Controller
                     'apellido_paterno' => $folioData['apellido_paterno'] ?: null,
                     'apellido_materno' => $folioData['apellido_materno'] ?: null,
                     'tipo_inmueble' => $folioData['tipo_inmueble'],
-                    'hectareas' => !empty($folioData['hectareas']) ? $folioData['hectareas'] : null,
-                    'm2' => !empty($folioData['m2']) ? $folioData['m2'] : 0,
+                    'hectareas' => !empty($folioData['hectareas']) && $folioData['hectareas'] > 0 ? $folioData['hectareas'] : null,
+                    'm2' => !empty($folioData['m2']) && $folioData['m2'] > 0 ? $folioData['m2'] : null,
                     'is_from_matrix' => false,
                 ];
 
@@ -1238,7 +1238,7 @@ class PlanoController extends Controller
         // Validación unificada para rurales y urbanos
         // Ambos campos opcionales, pero al menos uno debe tener valor
         $rules['hectareas'] = 'nullable|numeric|min:0.0001';
-        $rules['m2'] = 'nullable|numeric|min:0.01';
+        $rules['m2'] = 'nullable|numeric|min:0';
 
         // SEGUNDO: Validar datos YA normalizados
         $validator = \Validator::make($data, $rules);
@@ -1264,6 +1264,14 @@ class PlanoController extends Controller
                     'm2' => ['Debe ingresar al menos Hectáreas o M²']
                 ]
             ], 422);
+        }
+
+        // Convertir 0 a null para campos vacíos
+        if (isset($data['hectareas']) && $data['hectareas'] == 0) {
+            $data['hectareas'] = null;
+        }
+        if (isset($data['m2']) && $data['m2'] == 0) {
+            $data['m2'] = null;
         }
 
         $folio->update($data);
