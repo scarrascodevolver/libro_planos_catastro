@@ -732,18 +732,23 @@ class PlanoController extends Controller
             'tipo_inmueble' => 'required|in:HIJUELA,SITIO',
         ];
 
-        // Validación diferenciada según tipo de plano
-        if ($esRural) {
-            // Rural: hectáreas Y m² son OBLIGATORIOS
-            $rules['hectareas'] = 'required|numeric|min:0.0001';
-            $rules['m2'] = 'required|numeric|min:1';
-        } else {
-            // Urbano: solo m² es obligatorio, hectáreas no aplica
-            $rules['hectareas'] = 'nullable|numeric|min:0';
-            $rules['m2'] = 'required|numeric|min:1';
-        }
+        // Validación unificada para rurales y urbanos
+        // Ambos campos opcionales, pero al menos uno debe tener valor
+        $rules['hectareas'] = 'nullable|numeric|min:0.0001';
+        $rules['m2'] = 'nullable|numeric|min:0.01';
 
         $request->validate($rules);
+
+        // Validación adicional: al menos uno (hectáreas o m²) debe tener valor
+        $tieneHectareas = !empty($request->hectareas) && $request->hectareas > 0;
+        $tieneM2 = !empty($request->m2) && $request->m2 > 0;
+
+        if (!$tieneHectareas && !$tieneM2) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Debe ingresar al menos Hectáreas o M²'
+            ], 422);
+        }
 
         // Crear el nuevo folio
         $folio = PlanoFolio::create([
@@ -883,18 +888,25 @@ class PlanoController extends Controller
             'folios.*.tipo_inmueble' => 'required|in:HIJUELA,SITIO',
         ];
 
-        // Validación diferenciada según tipo de plano
-        if ($esRural) {
-            // Rural: hectáreas Y m² son OBLIGATORIOS
-            $rules['folios.*.hectareas'] = 'required|numeric|min:0.0001';
-            $rules['folios.*.m2'] = 'required|numeric|min:1';
-        } else {
-            // Urbano: solo m² es obligatorio, hectáreas no aplica
-            $rules['folios.*.hectareas'] = 'nullable|numeric|min:0';
-            $rules['folios.*.m2'] = 'required|numeric|min:0.01';
-        }
+        // Validación unificada para rurales y urbanos
+        // Ambos campos opcionales, pero al menos uno debe tener valor
+        $rules['folios.*.hectareas'] = 'nullable|numeric|min:0.0001';
+        $rules['folios.*.m2'] = 'nullable|numeric|min:0.01';
 
         $request->validate($rules);
+
+        // Validación adicional: cada folio debe tener al menos hectáreas o m²
+        foreach ($request->folios as $index => $folio) {
+            $tieneHectareas = !empty($folio['hectareas']) && $folio['hectareas'] > 0;
+            $tieneM2 = !empty($folio['m2']) && $folio['m2'] > 0;
+
+            if (!$tieneHectareas && !$tieneM2) {
+                return response()->json([
+                    'success' => false,
+                    'message' => "Folio #" . ($index + 1) . ": Debe ingresar al menos Hectáreas o M²"
+                ], 422);
+            }
+        }
 
         $plano = Plano::with('folios')->findOrFail($id);
 
@@ -1225,16 +1237,10 @@ class PlanoController extends Controller
             $data['hectareas'] = normalizarHectareas($data['hectareas']);
         }
 
-        // Validación diferenciada según tipo de plano
-        if ($esRural) {
-            // Rural: hectáreas Y m² son OBLIGATORIOS
-            $rules['hectareas'] = 'required|numeric|min:0.0001';
-            $rules['m2'] = 'required|numeric|min:0.01';
-        } else {
-            // Urbano: solo m² es obligatorio, hectáreas no aplica
-            $rules['hectareas'] = 'nullable|numeric|min:0';
-            $rules['m2'] = 'required|numeric|min:0.01';
-        }
+        // Validación unificada para rurales y urbanos
+        // Ambos campos opcionales, pero al menos uno debe tener valor
+        $rules['hectareas'] = 'nullable|numeric|min:0.0001';
+        $rules['m2'] = 'nullable|numeric|min:0.01';
 
         // SEGUNDO: Validar datos YA normalizados
         $validator = \Validator::make($data, $rules);
@@ -1244,6 +1250,21 @@ class PlanoController extends Controller
                 'success' => false,
                 'message' => 'Errores de validación',
                 'errors' => $validator->errors()
+            ], 422);
+        }
+
+        // Validación adicional: al menos uno (hectáreas o m²) debe tener valor
+        $tieneHectareas = !empty($data['hectareas']) && $data['hectareas'] > 0;
+        $tieneM2 = !empty($data['m2']) && $data['m2'] > 0;
+
+        if (!$tieneHectareas && !$tieneM2) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Validación fallida',
+                'errors' => [
+                    'hectareas' => ['Debe ingresar al menos Hectáreas o M²'],
+                    'm2' => ['Debe ingresar al menos Hectáreas o M²']
+                ]
             ], 422);
         }
 
