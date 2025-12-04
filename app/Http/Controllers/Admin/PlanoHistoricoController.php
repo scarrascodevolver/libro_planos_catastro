@@ -577,6 +577,17 @@ class PlanoHistoricoController extends Controller
                     $warnings[] = "Folio {$fila['FOLIO']}: Apellido paterno vacío";
                 }
             }
+
+            // Warning: M² muy altos (posible error de coma decimal)
+            // 100.000 m² = 10 hectáreas (valor inusualmente alto)
+            $m2Hij = floatval($fila['M²_HIJ'] ?? 0);
+            $m2Sitio = floatval($fila['M²_SITIO'] ?? 0);
+            $m2Total = max($m2Hij, $m2Sitio);
+
+            if ($m2Total > 100000) {
+                $m2Formateado = number_format($m2Total, 0, ',', '.');
+                $warnings[] = "Folio {$fila['FOLIO']}: M² muy altos ({$m2Formateado} m²). ¿Olvidó coma decimal?";
+            }
         }
 
         return array_unique($warnings);
