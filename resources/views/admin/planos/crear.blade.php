@@ -220,7 +220,7 @@
                     <div class="form-check">
                         <input class="form-check-input" type="radio" name="ubicacion_manual" id="ubicacion_urbano" value="U">
                         <label class="form-check-label" for="ubicacion_urbano">
-                            <strong>Urbano</strong> - SITIOS solo con M²
+                            <strong>Urbano</strong> - SITIOS con Hectáreas o M²
                         </label>
                     </div>
                 </div>
@@ -1011,9 +1011,9 @@ function mostrarResultadoMatrixMultiple(index, data) {
 }
 
 function validarFolioActualMultiple(index) {
-    // Listener para validar cuando cambia la cantidad o los m²
-    $(document).off('change input', `.cantidad-inmuebles-matrix[data-index="${index}"], .m2-inmueble-matrix[data-folio="${index}"]`);
-    $(document).on('change input', `.cantidad-inmuebles-matrix[data-index="${index}"], .m2-inmueble-matrix[data-folio="${index}"]`, function() {
+    // Listener para validar cuando cambia la cantidad, m² o hectáreas
+    $(document).off('change input', `.cantidad-inmuebles-matrix[data-index="${index}"], .m2-inmueble-matrix[data-folio="${index}"], .hectareas-inmueble-matrix[data-folio="${index}"]`);
+    $(document).on('change input', `.cantidad-inmuebles-matrix[data-index="${index}"], .m2-inmueble-matrix[data-folio="${index}"], .hectareas-inmueble-matrix[data-folio="${index}"]`, function() {
         verificarCompletitudFolioMultiple(index);
     });
 }
@@ -1045,11 +1045,14 @@ function verificarCompletitudFolioMultiple(index) {
         return;
     }
 
-    // Verificar que todos los m² estén llenos
+    // Verificar que cada inmueble tenga al menos Hectáreas O M²
     let todosCompletos = true;
     for (let i = 0; i < cantidad; i++) {
         const m2 = $(`.m2-inmueble-matrix[data-folio="${index}"][data-inmueble="${i}"]`).val();
-        if (!m2) {
+        const ha = $(`.hectareas-inmueble-matrix[data-folio="${index}"][data-inmueble="${i}"]`).val();
+
+        // Al menos uno de los dos debe tener valor
+        if (!m2 && !ha) {
             todosCompletos = false;
             break;
         }
@@ -1392,26 +1395,21 @@ function generarCamposMedidasMatrix(folioIndex, cantidad, esRural, tipoInmueble)
         html += '</div>';
 
         // Primero M² (siempre visible)
-        if (esRural) {
-            html += '<div class="col-md-5">';
-        } else {
-            html += '<div class="col-md-10">';
-        }
+        // M² - Opcional (al menos uno de los dos requerido)
+        html += '<div class="col-md-5">';
         html += '<div class="form-group mb-0">';
-        html += '<label class="small mb-1">M² <span class="text-danger">*</span></label>';
-        html += '<input type="text" class="form-control form-control-sm m2-inmueble-matrix" data-folio="' + folioIndex + '" data-inmueble="' + i + '" placeholder="Ej: 520.21 o 520,21" required inputmode="decimal">';
+        html += '<label class="small mb-1">M²</label>';
+        html += '<input type="text" class="form-control form-control-sm m2-inmueble-matrix" data-folio="' + folioIndex + '" data-inmueble="' + i + '" placeholder="Ej: 520.21 o 520,21" inputmode="decimal">';
         html += '</div>';
         html += '</div>';
 
-        // Después Hectáreas (solo para rural)
-        if (esRural) {
-            html += '<div class="col-md-5">';
-            html += '<div class="form-group mb-0">';
-            html += '<label class="small mb-1">Hectáreas</label>';
-            html += '<input type="text" class="form-control form-control-sm hectareas-inmueble-matrix" data-folio="' + folioIndex + '" data-inmueble="' + i + '" placeholder="Ej: 2.5 o 2,5" inputmode="decimal">';
-            html += '</div>';
-            html += '</div>';
-        }
+        // Hectáreas - Opcional (al menos uno de los dos requerido)
+        html += '<div class="col-md-5">';
+        html += '<div class="form-group mb-0">';
+        html += '<label class="small mb-1">Hectáreas</label>';
+        html += '<input type="text" class="form-control form-control-sm hectareas-inmueble-matrix" data-folio="' + folioIndex + '" data-inmueble="' + i + '" placeholder="Ej: 2.5 o 2,5" inputmode="decimal">';
+        html += '</div>';
+        html += '</div>';
 
         html += '</div>';
     }
@@ -1908,17 +1906,15 @@ function generarCamposMedidasMasivo(folioIndex, cantidad, esRural, tipoInmueble)
         html += '<div class="d-flex align-items-center mb-1' + (i > 0 ? ' border-top pt-1' : '') + '">';
         html += '<small class="mr-2 text-muted" style="min-width: 50px;">#' + (i + 1) + '</small>';
 
-        // Primero M² (siempre visible)
+        // M² - Opcional (al menos uno requerido)
         html += '<input type="text" class="form-control form-control-sm m2-masivo" ';
         html += 'data-folio="' + folioIndex + '" data-inmueble="' + i + '" ';
-        html += 'placeholder="M²" style="width: 100px;" required inputmode="numeric">';
+        html += 'placeholder="M²" style="width: 100px;" inputmode="numeric">';
 
-        // Después Hectáreas (solo para rural)
-        if (esRural) {
-            html += '<input type="text" class="form-control form-control-sm ha-masivo ml-1" ';
-            html += 'data-folio="' + folioIndex + '" data-inmueble="' + i + '" ';
-            html += 'placeholder="Ha" style="width: 90px;" inputmode="decimal">';
-        }
+        // Hectáreas - Opcional (al menos uno requerido)
+        html += '<input type="text" class="form-control form-control-sm ha-masivo ml-1" ';
+        html += 'data-folio="' + folioIndex + '" data-inmueble="' + i + '" ';
+        html += 'placeholder="Ha" style="width: 90px;" inputmode="decimal">';
 
         html += '</div>';
     }
@@ -1928,12 +1924,10 @@ function generarCamposMedidasMasivo(folioIndex, cantidad, esRural, tipoInmueble)
 }
 
 function attachListenersMedidasMasivo(folioIndex, esRural) {
-    // Validar al cambiar hectáreas
-    if (esRural) {
-        $(`.ha-masivo[data-folio="${folioIndex}"]`).off('input').on('input', function() {
-            verificarCompletitudMasivos();
-        });
-    }
+    // Validar al cambiar hectáreas (siempre, rural o urbano)
+    $(`.ha-masivo[data-folio="${folioIndex}"]`).off('input').on('input', function() {
+        verificarCompletitudMasivos();
+    });
 
     // Validar al cambiar M²
     $(`.m2-masivo[data-folio="${folioIndex}"]`).off('input').on('input', function() {
@@ -1949,11 +1943,17 @@ function verificarCompletitudMasivos() {
         completo = false;
     }
 
-    // Verificar que todos los M² estén llenos
+    // Verificar que cada inmueble tenga al menos Hectáreas O M²
     $('.m2-masivo').each(function() {
-        if (!$(this).val()?.trim()) {
+        const folioIndex = $(this).data('folio');
+        const inmuebleIndex = $(this).data('inmueble');
+        const m2 = $(this).val()?.trim();
+        const ha = $(`.ha-masivo[data-folio="${folioIndex}"][data-inmueble="${inmuebleIndex}"]`).val()?.trim();
+
+        // Al menos uno de los dos debe tener valor
+        if (!m2 && !ha) {
             completo = false;
-            return false;
+            return false; // break del each
         }
     });
 
@@ -2174,27 +2174,21 @@ function generarCamposMedidas(folioIndex, cantidad, esRural, tipoInmueble) {
         html += '<strong>' + tipoInmueble + ' #' + (i + 1) + '</strong>';
         html += '</div>';
 
-        // Primero M² (siempre visible)
-        if (esRural) {
-            html += '<div class="col-md-5">';
-        } else {
-            html += '<div class="col-md-10">';
-        }
+        // M² - Opcional (al menos uno de los dos requerido)
+        html += '<div class="col-md-5">';
         html += '<div class="form-group mb-0">';
-        html += '<label class="small mb-1">M² <span class="text-danger">*</span></label>';
-        html += '<input type="text" class="form-control form-control-sm m2-inmueble" data-folio="' + folioIndex + '" data-inmueble="' + i + '" placeholder="Ej: 520.21 o 520,21" required inputmode="decimal">';
+        html += '<label class="small mb-1">M²</label>';
+        html += '<input type="text" class="form-control form-control-sm m2-inmueble" data-folio="' + folioIndex + '" data-inmueble="' + i + '" placeholder="Ej: 520.21 o 520,21" inputmode="decimal">';
         html += '</div>';
         html += '</div>';
 
-        // Después Hectáreas (solo para rural)
-        if (esRural) {
-            html += '<div class="col-md-5">';
-            html += '<div class="form-group mb-0">';
-            html += '<label class="small mb-1">Hectáreas</label>';
-            html += '<input type="text" class="form-control form-control-sm hectareas-inmueble" data-folio="' + folioIndex + '" data-inmueble="' + i + '" placeholder="Ej: 2.5 o 2,5" inputmode="decimal">';
-            html += '</div>';
-            html += '</div>';
-        }
+        // Hectáreas - Opcional (al menos uno de los dos requerido)
+        html += '<div class="col-md-5">';
+        html += '<div class="form-group mb-0">';
+        html += '<label class="small mb-1">Hectáreas</label>';
+        html += '<input type="text" class="form-control form-control-sm hectareas-inmueble" data-folio="' + folioIndex + '" data-inmueble="' + i + '" placeholder="Ej: 2.5 o 2,5" inputmode="decimal">';
+        html += '</div>';
+        html += '</div>';
 
         html += '</div>';
     }
@@ -2565,24 +2559,19 @@ function generarCamposMedidasManualMultiple(folioIndex, cantidad, esRural, tipoI
         html += '</div>';
 
         // Primero M² (siempre visible)
-        if (esRural) {
-            html += '<div class="col-md-5">';
-        } else {
-            html += '<div class="col-md-10">';
-        }
+        // M² - Opcional (al menos uno de los dos requerido)
+        html += '<div class="col-md-5">';
         html += '<div class="form-group mb-0">';
-        html += '<label class="small mb-1">M² <span class="text-danger">*</span></label>';
-        html += '<input type="text" class="form-control form-control-sm m2-inmueble-manual-multiple" data-folio="' + folioIndex + '" data-inmueble="' + i + '" placeholder="0,00" required inputmode="decimal" onkeypress="return validarNumeroDecimal(event)">';
+        html += '<label class="small mb-1">M²</label>';
+        html += '<input type="text" class="form-control form-control-sm m2-inmueble-manual-multiple" data-folio="' + folioIndex + '" data-inmueble="' + i + '" placeholder="0,00" inputmode="decimal" onkeypress="return validarNumeroDecimal(event)">';
         html += '</div></div>';
 
-        // Después Hectáreas (solo para rural)
-        if (esRural) {
-            html += '<div class="col-md-5">';
-            html += '<div class="form-group mb-0">';
-            html += '<label class="small mb-1">Hectáreas</label>';
-            html += '<input type="text" class="form-control form-control-sm hectareas-inmueble-manual-multiple" data-folio="' + folioIndex + '" data-inmueble="' + i + '" placeholder="0,00" inputmode="decimal" onkeypress="return validarNumeroDecimalHectareas(event)">';
-            html += '</div></div>';
-        }
+        // Hectáreas - Opcional (al menos uno de los dos requerido)
+        html += '<div class="col-md-5">';
+        html += '<div class="form-group mb-0">';
+        html += '<label class="small mb-1">Hectáreas</label>';
+        html += '<input type="text" class="form-control form-control-sm hectareas-inmueble-manual-multiple" data-folio="' + folioIndex + '" data-inmueble="' + i + '" placeholder="0,00" inputmode="decimal" onkeypress="return validarNumeroDecimalHectareas(event)">';
+        html += '</div></div>';
 
         html += '</div>';
     }
@@ -2641,11 +2630,14 @@ function verificarCompletitudFolioManual(index) {
         return;
     }
 
-    // Verificar que todos los m² estén llenos
+    // Verificar que cada inmueble tenga al menos Hectáreas O M²
     let todosCompletos = true;
     for (let i = 0; i < cantidad; i++) {
         const m2 = $(`.m2-inmueble-manual-multiple[data-folio="${index}"][data-inmueble="${i}"]`).val();
-        if (!m2) {
+        const ha = $(`.hectareas-inmueble-manual-multiple[data-folio="${index}"][data-inmueble="${i}"]`).val();
+
+        // Al menos uno de los dos debe tener valor
+        if (!m2 && !ha) {
             todosCompletos = false;
             break;
         }
