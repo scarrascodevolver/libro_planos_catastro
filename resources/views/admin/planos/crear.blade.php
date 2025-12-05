@@ -1959,13 +1959,11 @@ function generarCamposMedidasMasivo(folioIndex, cantidad, esRural, tipoInmueble)
 }
 
 function attachListenersMedidasMasivo(folioIndex, esRural) {
-    // Validar al cambiar hectáreas (siempre, rural o urbano)
-    $(`.ha-masivo[data-folio="${folioIndex}"]`).off('input').on('input', function() {
-        verificarCompletitudMasivos();
-    });
+    // Agregar conversión bidireccional M² ↔ Hectáreas
+    attachBidirectionalConversion('.m2-masivo', '.ha-masivo');
 
-    // Validar al cambiar M²
-    $(`.m2-masivo[data-folio="${folioIndex}"]`).off('input').on('input', function() {
+    // Validar al cambiar hectáreas o M²
+    $(`.ha-masivo[data-folio="${folioIndex}"], .m2-masivo[data-folio="${folioIndex}"]`).off('input').on('input', function() {
         verificarCompletitudMasivos();
     });
 }
