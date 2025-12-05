@@ -333,12 +333,8 @@
                         <td id="confirm-total-folios">---</td>
                     </tr>
                     <tr>
-                        <th>Total Hectáreas:</th>
-                        <td id="confirm-total-ha">---</td>
-                    </tr>
-                    <tr>
-                        <th>Total M²:</th>
-                        <td id="confirm-total-m2">---</td>
+                        <th>Total Superficie:</th>
+                        <td id="confirm-total-superficie">---</td>
                     </tr>
                 </table>
             </div>
@@ -2814,17 +2810,21 @@ function mostrarConfirmacion() {
         }
     }
 
-    // Calcular totales
-    let totalHectareas = 0;
+    // Calcular totales en M² como unidad base
+    // Convertir todo a M² para suma correcta
     let totalM2 = 0;
     wizardData.folios.forEach(folio => {
-        if (folio.hectareas) {
-            totalHectareas += parseFloat(folio.hectareas);
-        }
-        if (folio.m2) {
+        if (folio.m2 && folio.m2 > 0) {
+            // Si tiene M² → Sumar directamente
             totalM2 += parseFloat(folio.m2);
+        } else if (folio.hectareas && folio.hectareas > 0) {
+            // Si tiene solo Hectáreas → Convertir a M²
+            totalM2 += parseFloat(folio.hectareas) * 10000;
         }
     });
+
+    // Convertir total M² a Hectáreas para mostrar
+    let totalHectareas = totalM2 > 0 ? totalM2 / 10000 : 0;
 
     // Obtener código comuna
     let codigoComuna = '';
@@ -2874,8 +2874,13 @@ function mostrarConfirmacion() {
     // Mostrar cantidad con etiqueta apropiada
     const tipoInmuebleLabel = wizardData.tipoPlano.includes('R') ? 'hijuelas' : 'sitios';
     $('#confirm-total-folios').text(totalInmuebles + ' ' + tipoInmuebleLabel);
-    $('#confirm-total-ha').text(totalHectareas > 0 ? formatNumber(totalHectareas, 2) + ' ha' : '-');
-    $('#confirm-total-m2').text(formatNumber(totalM2, 2) + ' m²');
+
+    // Mostrar superficie total en ambas unidades: "XXX m² (YY,YY ha)"
+    if (totalM2 > 0) {
+        $('#confirm-total-superficie').text(formatNumber(totalM2, 2) + ' m² (' + formatNumber(totalHectareas, 4) + ' ha)');
+    } else {
+        $('#confirm-total-superficie').text('-');
+    }
 
     // Generar lista de inmuebles
     let listaHTML = '<table class="table table-sm table-hover">';
