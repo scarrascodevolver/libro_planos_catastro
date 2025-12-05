@@ -1077,39 +1077,46 @@ function avanzarSiguienteFolioMultiple() {
 
     // Recolectar inmuebles
     const inmuebles = [];
-    let totalM2 = 0;
-    let totalHa = 0;
+    let totalM2Base = 0; // Acumular todo en M² como unidad base
     const esRural = folio.tipo_inmueble === 'HIJUELA';
 
     for (let i = 0; i < cantidad; i++) {
+        // Leer AMBOS campos (M² y Hectáreas) independiente del tipo
         const m2Input = $(`.m2-inmueble-matrix[data-folio="${index}"][data-inmueble="${i}"]`).val();
-        const m2 = normalizarNumeroJS(m2Input);
+        const haInput = $(`.hectareas-inmueble-matrix[data-folio="${index}"][data-inmueble="${i}"]`).val();
+
+        const m2 = m2Input ? normalizarNumeroJS(m2Input) : 0;
+        const ha = haInput ? normalizarNumeroJS(haInput) : 0;
+
+        // Validar que tenga al menos uno de los dos
+        if ((!m2 || m2 <= 0) && (!ha || ha <= 0)) {
+            continue; // Skip inmuebles vacíos
+        }
 
         const inmueble = {
             numero_inmueble: i + 1,
-            tipo_inmueble: folio.tipo_inmueble,
-            m2: m2
+            tipo_inmueble: folio.tipo_inmueble
         };
 
-        if (esRural) {
-            const haInput = $(`.hectareas-inmueble-matrix[data-folio="${index}"][data-inmueble="${i}"]`).val();
-            if (haInput) {
-                const ha = normalizarNumeroJS(haInput);
-                inmueble.hectareas = ha;
-                totalHa += ha;
-            }
+        // Sumar a total en M² base
+        if (m2 && m2 > 0) {
+            inmueble.m2 = m2;
+            totalM2Base += m2; // Agregar M² directamente
+        } else if (ha && ha > 0) {
+            // Si solo tiene Hectáreas, convertir a M² para la suma
+            inmueble.hectareas = ha;
+            totalM2Base += ha * 10000; // Convertir Ha → M²
         }
 
         inmuebles.push(inmueble);
-        totalM2 += m2;
     }
 
     // Actualizar folio
     folio.solicitante = solicitante;
     folio.apellido_paterno = apPaterno || null;
     folio.apellido_materno = apMaterno || null;
-    folio.m2 = totalM2;
-    folio.hectareas = esRural ? totalHa : null;
+    folio.m2 = totalM2Base > 0 ? totalM2Base : null;
+    folio.hectareas = totalM2Base > 0 ? totalM2Base / 10000 : null;
     folio.inmuebles = inmuebles;
 
     // Datos del plano (solo primer folio)
