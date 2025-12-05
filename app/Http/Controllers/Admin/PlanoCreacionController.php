@@ -223,18 +223,11 @@ class PlanoCreacionController extends Controller
             ], 422);
         }
 
-        // Validación adicional: cada folio debe tener SOLO UNO (hectáreas O m², no ambos)
+        // Validación adicional: cada folio debe tener AL MENOS UNO (hectáreas O m²)
+        // NOTA: Frontend valida que usuario ingrese solo uno; si llegan ambos es porque uno fue auto-calculado
         foreach ($request->folios as $index => $folio) {
             $tieneHectareas = !empty($folio['hectareas']) && $folio['hectareas'] > 0;
             $tieneM2 = !empty($folio['m2']) && $folio['m2'] > 0;
-
-            // ERROR: Ambos campos con valor
-            if ($tieneHectareas && $tieneM2) {
-                return response()->json([
-                    'success' => false,
-                    'message' => "Folio " . ($folio['folio'] ?? '#' . ($index + 1)) . ": Ingrese solo uno de los dos campos: m² o hectáreas."
-                ], 422);
-            }
 
             // ERROR: Ningún campo con valor
             if (!$tieneHectareas && !$tieneM2) {
