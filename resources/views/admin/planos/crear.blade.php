@@ -1418,10 +1418,8 @@ function generarCamposMedidasMatrix(folioIndex, cantidad, esRural, tipoInmueble)
 
     $(`#medidas-inmuebles-container-matrix-${folioIndex}`).html(html);
 
-    // Agregar conversión automática M² → Hectáreas (solo si es rural)
-    if (esRural) {
-        attachM2ToHaListener('.m2-inmueble-matrix', '.hectareas-inmueble-matrix');
-    }
+    // Agregar conversión bidireccional M² ↔ Hectáreas
+    attachBidirectionalConversion('.m2-inmueble-matrix', '.hectareas-inmueble-matrix');
 }
 
 // Función helper para normalizar números (detecta formato automáticamente)
@@ -1465,33 +1463,76 @@ function normalizarNumeroJS(valor) {
 }
 
 // Conversión automática M² → Hectáreas (solo una dirección para evitar loops)
-function attachM2ToHaListener(m2Selector, haSelector) {
-    $(document).off('blur', m2Selector);
-    $(document).on('blur', m2Selector, function() {
-        const m2Valor = $(this).val();
-        if (!m2Valor) return;
+/**
+ * Conversión bidireccional M² ↔ Hectáreas
+ * Reglas:
+ * - Si escribe M² → Convierte a Ha y bloquea input Ha (readonly)
+ * - Si escribe Ha → Limpia y bloquea input M² (readonly)
+ * - Si borra → Habilita ambos campos
+ */
+function attachBidirectionalConversion(m2Selector, haSelector) {
+    // Listener para M² → Hectáreas
+    $(document).off('input', m2Selector);
+    $(document).on('input', m2Selector, function() {
+        const folioIndex = $(this).data('folio');
+        const inmuebleIndex = $(this).data('inmueble');
+
+        // Encontrar el input de hectáreas correspondiente
+        let $haInput = findRelatedInput(haSelector, folioIndex, inmuebleIndex);
+
+        const m2Valor = $(this).val().trim();
+
+        if (!m2Valor || m2Valor === '' || m2Valor === '0' || m2Valor === '0,00') {
+            // Usuario borró M² → Rehabilitar Hectáreas
+            $haInput.val('').prop('readonly', false).removeClass('bg-light');
+            return;
+        }
 
         const m2 = normalizarNumeroJS(m2Valor);
         if (m2 !== null && !isNaN(m2) && m2 > 0) {
+            // Convertir M² → Hectáreas
             const ha = m2 / 10000;
-            // Obtener los atributos data del input m²
-            const folioIndex = $(this).data('folio');
-            const inmuebleIndex = $(this).data('inmueble');
-
-            // Construir selector específico para hectáreas
-            let $haInput;
-            if (folioIndex !== undefined && inmuebleIndex !== undefined) {
-                $haInput = $(haSelector + `[data-folio="${folioIndex}"][data-inmueble="${inmuebleIndex}"]`);
-            } else if (folioIndex !== undefined) {
-                $haInput = $(haSelector + `[data-folio="${folioIndex}"]`);
-            } else {
-                $haInput = $(haSelector);
-            }
-
-            // Formatear con 2 decimales en formato chileno
-            $haInput.val(formatNumber(ha, 2));
+            $haInput.val(formatNumber(ha, 4)).prop('readonly', true).addClass('bg-light');
         }
     });
+
+    // Listener para Hectáreas → Bloquear M²
+    $(document).off('input', haSelector);
+    $(document).on('input', haSelector, function() {
+        // Solo actuar si el campo NO está readonly (no fue auto-calculado)
+        if ($(this).prop('readonly')) return;
+
+        const folioIndex = $(this).data('folio');
+        const inmuebleIndex = $(this).data('inmueble');
+
+        // Encontrar el input de M² correspondiente
+        let $m2Input = findRelatedInput(m2Selector, folioIndex, inmuebleIndex);
+
+        const haValor = $(this).val().trim();
+
+        if (!haValor || haValor === '' || haValor === '0' || haValor === '0,00' || haValor === '0,0000') {
+            // Usuario borró Hectáreas → Rehabilitar M²
+            $m2Input.val('').prop('readonly', false).removeClass('bg-light');
+            return;
+        }
+
+        const ha = normalizarNumeroJS(haValor);
+        if (ha !== null && !isNaN(ha) && ha > 0) {
+            // Usuario escribió Hectáreas → Bloquear M² (sin convertir)
+            $m2Input.val('').prop('readonly', true).addClass('bg-light');
+        }
+    });
+}
+
+// Helper: Encontrar input relacionado por data attributes
+function findRelatedInput(selector, folioIndex, inmuebleIndex) {
+    if (folioIndex !== undefined && inmuebleIndex !== undefined) {
+        return $(selector + `[data-folio="${folioIndex}"][data-inmueble="${inmuebleIndex}"]`);
+    } else if (folioIndex !== undefined) {
+        return $(selector + `[data-folio="${folioIndex}"]`);
+    } else {
+        return $(selector);
+    }
 }
 
 function validarFoliosMatrix() {
@@ -2193,10 +2234,8 @@ function generarCamposMedidas(folioIndex, cantidad, esRural, tipoInmueble) {
     html += '</div>';
     $(`#medidas-inmuebles-container-${folioIndex}`).html(html);
 
-    // Agregar conversión automática M² → Hectáreas (solo si es rural)
-    if (esRural) {
-        attachM2ToHaListener('.m2-inmueble', '.hectareas-inmueble');
-    }
+    // Agregar conversión bidireccional M² ↔ Hectáreas
+    attachBidirectionalConversion('.m2-inmueble', '.hectareas-inmueble');
 }
 
 function generarFormularioFolioManual(index, esRural, tipoInmueble) {
@@ -2576,15 +2615,14 @@ function generarCamposMedidasManualMultiple(folioIndex, cantidad, esRural, tipoI
     html += '</div>';
 
     $(`#medidas-inmuebles-container-manual-multiple-${folioIndex}`).html(html);
-    // Listener para validar cuando cambian los m²
-    $(`.m2-inmueble-manual-multiple[data-folio="${folioIndex}"]`).on('input', function() {
+
+    // Agregar conversión bidireccional M² ↔ Hectáreas
+    attachBidirectionalConversion('.m2-inmueble-manual-multiple', '.hectareas-inmueble-manual-multiple');
+
+    // Listener para validar cuando cambian los m² o hectáreas
+    $(`.m2-inmueble-manual-multiple[data-folio="${folioIndex}"], .hectareas-inmueble-manual-multiple[data-folio="${folioIndex}"]`).on('input', function() {
         verificarCompletitudFolioManual(folioIndex);
     });
-
-    // Agregar conversión automática M² → Hectáreas (solo si es rural)
-    if (esRural) {
-        attachM2ToHaListener('.m2-inmueble-manual-multiple', '.hectareas-inmueble-manual-multiple');
-    }
 }
 
 function verificarCompletitudFolioManual(index) {
