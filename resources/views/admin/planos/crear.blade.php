@@ -1575,8 +1575,9 @@ function recolectarMedidasMatrix() {
             if (!folio.solicitante) {
                 errores.push(`Folio ${folio.folio}: Solicitante es obligatorio`);
             }
-            if (!folio.m2 || folio.m2 <= 0) {
-                errores.push(`Folio ${folio.folio}: M² es obligatorio`);
+            // Validar que tenga al menos M² o Hectáreas
+            if ((!folio.m2 || folio.m2 <= 0) && (!folio.hectareas || folio.hectareas <= 0)) {
+                errores.push(`Folio ${folio.folio}: Debe ingresar al menos Hectáreas o M²`);
             }
             // Datos del plano (solo primer folio)
             if (index === 0) {
@@ -1622,8 +1623,7 @@ function recolectarMedidasMatrix() {
 
         // Recolectar inmuebles individuales
         const inmuebles = [];
-        let totalM2 = 0;
-        let totalHectareas = 0;
+        let totalM2Base = 0; // Acumular todo en M² como unidad base
         const esRural = folio.tipo_inmueble === 'HIJUELA';
 
         for (let i = 0; i < cantidadInmuebles; i++) {
@@ -1645,28 +1645,30 @@ function recolectarMedidasMatrix() {
                 tipo_inmueble: folio.tipo_inmueble
             };
 
-            // Agregar M² si tiene valor
+            // Sumar a total en M² base
             if (m2 && m2 > 0) {
                 inmueble.m2 = m2;
-                totalM2 += m2;
-            }
-
-            // Agregar Hectáreas si tiene valor
-            if (ha && ha > 0) {
+                totalM2Base += m2; // Agregar M² directamente
+            } else if (ha && ha > 0) {
+                // Si solo tiene Hectáreas, convertir a M² para la suma
                 inmueble.hectareas = ha;
-                totalHectareas += ha;
+                totalM2Base += ha * 10000; // Convertir Ha → M²
             }
 
             inmuebles.push(inmueble);
         }
+
+        // Calcular totales: M² base y su equivalente en Hectáreas
+        const totalM2 = totalM2Base > 0 ? totalM2Base : null;
+        const totalHectareas = totalM2Base > 0 ? totalM2Base / 10000 : null;
 
         // Actualizar folio con TODOS los datos editados
         folio.solicitante = solicitante;
         folio.apellido_paterno = apPaterno || null;
         folio.apellido_materno = apMaterno || null;
         folio.numero_inmueble = 1; // Ya no se usa individual, se usa array
-        folio.m2 = totalM2 > 0 ? totalM2 : null;
-        folio.hectareas = totalHectareas > 0 ? totalHectareas : null;
+        folio.m2 = totalM2;
+        folio.hectareas = totalHectareas;
         folio.inmuebles = inmuebles;
 
         // Leer datos del plano (solo en primer folio)
@@ -2022,8 +2024,7 @@ function recolectarFoliosMasivos() {
 
         // Recolectar inmuebles individuales
         const inmuebles = [];
-        let totalM2 = 0;
-        let totalHa = 0;
+        let totalM2Base = 0; // Acumular todo en M² como unidad base
 
         for (let i = 0; i < cantidad; i++) {
             // Leer ambos campos (M² y Hectáreas)
@@ -2044,24 +2045,22 @@ function recolectarFoliosMasivos() {
                 tipo_inmueble: tipoInmueble
             };
 
-            // Agregar M² si tiene valor
+            // Sumar a total en M² base
             if (m2 && !isNaN(m2) && m2 > 0) {
                 inmueble.m2 = m2;
-                totalM2 += m2;
-            }
-
-            // Agregar Hectáreas si tiene valor
-            if (ha && !isNaN(ha) && ha > 0) {
+                totalM2Base += m2; // Agregar M² directamente
+            } else if (ha && !isNaN(ha) && ha > 0) {
+                // Si solo tiene Hectáreas, convertir a M² para la suma
                 inmueble.hectareas = ha;
-                totalHa += ha;
+                totalM2Base += ha * 10000; // Convertir Ha → M²
             }
 
             inmuebles.push(inmueble);
         }
 
-        // Actualizar folio con totales
-        folio.m2 = totalM2 > 0 ? totalM2 : null;
-        folio.hectareas = totalHa > 0 ? totalHa : null;
+        // Calcular totales: M² base y su equivalente en Hectáreas
+        folio.m2 = totalM2Base > 0 ? totalM2Base : null;
+        folio.hectareas = totalM2Base > 0 ? totalM2Base / 10000 : null;
         folio.tipo_inmueble = tipoInmueble;
         folio.inmuebles = inmuebles;
         folio.numero_inmueble = cantidad;
@@ -2969,8 +2968,9 @@ function recolectarFoliosManuales() {
             if (!folio || !folio.solicitante) {
                 errores.push(`Folio ${index + 1}: Solicitante es obligatorio`);
             }
-            if (!folio.m2 || folio.m2 <= 0) {
-                errores.push(`Folio ${index + 1}: M² es obligatorio`);
+            // Validar que tenga al menos M² o Hectáreas
+            if ((!folio.m2 || folio.m2 <= 0) && (!folio.hectareas || folio.hectareas <= 0)) {
+                errores.push(`Folio ${index + 1}: Debe ingresar al menos Hectáreas o M²`);
             }
         });
 
