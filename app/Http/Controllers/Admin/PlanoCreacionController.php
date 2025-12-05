@@ -223,11 +223,20 @@ class PlanoCreacionController extends Controller
             ], 422);
         }
 
-        // Validación adicional: cada folio debe tener al menos hectáreas o m²
+        // Validación adicional: cada folio debe tener SOLO UNO (hectáreas O m², no ambos)
         foreach ($request->folios as $index => $folio) {
             $tieneHectareas = !empty($folio['hectareas']) && $folio['hectareas'] > 0;
             $tieneM2 = !empty($folio['m2']) && $folio['m2'] > 0;
 
+            // ERROR: Ambos campos con valor
+            if ($tieneHectareas && $tieneM2) {
+                return response()->json([
+                    'success' => false,
+                    'message' => "Folio " . ($folio['folio'] ?? '#' . ($index + 1)) . ": Ingrese solo uno de los dos campos: m² o hectáreas."
+                ], 422);
+            }
+
+            // ERROR: Ningún campo con valor
             if (!$tieneHectareas && !$tieneM2) {
                 return response()->json([
                     'success' => false,
@@ -293,9 +302,19 @@ class PlanoCreacionController extends Controller
 
         DB::beginTransaction();
         try {
-            // Calcular totales
-            $totalHectareas = collect($request->folios)->sum('hectareas');
-            $totalM2 = collect($request->folios)->sum('m2');
+            // Calcular totales en M² como unidad base
+            // Convertir todo a M² para sumar correctamente
+            $totalM2 = collect($request->folios)->sum(function($f) {
+                if (!empty($f['m2']) && $f['m2'] > 0) {
+                    return $f['m2'];
+                } elseif (!empty($f['hectareas']) && $f['hectareas'] > 0) {
+                    return $f['hectareas'] * 10000; // Convertir Ha → M²
+                }
+                return 0;
+            });
+
+            // Convertir total M² a Hectáreas para almacenar
+            $totalHectareas = $totalM2 > 0 ? $totalM2 / 10000 : 0;
             $cantidadFolios = count($request->folios);
 
             // Crear plano con todos los campos requeridos
@@ -324,9 +343,19 @@ class PlanoCreacionController extends Controller
 
             // Crear folios con sus inmuebles
             foreach ($request->folios as $folioData) {
-                // Convertir 0 a null para campos vacíos
-                $hectareas = (!empty($folioData['hectareas']) && $folioData['hectareas'] > 0) ? $folioData['hectareas'] : null;
-                $m2 = (!empty($folioData['m2']) && $folioData['m2'] > 0) ? $folioData['m2'] : null;
+                // Conversión: Si ingresó M² → Convertir a Hectáreas automáticamente
+                $hectareas = null;
+                $m2 = null;
+
+                if (!empty($folioData['m2']) && $folioData['m2'] > 0) {
+                    // Usuario ingresó M² → Convertir a Hectáreas
+                    $m2 = $folioData['m2'];
+                    $hectareas = $m2 / 10000;
+                } elseif (!empty($folioData['hectareas']) && $folioData['hectareas'] > 0) {
+                    // Usuario ingresó solo Hectáreas → M² queda null
+                    $hectareas = $folioData['hectareas'];
+                    $m2 = null;
+                }
 
                 $planoFolio = PlanoFolio::create([
                     'plano_id' => $plano->id,
@@ -345,12 +374,26 @@ class PlanoCreacionController extends Controller
                 // Crear inmuebles (desglose de hijuelas/sitios) si existen
                 if (!empty($folioData['inmuebles'])) {
                     foreach ($folioData['inmuebles'] as $inmuebleData) {
+                        // Conversión: Si ingresó M² → Convertir a Hectáreas
+                        $ha_inmueble = null;
+                        $m2_inmueble = null;
+
+                        if (!empty($inmuebleData['m2']) && $inmuebleData['m2'] > 0) {
+                            // Usuario ingresó M² → Convertir a Hectáreas
+                            $m2_inmueble = $inmuebleData['m2'];
+                            $ha_inmueble = $m2_inmueble / 10000;
+                        } elseif (!empty($inmuebleData['hectareas']) && $inmuebleData['hectareas'] > 0) {
+                            // Usuario ingresó solo Hectáreas → M² queda null
+                            $ha_inmueble = $inmuebleData['hectareas'];
+                            $m2_inmueble = null;
+                        }
+
                         \App\Models\PlanoFolioInmueble::create([
                             'plano_folio_id' => $planoFolio->id,
                             'numero_inmueble' => $inmuebleData['numero_inmueble'],
                             'tipo_inmueble' => $inmuebleData['tipo_inmueble'],
-                            'hectareas' => $inmuebleData['hectareas'] ?? null,
-                            'm2' => $inmuebleData['m2']
+                            'hectareas' => $ha_inmueble,
+                            'm2' => $m2_inmueble
                         ]);
                     }
                 }
