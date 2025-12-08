@@ -1,0 +1,23 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(git checkout:*)",
+      "Bash(git add:*)",
+      "Bash(git commit:*)",
+      "Bash(php artisan view:clear:*)",
+      "Bash(php artisan cache:clear:*)",
+      "Bash(/mnt/c/xampp/php/php.exe artisan key:generate:*)",
+      "Bash(/mnt/c/xampp/php/php.exe artisan config:clear:*)",
+      "Bash(/mnt/c/xampp/php/php.exe artisan cache:clear)",
+      "Bash(/mnt/c/xampp/php/php.exe artisan view:clear)",
+      "Bash(git merge:*)",
+      "Bash(composer require:*)",
+      "Bash(/mnt/c/xampp/php/php.exe:*)",
+      "Bash(git stash:*)",
+      "Bash(git push:*)",
+      "Bash(git branch:*)"
+    ],
+    "deny": [],
+    "ask": []
+  }
+}
