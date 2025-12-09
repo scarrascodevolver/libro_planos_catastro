@@ -1008,8 +1008,8 @@ function mostrarResultadoMatrixMultiple(index, data) {
 
 function validarFolioActualMultiple(index) {
     // Listener para validar cuando cambia la cantidad, m² o hectáreas
-    $(document).off('change input', `.cantidad-inmuebles-matrix[data-index="${index}"], .m2-inmueble-matrix[data-folio="${index}"], .hectareas-inmueble-matrix[data-folio="${index}"]`);
-    $(document).on('change input', `.cantidad-inmuebles-matrix[data-index="${index}"], .m2-inmueble-matrix[data-folio="${index}"], .hectareas-inmueble-matrix[data-folio="${index}"]`, function() {
+    $(document).off('change input', `.cantidad-inmuebles-matrix[data-index="${index}"], .m2-inmueble-matrix[data-folio="${index}"]`);
+    $(document).on('change input', `.cantidad-inmuebles-matrix[data-index="${index}"], .m2-inmueble-matrix[data-folio="${index}"]`, function() {
         verificarCompletitudFolioMultiple(index);
     });
 }
@@ -1041,14 +1041,13 @@ function verificarCompletitudFolioMultiple(index) {
         return;
     }
 
-    // Verificar que cada inmueble tenga al menos Hectáreas O M²
+    // Verificar que cada inmueble tenga M²
     let todosCompletos = true;
     for (let i = 0; i < cantidad; i++) {
         const m2 = $(`.m2-inmueble-matrix[data-folio="${index}"][data-inmueble="${i}"]`).val();
-        const ha = $(`.hectareas-inmueble-matrix[data-folio="${index}"][data-inmueble="${i}"]`).val();
 
-        // Al menos uno de los dos debe tener valor
-        if (!m2 && !ha) {
+        // Debe tener M²
+        if (!m2) {
             todosCompletos = false;
             break;
         }
@@ -1081,32 +1080,24 @@ function avanzarSiguienteFolioMultiple() {
     const esRural = folio.tipo_inmueble === 'HIJUELA';
 
     for (let i = 0; i < cantidad; i++) {
-        // Leer AMBOS campos (M² y Hectáreas) independiente del tipo
+        // Leer solo M²
         const m2Input = $(`.m2-inmueble-matrix[data-folio="${index}"][data-inmueble="${i}"]`).val();
-        const haInput = $(`.hectareas-inmueble-matrix[data-folio="${index}"][data-inmueble="${i}"]`).val();
 
         const m2 = m2Input ? normalizarNumeroJS(m2Input) : 0;
-        const ha = haInput ? normalizarNumeroJS(haInput) : 0;
 
-        // Validar que tenga al menos uno de los dos
-        if ((!m2 || m2 <= 0) && (!ha || ha <= 0)) {
+        // Validar que tenga M²
+        if (!m2 || m2 <= 0) {
             continue; // Skip inmuebles vacíos
         }
 
         const inmueble = {
             numero_inmueble: i + 1,
-            tipo_inmueble: folio.tipo_inmueble
+            tipo_inmueble: folio.tipo_inmueble,
+            m2: m2
         };
 
-        // Sumar a total en M² base
-        if (m2 && m2 > 0) {
-            inmueble.m2 = m2;
-            totalM2Base += m2; // Agregar M² directamente
-        } else if (ha && ha > 0) {
-            // Si solo tiene Hectáreas, convertir a M² para la suma
-            inmueble.hectareas = ha;
-            totalM2Base += ha * 10000; // Convertir Ha → M²
-        }
+        // Sumar a total en M²
+        totalM2Base += m2;
 
         inmuebles.push(inmueble);
     }
@@ -1397,21 +1388,17 @@ function generarCamposMedidasMatrix(folioIndex, cantidad, esRural, tipoInmueble)
         html += '<strong>' + tipoInmueble + ' #' + (i + 1) + '</strong>';
         html += '</div>';
 
-        // Primero M² (siempre visible)
-        // M² - Opcional (al menos uno de los dos requerido)
-        html += '<div class="col-md-5">';
+        // M² - Requerido
+        html += '<div class="col-md-6">';
         html += '<div class="form-group mb-0">';
         html += '<label class="small mb-1">M²</label>';
         html += '<input type="text" class="form-control form-control-sm m2-inmueble-matrix" data-folio="' + folioIndex + '" data-inmueble="' + i + '" placeholder="Ej: 520.21 o 520,21" inputmode="decimal">';
         html += '</div>';
         html += '</div>';
 
-        // Hectáreas - Opcional (al menos uno de los dos requerido)
-        html += '<div class="col-md-5">';
-        html += '<div class="form-group mb-0">';
-        html += '<label class="small mb-1">Hectáreas</label>';
-        html += '<input type="text" class="form-control form-control-sm hectareas-inmueble-matrix" data-folio="' + folioIndex + '" data-inmueble="' + i + '" placeholder="Ej: 2.5 o 2,5" inputmode="decimal">';
-        html += '</div>';
+        // Mostrar conversión a Hectáreas
+        html += '<div class="col-md-4 d-flex align-items-center">';
+        html += '<small class="text-muted conversion-ha-matrix" data-folio="' + folioIndex + '" data-inmueble="' + i + '"></small>';
         html += '</div>';
 
         html += '</div>';
@@ -1421,8 +1408,25 @@ function generarCamposMedidasMatrix(folioIndex, cantidad, esRural, tipoInmueble)
 
     $(`#medidas-inmuebles-container-matrix-${folioIndex}`).html(html);
 
-    // Agregar conversión bidireccional M² ↔ Hectáreas
-    attachBidirectionalConversion('.m2-inmueble-matrix', '.hectareas-inmueble-matrix');
+    // Agregar listener para mostrar conversión automática M² → Hectáreas
+    $(`.m2-inmueble-matrix[data-folio="${folioIndex}"]`).on('input', function() {
+        const m2Input = $(this).val();
+        const folioIdx = $(this).data('folio');
+        const inmuebleIdx = $(this).data('inmueble');
+        const conversionSpan = $(`.conversion-ha-matrix[data-folio="${folioIdx}"][data-inmueble="${inmuebleIdx}"]`);
+
+        if (m2Input && m2Input.trim() !== '') {
+            const m2 = normalizarNumeroJS(m2Input);
+            if (m2 !== null && !isNaN(m2) && m2 > 0) {
+                const ha = m2 / 10000;
+                conversionSpan.text('= ' + formatNumber(ha, 2) + ' ha');
+            } else {
+                conversionSpan.text('');
+            }
+        } else {
+            conversionSpan.text('');
+        }
+    });
 }
 
 // Función helper para normalizar números (detecta formato automáticamente)
@@ -1473,70 +1477,7 @@ function normalizarNumeroJS(valor) {
  * - Si escribe Ha → Limpia y bloquea input M² (readonly)
  * - Si borra → Habilita ambos campos
  */
-function attachBidirectionalConversion(m2Selector, haSelector) {
-    // Listener para M² → Hectáreas
-    $(document).off('input', m2Selector);
-    $(document).on('input', m2Selector, function() {
-        const folioIndex = $(this).data('folio');
-        const inmuebleIndex = $(this).data('inmueble');
-
-        // Encontrar el input de hectáreas correspondiente
-        let $haInput = findRelatedInput(haSelector, folioIndex, inmuebleIndex);
-
-        const m2Valor = $(this).val().trim();
-
-        if (!m2Valor || m2Valor === '' || m2Valor === '0' || m2Valor === '0,00') {
-            // Usuario borró M² → Rehabilitar Hectáreas
-            $haInput.val('').prop('readonly', false).removeClass('bg-light');
-            return;
-        }
-
-        const m2 = normalizarNumeroJS(m2Valor);
-        if (m2 !== null && !isNaN(m2) && m2 > 0) {
-            // Convertir M² → Hectáreas
-            const ha = m2 / 10000;
-            $haInput.val(formatNumber(ha, 4)).prop('readonly', true).addClass('bg-light');
-        }
-    });
-
-    // Listener para Hectáreas → Bloquear M²
-    $(document).off('input', haSelector);
-    $(document).on('input', haSelector, function() {
-        // Solo actuar si el campo NO está readonly (no fue auto-calculado)
-        if ($(this).prop('readonly')) return;
-
-        const folioIndex = $(this).data('folio');
-        const inmuebleIndex = $(this).data('inmueble');
-
-        // Encontrar el input de M² correspondiente
-        let $m2Input = findRelatedInput(m2Selector, folioIndex, inmuebleIndex);
-
-        const haValor = $(this).val().trim();
-
-        if (!haValor || haValor === '' || haValor === '0' || haValor === '0,00' || haValor === '0,0000') {
-            // Usuario borró Hectáreas → Rehabilitar M²
-            $m2Input.val('').prop('readonly', false).removeClass('bg-light');
-            return;
-        }
-
-        const ha = normalizarNumeroJS(haValor);
-        if (ha !== null && !isNaN(ha) && ha > 0) {
-            // Usuario escribió Hectáreas → Bloquear M² (sin convertir)
-            $m2Input.val('').prop('readonly', true).addClass('bg-light');
-        }
-    });
-}
-
-// Helper: Encontrar input relacionado por data attributes
-function findRelatedInput(selector, folioIndex, inmuebleIndex) {
-    if (folioIndex !== undefined && inmuebleIndex !== undefined) {
-        return $(selector + `[data-folio="${folioIndex}"][data-inmueble="${inmuebleIndex}"]`);
-    } else if (folioIndex !== undefined) {
-        return $(selector + `[data-folio="${folioIndex}"]`);
-    } else {
-        return $(selector);
-    }
-}
+// Funciones de conversión bidireccional eliminadas - ahora solo se usa M² con conversión automática a Hectáreas
 
 function validarFoliosMatrix() {
     // Validar que todos coincidan en comuna, responsable, proyecto, tipo_inmueble
@@ -1582,9 +1523,9 @@ function recolectarMedidasMatrix() {
             if (!folio.solicitante) {
                 errores.push(`Folio ${folio.folio}: Solicitante es obligatorio`);
             }
-            // Validar que tenga al menos M² o Hectáreas
-            if ((!folio.m2 || folio.m2 <= 0) && (!folio.hectareas || folio.hectareas <= 0)) {
-                errores.push(`Folio ${folio.folio}: Debe ingresar al menos Hectáreas o M²`);
+            // Validar que tenga M²
+            if (!folio.m2 || folio.m2 <= 0) {
+                errores.push(`Folio ${folio.folio}: Debe ingresar M²`);
             }
             // Datos del plano (solo primer folio)
             if (index === 0) {
@@ -1634,33 +1575,25 @@ function recolectarMedidasMatrix() {
         const esRural = folio.tipo_inmueble === 'HIJUELA';
 
         for (let i = 0; i < cantidadInmuebles; i++) {
-            // Leer ambos campos (M² y Hectáreas)
+            // Leer solo M²
             const m2Input = $(`.m2-inmueble-matrix[data-folio="${index}"][data-inmueble="${i}"]`).val();
-            const haInput = $(`.hectareas-inmueble-matrix[data-folio="${index}"][data-inmueble="${i}"]`).val();
 
             const m2 = m2Input ? normalizarNumeroJS(m2Input) : 0;
-            const ha = haInput ? normalizarNumeroJS(haInput) : 0;
 
-            // Validar que al menos uno de los dos tenga valor
-            if ((!m2 || m2 <= 0) && (!ha || ha <= 0)) {
-                errores.push(`Folio ${folio.folio}: ${folio.tipo_inmueble} #${i + 1} debe tener al menos Hectáreas o M²`);
+            // Validar que tenga M²
+            if (!m2 || m2 <= 0) {
+                errores.push(`Folio ${folio.folio}: ${folio.tipo_inmueble} #${i + 1} debe tener M²`);
                 continue;
             }
 
             const inmueble = {
                 numero_inmueble: i + 1,
-                tipo_inmueble: folio.tipo_inmueble
+                tipo_inmueble: folio.tipo_inmueble,
+                m2: m2
             };
 
-            // Sumar a total en M² base
-            if (m2 && m2 > 0) {
-                inmueble.m2 = m2;
-                totalM2Base += m2; // Agregar M² directamente
-            } else if (ha && ha > 0) {
-                // Si solo tiene Hectáreas, convertir a M² para la suma
-                inmueble.hectareas = ha;
-                totalM2Base += ha * 10000; // Convertir Ha → M²
-            }
+            // Sumar a total en M²
+            totalM2Base += m2;
 
             inmuebles.push(inmueble);
         }
@@ -1950,15 +1883,14 @@ function generarCamposMedidasMasivo(folioIndex, cantidad, esRural, tipoInmueble)
         html += '<div class="d-flex align-items-center mb-1' + (i > 0 ? ' border-top pt-1' : '') + '">';
         html += '<small class="mr-2 text-muted" style="min-width: 50px;">#' + (i + 1) + '</small>';
 
-        // M² - Opcional (al menos uno requerido)
+        // M² - Requerido
         html += '<input type="text" class="form-control form-control-sm m2-masivo" ';
         html += 'data-folio="' + folioIndex + '" data-inmueble="' + i + '" ';
-        html += 'placeholder="M²" style="width: 100px;" inputmode="numeric">';
+        html += 'placeholder="M²" style="width: 120px;" inputmode="numeric">';
 
-        // Hectáreas - Opcional (al menos uno requerido)
-        html += '<input type="text" class="form-control form-control-sm ha-masivo ml-1" ';
-        html += 'data-folio="' + folioIndex + '" data-inmueble="' + i + '" ';
-        html += 'placeholder="Ha" style="width: 90px;" inputmode="decimal">';
+        // Mostrar conversión a Hectáreas
+        html += '<small class="ml-2 text-muted conversion-ha-masivo" ';
+        html += 'data-folio="' + folioIndex + '" data-inmueble="' + i + '"></small>';
 
         html += '</div>';
     }
@@ -1968,11 +1900,25 @@ function generarCamposMedidasMasivo(folioIndex, cantidad, esRural, tipoInmueble)
 }
 
 function attachListenersMedidasMasivo(folioIndex, esRural) {
-    // Agregar conversión bidireccional M² ↔ Hectáreas
-    attachBidirectionalConversion('.m2-masivo', '.ha-masivo');
+    // Mostrar conversión automática M² → Hectáreas
+    $(`.m2-masivo[data-folio="${folioIndex}"]`).off('input').on('input', function() {
+        const m2Input = $(this).val();
+        const folioIdx = $(this).data('folio');
+        const inmuebleIdx = $(this).data('inmueble');
+        const conversionSpan = $(`.conversion-ha-masivo[data-folio="${folioIdx}"][data-inmueble="${inmuebleIdx}"]`);
 
-    // Validar al cambiar hectáreas o M²
-    $(`.ha-masivo[data-folio="${folioIndex}"], .m2-masivo[data-folio="${folioIndex}"]`).off('input').on('input', function() {
+        if (m2Input && m2Input.trim() !== '') {
+            const m2 = normalizarNumeroJS(m2Input);
+            if (m2 !== null && !isNaN(m2) && m2 > 0) {
+                const ha = m2 / 10000;
+                conversionSpan.text('= ' + formatNumber(ha, 2) + ' ha');
+            } else {
+                conversionSpan.text('');
+            }
+        } else {
+            conversionSpan.text('');
+        }
+
         verificarCompletitudMasivos();
     });
 }
@@ -1985,15 +1931,12 @@ function verificarCompletitudMasivos() {
         completo = false;
     }
 
-    // Verificar que cada inmueble tenga al menos Hectáreas O M²
+    // Verificar que cada inmueble tenga M²
     $('.m2-masivo').each(function() {
-        const folioIndex = $(this).data('folio');
-        const inmuebleIndex = $(this).data('inmueble');
         const m2 = $(this).val()?.trim();
-        const ha = $(`.ha-masivo[data-folio="${folioIndex}"][data-inmueble="${inmuebleIndex}"]`).val()?.trim();
 
-        // Al menos uno de los dos debe tener valor
-        if (!m2 && !ha) {
+        // Debe tener M² ingresado
+        if (!m2) {
             completo = false;
             return false; // break del each
         }
@@ -2034,33 +1977,25 @@ function recolectarFoliosMasivos() {
         let totalM2Base = 0; // Acumular todo en M² como unidad base
 
         for (let i = 0; i < cantidad; i++) {
-            // Leer ambos campos (M² y Hectáreas)
+            // Leer solo M²
             const m2Input = $(`.m2-masivo[data-folio="${index}"][data-inmueble="${i}"]`).val();
-            const haInput = $(`.ha-masivo[data-folio="${index}"][data-inmueble="${i}"]`).val();
 
-            const m2 = m2Input ? parseFloat(m2Input.replace(/\./g, '').replace(',', '.')) : 0;
-            const ha = haInput ? parseFloat(haInput.replace(/\./g, '').replace(',', '.')) : 0;
+            const m2 = m2Input ? normalizarNumeroJS(m2Input) : 0;
 
-            // Validar que al menos uno de los dos tenga valor
-            if ((!m2 || isNaN(m2) || m2 <= 0) && (!ha || isNaN(ha) || ha <= 0)) {
-                errores.push(`Folio ${folio.folio}: ${tipoInmueble} #${i + 1} debe tener al menos Hectáreas o M²`);
+            // Validar que tenga M²
+            if (!m2 || isNaN(m2) || m2 <= 0) {
+                errores.push(`Folio ${folio.folio}: ${tipoInmueble} #${i + 1} debe tener M²`);
                 continue;
             }
 
             const inmueble = {
                 numero_inmueble: i + 1,
-                tipo_inmueble: tipoInmueble
+                tipo_inmueble: tipoInmueble,
+                m2: m2
             };
 
-            // Sumar a total en M² base
-            if (m2 && !isNaN(m2) && m2 > 0) {
-                inmueble.m2 = m2;
-                totalM2Base += m2; // Agregar M² directamente
-            } else if (ha && !isNaN(ha) && ha > 0) {
-                // Si solo tiene Hectáreas, convertir a M² para la suma
-                inmueble.hectareas = ha;
-                totalM2Base += ha * 10000; // Convertir Ha → M²
-            }
+            // Sumar a total en M²
+            totalM2Base += m2;
 
             inmuebles.push(inmueble);
         }
@@ -2212,20 +2147,17 @@ function generarCamposMedidas(folioIndex, cantidad, esRural, tipoInmueble) {
         html += '<strong>' + tipoInmueble + ' #' + (i + 1) + '</strong>';
         html += '</div>';
 
-        // M² - Opcional (al menos uno de los dos requerido)
-        html += '<div class="col-md-5">';
+        // M² - Requerido
+        html += '<div class="col-md-6">';
         html += '<div class="form-group mb-0">';
         html += '<label class="small mb-1">M²</label>';
         html += '<input type="text" class="form-control form-control-sm m2-inmueble" data-folio="' + folioIndex + '" data-inmueble="' + i + '" placeholder="Ej: 520.21 o 520,21" inputmode="decimal">';
         html += '</div>';
         html += '</div>';
 
-        // Hectáreas - Opcional (al menos uno de los dos requerido)
-        html += '<div class="col-md-5">';
-        html += '<div class="form-group mb-0">';
-        html += '<label class="small mb-1">Hectáreas</label>';
-        html += '<input type="text" class="form-control form-control-sm hectareas-inmueble" data-folio="' + folioIndex + '" data-inmueble="' + i + '" placeholder="Ej: 2.5 o 2,5" inputmode="decimal">';
-        html += '</div>';
+        // Mostrar conversión a Hectáreas
+        html += '<div class="col-md-4 d-flex align-items-center">';
+        html += '<small class="text-muted conversion-ha-manual" data-folio="' + folioIndex + '" data-inmueble="' + i + '"></small>';
         html += '</div>';
 
         html += '</div>';
@@ -2234,8 +2166,25 @@ function generarCamposMedidas(folioIndex, cantidad, esRural, tipoInmueble) {
     html += '</div>';
     $(`#medidas-inmuebles-container-${folioIndex}`).html(html);
 
-    // Agregar conversión bidireccional M² ↔ Hectáreas
-    attachBidirectionalConversion('.m2-inmueble', '.hectareas-inmueble');
+    // Agregar listener para mostrar conversión automática M² → Hectáreas
+    $(`.m2-inmueble[data-folio="${folioIndex}"]`).on('input', function() {
+        const m2Input = $(this).val();
+        const folioIdx = $(this).data('folio');
+        const inmuebleIdx = $(this).data('inmueble');
+        const conversionSpan = $(`.conversion-ha-manual[data-folio="${folioIdx}"][data-inmueble="${inmuebleIdx}"]`);
+
+        if (m2Input && m2Input.trim() !== '') {
+            const m2 = normalizarNumeroJS(m2Input);
+            if (m2 !== null && !isNaN(m2) && m2 > 0) {
+                const ha = m2 / 10000;
+                conversionSpan.text('= ' + formatNumber(ha, 2) + ' ha');
+            } else {
+                conversionSpan.text('');
+            }
+        } else {
+            conversionSpan.text('');
+        }
+    });
 }
 
 function generarFormularioFolioManual(index, esRural, tipoInmueble) {
@@ -2594,20 +2543,17 @@ function generarCamposMedidasManualMultiple(folioIndex, cantidad, esRural, tipoI
         html += '<strong>' + tipoInmueble + ' #' + (i + 1) + '</strong>';
         html += '</div>';
 
-        // Primero M² (siempre visible)
-        // M² - Opcional (al menos uno de los dos requerido)
-        html += '<div class="col-md-5">';
+        // M² - Requerido
+        html += '<div class="col-md-6">';
         html += '<div class="form-group mb-0">';
         html += '<label class="small mb-1">M²</label>';
         html += '<input type="text" class="form-control form-control-sm m2-inmueble-manual-multiple" data-folio="' + folioIndex + '" data-inmueble="' + i + '" placeholder="0,00" inputmode="decimal" onkeypress="return validarNumeroDecimal(event)">';
         html += '</div></div>';
 
-        // Hectáreas - Opcional (al menos uno de los dos requerido)
-        html += '<div class="col-md-5">';
-        html += '<div class="form-group mb-0">';
-        html += '<label class="small mb-1">Hectáreas</label>';
-        html += '<input type="text" class="form-control form-control-sm hectareas-inmueble-manual-multiple" data-folio="' + folioIndex + '" data-inmueble="' + i + '" placeholder="0,00" inputmode="decimal" onkeypress="return validarNumeroDecimalHectareas(event)">';
-        html += '</div></div>';
+        // Mostrar conversión a Hectáreas
+        html += '<div class="col-md-4 d-flex align-items-center">';
+        html += '<small class="text-muted conversion-ha-manual-multiple" data-folio="' + folioIndex + '" data-inmueble="' + i + '"></small>';
+        html += '</div>';
 
         html += '</div>';
     }
@@ -2616,11 +2562,25 @@ function generarCamposMedidasManualMultiple(folioIndex, cantidad, esRural, tipoI
 
     $(`#medidas-inmuebles-container-manual-multiple-${folioIndex}`).html(html);
 
-    // Agregar conversión bidireccional M² ↔ Hectáreas
-    attachBidirectionalConversion('.m2-inmueble-manual-multiple', '.hectareas-inmueble-manual-multiple');
+    // Listener para mostrar conversión automática M² → Hectáreas y validar
+    $(`.m2-inmueble-manual-multiple[data-folio="${folioIndex}"]`).on('input', function() {
+        const m2Input = $(this).val();
+        const folioIdx = $(this).data('folio');
+        const inmuebleIdx = $(this).data('inmueble');
+        const conversionSpan = $(`.conversion-ha-manual-multiple[data-folio="${folioIdx}"][data-inmueble="${inmuebleIdx}"]`);
 
-    // Listener para validar cuando cambian los m² o hectáreas
-    $(`.m2-inmueble-manual-multiple[data-folio="${folioIndex}"], .hectareas-inmueble-manual-multiple[data-folio="${folioIndex}"]`).on('input', function() {
+        if (m2Input && m2Input.trim() !== '') {
+            const m2 = normalizarNumeroJS(m2Input);
+            if (m2 !== null && !isNaN(m2) && m2 > 0) {
+                const ha = m2 / 10000;
+                conversionSpan.text('= ' + formatNumber(ha, 2) + ' ha');
+            } else {
+                conversionSpan.text('');
+            }
+        } else {
+            conversionSpan.text('');
+        }
+
         verificarCompletitudFolioManual(folioIndex);
     });
 }
@@ -2665,14 +2625,13 @@ function verificarCompletitudFolioManual(index) {
         return;
     }
 
-    // Verificar que cada inmueble tenga al menos Hectáreas O M²
+    // Verificar que cada inmueble tenga M²
     let todosCompletos = true;
     for (let i = 0; i < cantidad; i++) {
         const m2 = $(`.m2-inmueble-manual-multiple[data-folio="${index}"][data-inmueble="${i}"]`).val();
-        const ha = $(`.hectareas-inmueble-manual-multiple[data-folio="${index}"][data-inmueble="${i}"]`).val();
 
-        // Al menos uno de los dos debe tener valor
-        if (!m2 && !ha) {
+        // Debe tener M²
+        if (!m2) {
             todosCompletos = false;
             break;
         }
@@ -2707,30 +2666,22 @@ function avanzarSiguienteFolioManual() {
 
     for (let i = 0; i < cantidad; i++) {
         const m2Input = $(`.m2-inmueble-manual-multiple[data-folio="${index}"][data-inmueble="${i}"]`).val();
-        const haInput = esRural ? $(`.hectareas-inmueble-manual-multiple[data-folio="${index}"][data-inmueble="${i}"]`).val() : null;
 
         const m2 = m2Input ? normalizarNumeroJS(m2Input) : 0;
-        const ha = haInput ? normalizarNumeroJS(haInput) : 0;
 
-        // Validar que tenga al menos uno
-        if ((!m2 || isNaN(m2) || m2 <= 0) && (!ha || isNaN(ha) || ha <= 0)) {
+        // Validar que tenga M²
+        if (!m2 || isNaN(m2) || m2 <= 0) {
             continue; // Skip este inmueble vacío
         }
 
         const inmueble = {
             numero_inmueble: i + 1,
-            tipo_inmueble: tipoInmueble
+            tipo_inmueble: tipoInmueble,
+            m2: m2
         };
 
-        // Sumar a total en M² base
-        if (m2 && !isNaN(m2) && m2 > 0) {
-            inmueble.m2 = m2;
-            totalM2Base += m2; // Agregar M² directamente
-        } else if (ha && !isNaN(ha) && ha > 0) {
-            // Si solo tiene Hectáreas, convertir a M² para la suma
-            inmueble.hectareas = ha;
-            totalM2Base += ha * 10000; // Convertir Ha → M²
-        }
+        // Sumar a total en M²
+        totalM2Base += m2;
 
         inmuebles.push(inmueble);
     }
@@ -2821,15 +2772,11 @@ function mostrarConfirmacion() {
     }
 
     // Calcular totales en M² como unidad base
-    // Convertir todo a M² para suma correcta
     let totalM2 = 0;
     wizardData.folios.forEach(folio => {
         if (folio.m2 && folio.m2 > 0) {
-            // Si tiene M² → Sumar directamente
+            // Sumar M² directamente
             totalM2 += parseFloat(folio.m2);
-        } else if (folio.hectareas && folio.hectareas > 0) {
-            // Si tiene solo Hectáreas → Convertir a M²
-            totalM2 += parseFloat(folio.hectareas) * 10000;
         }
     });
 
@@ -2887,7 +2834,7 @@ function mostrarConfirmacion() {
 
     // Mostrar superficie total en ambas unidades: "XXX m² (YY,YY ha)"
     if (totalM2 > 0) {
-        $('#confirm-total-superficie').text(formatNumber(totalM2, 2) + ' m² (' + formatNumber(totalHectareas, 4) + ' ha)');
+        $('#confirm-total-superficie').text(formatNumber(totalM2, 2) + ' m² (' + formatNumber(totalHectareas, 2) + ' ha)');
     } else {
         $('#confirm-total-superficie').text('-');
     }
@@ -2981,9 +2928,9 @@ function recolectarFoliosManuales() {
             if (!folio || !folio.solicitante) {
                 errores.push(`Folio ${index + 1}: Solicitante es obligatorio`);
             }
-            // Validar que tenga al menos M² o Hectáreas
-            if ((!folio.m2 || folio.m2 <= 0) && (!folio.hectareas || folio.hectareas <= 0)) {
-                errores.push(`Folio ${index + 1}: Debe ingresar al menos Hectáreas o M²`);
+            // Validar que tenga M²
+            if (!folio.m2 || folio.m2 <= 0) {
+                errores.push(`Folio ${index + 1}: Debe ingresar M²`);
             }
         });
 
@@ -3031,30 +2978,22 @@ function recolectarFoliosManuales() {
 
         $(`.m2-inmueble[data-folio="${index}"]`).each(function(inmuebleIndex) {
             const m2Valor = $(this).val();
-            const haInput = esRural ? $(`.hectareas-inmueble[data-folio="${index}"][data-inmueble="${inmuebleIndex}"]`).val() : null;
 
             const m2 = m2Valor ? normalizarNumeroJS(m2Valor) : 0;
-            const ha = haInput ? normalizarNumeroJS(haInput) : 0;
 
-            // Validar que tenga al menos uno
-            if ((!m2 || isNaN(m2) || m2 <= 0) && (!ha || isNaN(ha) || ha <= 0)) {
+            // Validar que tenga M²
+            if (!m2 || isNaN(m2) || m2 <= 0) {
                 return; // Skip este inmueble vacío
             }
 
             const inmuebleData = {
                 numero_inmueble: inmuebleIndex + 1,
-                tipo_inmueble: tipoInmueble
+                tipo_inmueble: tipoInmueble,
+                m2: m2
             };
 
-            // Sumar a total en M² base
-            if (m2 && !isNaN(m2) && m2 > 0) {
-                inmuebleData.m2 = m2;
-                totalM2Base += m2; // Agregar M² directamente
-            } else if (ha && !isNaN(ha) && ha > 0) {
-                // Si solo tiene Hectáreas, convertir a M² para la suma
-                inmuebleData.hectareas = ha;
-                totalM2Base += ha * 10000; // Convertir Ha → M²
-            }
+            // Sumar a total en M²
+            totalM2Base += m2;
 
             inmuebles.push(inmuebleData);
         });
