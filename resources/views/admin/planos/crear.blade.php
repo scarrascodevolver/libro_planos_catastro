@@ -1419,7 +1419,7 @@ function generarCamposMedidasMatrix(folioIndex, cantidad, esRural, tipoInmueble)
             const m2 = normalizarNumeroJS(m2Input);
             if (m2 !== null && !isNaN(m2) && m2 > 0) {
                 const ha = m2 / 10000;
-                conversionSpan.text('= ' + formatNumber(ha, 4) + ' ha');
+                conversionSpan.text('= ' + formatNumber(ha, 2) + ' ha');
             } else {
                 conversionSpan.text('');
             }
@@ -1919,7 +1919,7 @@ function attachListenersMedidasMasivo(folioIndex, esRural) {
             const m2 = normalizarNumeroJS(m2Input);
             if (m2 !== null && !isNaN(m2) && m2 > 0) {
                 const ha = m2 / 10000;
-                conversionSpan.text('= ' + formatNumber(ha, 4) + ' ha');
+                conversionSpan.text('= ' + formatNumber(ha, 2) + ' ha');
             } else {
                 conversionSpan.text('');
             }
@@ -2185,7 +2185,7 @@ function generarCamposMedidas(folioIndex, cantidad, esRural, tipoInmueble) {
             const m2 = normalizarNumeroJS(m2Input);
             if (m2 !== null && !isNaN(m2) && m2 > 0) {
                 const ha = m2 / 10000;
-                conversionSpan.text('= ' + formatNumber(ha, 4) + ' ha');
+                conversionSpan.text('= ' + formatNumber(ha, 2) + ' ha');
             } else {
                 conversionSpan.text('');
             }
@@ -2581,7 +2581,7 @@ function generarCamposMedidasManualMultiple(folioIndex, cantidad, esRural, tipoI
             const m2 = normalizarNumeroJS(m2Input);
             if (m2 !== null && !isNaN(m2) && m2 > 0) {
                 const ha = m2 / 10000;
-                conversionSpan.text('= ' + formatNumber(ha, 4) + ' ha');
+                conversionSpan.text('= ' + formatNumber(ha, 2) + ' ha');
             } else {
                 conversionSpan.text('');
             }
@@ -2842,7 +2842,7 @@ function mostrarConfirmacion() {
 
     // Mostrar superficie total en ambas unidades: "XXX m² (YY,YY ha)"
     if (totalM2 > 0) {
-        $('#confirm-total-superficie').text(formatNumber(totalM2, 2) + ' m² (' + formatNumber(totalHectareas, 4) + ' ha)');
+        $('#confirm-total-superficie').text(formatNumber(totalM2, 2) + ' m² (' + formatNumber(totalHectareas, 2) + ' ha)');
     } else {
         $('#confirm-total-superficie').text('-');
     }
