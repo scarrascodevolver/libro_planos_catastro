@@ -1523,9 +1523,9 @@ function recolectarMedidasMatrix() {
             if (!folio.solicitante) {
                 errores.push(`Folio ${folio.folio}: Solicitante es obligatorio`);
             }
-            // Validar que tenga al menos M² o Hectáreas
-            if ((!folio.m2 || folio.m2 <= 0) && (!folio.hectareas || folio.hectareas <= 0)) {
-                errores.push(`Folio ${folio.folio}: Debe ingresar al menos Hectáreas o M²`);
+            // Validar que tenga M²
+            if (!folio.m2 || folio.m2 <= 0) {
+                errores.push(`Folio ${folio.folio}: Debe ingresar M²`);
             }
             // Datos del plano (solo primer folio)
             if (index === 0) {
@@ -1575,33 +1575,25 @@ function recolectarMedidasMatrix() {
         const esRural = folio.tipo_inmueble === 'HIJUELA';
 
         for (let i = 0; i < cantidadInmuebles; i++) {
-            // Leer ambos campos (M² y Hectáreas)
+            // Leer solo M²
             const m2Input = $(`.m2-inmueble-matrix[data-folio="${index}"][data-inmueble="${i}"]`).val();
-            const haInput = $(`.hectareas-inmueble-matrix[data-folio="${index}"][data-inmueble="${i}"]`).val();
 
             const m2 = m2Input ? normalizarNumeroJS(m2Input) : 0;
-            const ha = haInput ? normalizarNumeroJS(haInput) : 0;
 
-            // Validar que al menos uno de los dos tenga valor
-            if ((!m2 || m2 <= 0) && (!ha || ha <= 0)) {
-                errores.push(`Folio ${folio.folio}: ${folio.tipo_inmueble} #${i + 1} debe tener al menos Hectáreas o M²`);
+            // Validar que tenga M²
+            if (!m2 || m2 <= 0) {
+                errores.push(`Folio ${folio.folio}: ${folio.tipo_inmueble} #${i + 1} debe tener M²`);
                 continue;
             }
 
             const inmueble = {
                 numero_inmueble: i + 1,
-                tipo_inmueble: folio.tipo_inmueble
+                tipo_inmueble: folio.tipo_inmueble,
+                m2: m2
             };
 
-            // Sumar a total en M² base
-            if (m2 && m2 > 0) {
-                inmueble.m2 = m2;
-                totalM2Base += m2; // Agregar M² directamente
-            } else if (ha && ha > 0) {
-                // Si solo tiene Hectáreas, convertir a M² para la suma
-                inmueble.hectareas = ha;
-                totalM2Base += ha * 10000; // Convertir Ha → M²
-            }
+            // Sumar a total en M²
+            totalM2Base += m2;
 
             inmuebles.push(inmueble);
         }
