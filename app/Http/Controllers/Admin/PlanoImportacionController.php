@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\MatrixImport;
 use App\Models\Plano;
 use App\Models\PlanoFolio;
+use App\Models\PlanoFolioInmueble;
 use App\Models\ComunaBiobio;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -601,8 +602,9 @@ class PlanoImportacionController extends Controller
                 ]);
             }
 
-            // Contar TODOS los folios (se eliminarán manualmente también)
+            // Contar TODOS los folios y inmuebles
             $totalFolios = PlanoFolio::count();
+            $totalInmuebles = PlanoFolioInmueble::count();
 
             // Log crítico antes de eliminar
             \Log::critical('ELIMINACIÓN MASIVA TODOS LOS PLANOS', [
@@ -610,6 +612,7 @@ class PlanoImportacionController extends Controller
                 'user_email' => Auth::user()->email,
                 'total_planos' => $totalPlanos,
                 'total_folios' => $totalFolios,
+                'total_inmuebles' => $totalInmuebles,
                 'timestamp' => now(),
                 'confirmacion' => $request->confirmacion
             ]);
@@ -618,7 +621,8 @@ class PlanoImportacionController extends Controller
             // Desactivar FK checks temporalmente
             DB::statement('SET FOREIGN_KEY_CHECKS=0;');
 
-            // Truncar ambas tablas (más rápido que CASCADE)
+            // Truncar las 3 tablas en orden inverso a las dependencias (más rápido que CASCADE)
+            PlanoFolioInmueble::truncate();
             PlanoFolio::truncate();
             Plano::truncate();
 
@@ -629,14 +633,16 @@ class PlanoImportacionController extends Controller
             \Log::critical('ELIMINACIÓN MASIVA PLANOS COMPLETADA', [
                 'user_id' => Auth::id(),
                 'planos_eliminados' => $totalPlanos,
-                'folios_eliminados' => $totalFolios
+                'folios_eliminados' => $totalFolios,
+                'inmuebles_eliminados' => $totalInmuebles
             ]);
 
             return response()->json([
                 'success' => true,
-                'message' => "Se eliminaron {$totalPlanos} planos con {$totalFolios} folios asociados",
+                'message' => "Se eliminaron {$totalPlanos} planos, {$totalFolios} folios y {$totalInmuebles} inmuebles",
                 'planos_eliminados' => $totalPlanos,
-                'folios_eliminados' => $totalFolios
+                'folios_eliminados' => $totalFolios,
+                'inmuebles_eliminados' => $totalInmuebles
             ]);
 
         } catch (\Illuminate\Validation\ValidationException $e) {

@@ -936,6 +936,7 @@ function ejecutarEliminarHistoricos(confirmacion) {
                                 <ul class="mb-0">
                                     <li>Planos eliminados: <strong>${response.planos_eliminados.toLocaleString()}</strong></li>
                                     <li>Folios eliminados: <strong>${response.folios_eliminados.toLocaleString()}</strong></li>
+                                    <li>Inmuebles eliminados: <strong>${response.inmuebles_eliminados.toLocaleString()}</strong></li>
                                 </ul>
                             </div>
                         </div>

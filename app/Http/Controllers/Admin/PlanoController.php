@@ -487,7 +487,7 @@ class PlanoController extends Controller
                 // Mostrar cada inmueble por separado
                 foreach ($inmuebles as $inmueble) {
                     $hectareasDisplay = $inmueble->hectareas
-                        ? number_format($inmueble->hectareas, 4, ',', '.') . ' ha'
+                        ? number_format($inmueble->hectareas, 2, ',', '.') . ' ha'
                         : '-';
                     $m2Display = number_format($inmueble->m2 ?: 0, 2, ',', '.') . ' m²';
 
@@ -508,7 +508,7 @@ class PlanoController extends Controller
                 // Sin desglose - mostrar solo el folio con totales
                 $numero = $folio->numero_inmueble ? " ({$folio->numero_inmueble})" : '';
                 $hectareasDisplay = $folio->hectareas
-                    ? number_format($folio->hectareas, 4, ',', '.') . ' ha'
+                    ? number_format($folio->hectareas, 2, ',', '.') . ' ha'
                     : '-';
                 $m2Display = number_format($folio->m2 ?: 0, 2, ',', '.') . ' m²';
 
@@ -529,7 +529,7 @@ class PlanoController extends Controller
 
         // Fila de totales
         $totalHa = $plano->total_hectareas
-            ? number_format($plano->total_hectareas, 4, ',', '.') . ' ha'
+            ? number_format($plano->total_hectareas, 2, ',', '.') . ' ha'
             : '-';
         $totalM2 = number_format($plano->total_m2 ?: 0, 2, ',', '.') . ' m²';
 

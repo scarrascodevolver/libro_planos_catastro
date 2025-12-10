@@ -366,6 +366,16 @@ class PlanoCreacionController extends Controller
 
                 // Crear inmuebles (desglose de hijuelas/sitios) si existen
                 if (!empty($folioData['inmuebles'])) {
+                    // Validar que no haya números de inmuebles duplicados
+                    $numerosInmuebles = [];
+                    foreach ($folioData['inmuebles'] as $inmuebleData) {
+                        $numero = $inmuebleData['numero_inmueble'];
+                        if (in_array($numero, $numerosInmuebles)) {
+                            throw new \Exception("Inmueble duplicado: {$folioData['tipo_inmueble']} #{$numero} aparece más de una vez en el folio {$folioData['folio']}");
+                        }
+                        $numerosInmuebles[] = $numero;
+                    }
+
                     foreach ($folioData['inmuebles'] as $inmuebleData) {
                         // Conversión: Si ingresó M² → Convertir a Hectáreas
                         $ha_inmueble = null;
