@@ -122,7 +122,8 @@
                                         <th width="120">Ap. Paterno</th>
                                         <th width="120">Ap. Materno</th>
                                         <th width="100">Tipo</th>
-                                        <th width="180">M² <small class="text-muted">(Hectáreas auto)</small></th>
+                                        <th width="110">Hectáreas <small class="text-muted">(auto)</small></th>
+                                        <th width="120">M²</th>
                                         <th width="40"></th>
                                     </tr>
                                 </thead>
