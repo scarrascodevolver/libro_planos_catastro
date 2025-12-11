@@ -1250,17 +1250,18 @@
                 folio = folio || {};
 
                 // Formatear valores con 2 decimales si existen
-                var haFormateado = '';
                 var m2Formateado = '';
-
-                if (folio.hectareas) {
-                    var ha = parseFloat(folio.hectareas);
-                    haFormateado = !isNaN(ha) ? formatNumber(ha, 2) : '';
-                }
+                var haCalculado = '';
 
                 if (folio.m2) {
                     var m2 = parseFloat(folio.m2);
                     m2Formateado = !isNaN(m2) ? formatNumber(m2, 2) : '';
+
+                    // Calcular hectáreas para mostrar inicialmente (solo si es HIJUELA)
+                    if (!isNaN(m2) && m2 > 0 && folio.tipo_inmueble === 'HIJUELA') {
+                        var ha = m2 / 10000;
+                        haCalculado = '= ' + formatNumber(ha, 2) + ' ha';
+                    }
                 }
 
                 var html = '<tr class="folio-row">';
@@ -1277,8 +1278,10 @@
                     '>HIJUELA</option>';
                 html += '<option value="SITIO"' + (folio.tipo_inmueble === 'SITIO' ? ' selected' : '') + '>SITIO</option>';
                 html += '</select></td>';
-                html += '<td><input type="text" class="form-control form-control-sm folio-ha" value="' + haFormateado + '" placeholder="0,00" inputmode="decimal" onkeypress="return validarNumeroDecimalHectareas(event)" onchange="actualizarResumenEdit()"></td>';
-                html += '<td><input type="text" class="form-control form-control-sm folio-m2" value="' + m2Formateado + '" placeholder="0,00" inputmode="decimal" onkeypress="return validarNumeroDecimal(event)" onchange="actualizarResumenEdit()"></td>';
+                html += '<td>';
+                html += '<input type="text" class="form-control form-control-sm folio-m2" value="' + m2Formateado + '" placeholder="Ej: 520,21" inputmode="decimal" onkeypress="return validarNumeroDecimal(event)">';
+                html += '<small class="text-muted conversion-ha-edit">' + haCalculado + '</small>';
+                html += '</td>';
                 html +=
                     '<td><button type="button" class="btn btn-xs btn-danger" onclick="eliminarFilaFolio(this)" title="Eliminar"><i class="fas fa-trash"></i></button>';
                 html += '<input type="hidden" class="folio-id" value="' + (folio.id || '') + '"></td>';
@@ -1294,49 +1297,52 @@
 
             // Activar auto-formato y conversión para una fila específica
             function attachEditPlanoRowListeners($row) {
-                var $haInput = $row.find('.folio-ha');
                 var $m2Input = $row.find('.folio-m2');
+                var $conversionSpan = $row.find('.conversion-ha-edit');
                 var $tipoInput = $row.find('.folio-tipo');
 
-                // ===== HECTÁREAS - SIN FORMATEO AUTOMÁTICO =====
-                // Seleccionar todo al hacer focus (facilita sobrescritura)
-                $haInput.off('focus').on('focus', function() {
-                    $(this).select();
-                });
-
-                // Actualizar resumen al cambiar (sin reformatear)
-                $haInput.off('input blur').on('blur', function() {
-                    actualizarResumenEdit();
-                });
-
-                // ===== M² - SIN FORMATEO AUTOMÁTICO =====
+                // ===== M² - CONVERSIÓN EN TIEMPO REAL =====
                 // Seleccionar todo al hacer focus (facilita sobrescritura)
                 $m2Input.off('focus').on('focus', function() {
                     $(this).select();
                 });
 
-                // Actualizar resumen al cambiar (sin reformatear)
-                $m2Input.off('input blur').on('blur', function() {
-                    actualizarResumenEdit();
-                });
-
-                // ===== CONVERSIÓN M² → HECTÁREAS (solo para HIJUELA) =====
-                function attachConversionIfNeeded() {
+                // Función para actualizar conversión
+                function actualizarConversion() {
                     var tipoInmueble = $tipoInput.val();
-                    if (tipoInmueble === 'HIJUELA') {
-                        attachM2ToHaListenerDirect($m2Input, $haInput);
+                    var m2Valor = $m2Input.val();
+
+                    // Solo convertir si es HIJUELA (rural)
+                    if (tipoInmueble === 'HIJUELA' && m2Valor && m2Valor.trim() !== '') {
+                        var m2 = normalizarNumeroJS(m2Valor);
+                        if (m2 !== null && !isNaN(m2) && m2 > 0) {
+                            var ha = m2 / 10000;
+                            $conversionSpan.text('= ' + formatNumber(ha, 2) + ' ha');
+                        } else {
+                            $conversionSpan.text('');
+                        }
                     } else {
-                        // Si es SITIO, remover conversión
-                        $m2Input.off('blur.conversion');
+                        // Si es SITIO o está vacío, limpiar conversión
+                        $conversionSpan.text('');
                     }
+
+                    // Actualizar resumen de totales
+                    actualizarResumenEdit();
                 }
 
-                // Activar conversión inicial
-                attachConversionIfNeeded();
+                // Actualizar conversión en tiempo real mientras escribe
+                $m2Input.off('input').on('input', function() {
+                    actualizarConversion();
+                });
 
-                // Re-activar conversión si cambia el tipo
-                $tipoInput.off('change.conversion').on('change.conversion', function() {
-                    attachConversionIfNeeded();
+                // Actualizar conversión al salir del campo
+                $m2Input.off('blur').on('blur', function() {
+                    actualizarConversion();
+                });
+
+                // Re-actualizar conversión si cambia el tipo
+                $tipoInput.off('change.tipo').on('change.tipo', function() {
+                    actualizarConversion();
                 });
             }
 
@@ -1358,15 +1364,16 @@
                 var totalM2 = 0;
 
                 $('#folios-tbody tr').each(function() {
-                    // Limpiar formato antes de parsear
-                    var haValor = $(this).find('.folio-ha').val().replace(/\./g, '').replace(',', '.');
-                    var m2Valor = $(this).find('.folio-m2').val().replace(/\./g, '').replace(',', '.');
-
-                    var ha = parseFloat(haValor) || 0;
-                    var m2 = parseFloat(m2Valor) || 0;
-
-                    totalHa += ha;
-                    totalM2 += m2;
+                    // Obtener valor de M² y calcular hectáreas automáticamente
+                    var m2Valor = $(this).find('.folio-m2').val();
+                    if (m2Valor) {
+                        var m2 = normalizarNumeroJS(m2Valor);
+                        if (m2 !== null && !isNaN(m2) && m2 > 0) {
+                            totalM2 += m2;
+                            // Calcular hectáreas desde M² (m² / 10000)
+                            totalHa += (m2 / 10000);
+                        }
+                    }
                 });
 
                 $('#edit-total-folios').text(totalFolios);
@@ -1432,6 +1439,15 @@
                     numeroFila++;
                     var fila = $(this);
 
+                    // Obtener M² y calcular hectáreas automáticamente
+                    var m2 = parseFormattedNumber(fila.find('.folio-m2').val());
+                    var hectareas = null;
+
+                    // Calcular hectáreas desde M² (m² / 10000)
+                    if (m2 && m2 > 0) {
+                        hectareas = m2 / 10000;
+                    }
+
                     var folioData = {
                         id: fila.find('.folio-id').val() || null,
                         folio: fila.find('.folio-num').val(),
@@ -1439,8 +1455,8 @@
                         apellido_paterno: fila.find('.folio-ap-pat').val(),
                         apellido_materno: fila.find('.folio-ap-mat').val(),
                         tipo_inmueble: fila.find('.folio-tipo').val(),
-                        hectareas: parseFormattedNumber(fila.find('.folio-ha').val()),
-                        m2: parseFormattedNumber(fila.find('.folio-m2').val())
+                        hectareas: hectareas,
+                        m2: m2
                     };
 
                     // Validar campos obligatorios
@@ -1459,13 +1475,9 @@
                         camposFaltantes.push('Apellido Materno');
                     }
 
-                    // Validación unificada para rural y urbano
-                    // Al menos hectáreas O m² debe estar presente
-                    var tieneHectareas = folioData.hectareas && folioData.hectareas > 0;
-                    var tieneM2 = folioData.m2 && folioData.m2 > 0;
-
-                    if (!tieneHectareas && !tieneM2) {
-                        camposFaltantes.push('Hectáreas o M² (debe completar al menos uno)');
+                    // Validación de M² (obligatorio)
+                    if (!folioData.m2 || folioData.m2 <= 0) {
+                        camposFaltantes.push('M²');
                     }
 
                     if (camposFaltantes.length > 0) {
