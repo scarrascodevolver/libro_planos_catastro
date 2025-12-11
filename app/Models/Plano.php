@@ -35,7 +35,7 @@ class Plano extends Model
 
     public function getMesAttribute(): string
     {
-        $meses = ['ENE','FEB','MAR','ABR','MAY','JUN','JUL','AGO','SEP','OCT','NOV','DIC'];
+        $meses = ['ENERO','FEBRERO','MARZO','ABRIL','MAYO','JUNIO','JULIO','AGOSTO','SEPTIEMBRE','OCTUBRE','NOVIEMBRE','DICIEMBRE'];
 
         // Si hay mes específico en la columna 'mes', usarlo
         if (!empty($this->attributes['mes'])) {

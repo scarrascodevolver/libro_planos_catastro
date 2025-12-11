@@ -55,18 +55,18 @@
                             <label for="filtro_mes">Mes</label>
                             <select class="form-control" id="filtro_mes" name="mes">
                                 <option value="">Todos</option>
-                                <option value="ENE">Enero</option>
-                                <option value="FEB">Febrero</option>
-                                <option value="MAR">Marzo</option>
-                                <option value="ABR">Abril</option>
-                                <option value="MAY">Mayo</option>
-                                <option value="JUN">Junio</option>
-                                <option value="JUL">Julio</option>
-                                <option value="AGO">Agosto</option>
-                                <option value="SEP">Septiembre</option>
-                                <option value="OCT">Octubre</option>
-                                <option value="NOV">Noviembre</option>
-                                <option value="DIC">Diciembre</option>
+                                <option value="ENERO">Enero</option>
+                                <option value="FEBRERO">Febrero</option>
+                                <option value="MARZO">Marzo</option>
+                                <option value="ABRIL">Abril</option>
+                                <option value="MAYO">Mayo</option>
+                                <option value="JUNIO">Junio</option>
+                                <option value="JULIO">Julio</option>
+                                <option value="AGOSTO">Agosto</option>
+                                <option value="SEPTIEMBRE">Septiembre</option>
+                                <option value="OCTUBRE">Octubre</option>
+                                <option value="NOVIEMBRE">Noviembre</option>
+                                <option value="DICIEMBRE">Diciembre</option>
                             </select>
                         </div>
                     </div>

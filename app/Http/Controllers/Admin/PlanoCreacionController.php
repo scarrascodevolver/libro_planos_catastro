@@ -268,7 +268,7 @@ class PlanoCreacionController extends Controller
         // Obtener datos adicionales
         $codigoRegion = '08'; // Región del Biobío
         $tipoSaneamiento = $request->tipo_ubicacion; // SR, SU, CR, CU
-        $meses = ['ENE','FEB','MAR','ABR','MAY','JUN','JUL','AGO','SEP','OCT','NOV','DIC'];
+        $meses = ['ENERO','FEBRERO','MARZO','ABRIL','MAYO','JUNIO','JULIO','AGOSTO','SEPTIEMBRE','OCTUBRE','NOVIEMBRE','DICIEMBRE'];
         $mesActual = $meses[date('n') - 1];
         $anoActual = date('Y');
 

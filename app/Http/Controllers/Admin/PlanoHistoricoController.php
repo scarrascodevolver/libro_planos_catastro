@@ -734,36 +734,38 @@ class PlanoHistoricoController extends Controller
         // Normalizar entrada (quitar espacios y convertir a mayúsculas)
         $mesTexto = strtoupper(trim($fecha));
 
-        // Mapeo de nombres completos a abreviaciones
+        // Mapeo de abreviaciones a nombres completos
         $mesesMap = [
-            'ENERO' => 'ENE',
-            'FEBRERO' => 'FEB',
-            'MARZO' => 'MAR',
-            'ABRIL' => 'ABR',
-            'MAYO' => 'MAY',
-            'JUNIO' => 'JUN',
-            'JULIO' => 'JUL',
-            'AGOSTO' => 'AGO',
-            'SEPTIEMBRE' => 'SEP',
-            'OCTUBRE' => 'OCT',
-            'NOVIEMBRE' => 'NOV',
-            'DICIEMBRE' => 'DIC'
+            'ENE' => 'ENERO',
+            'FEB' => 'FEBRERO',
+            'MAR' => 'MARZO',
+            'ABR' => 'ABRIL',
+            'MAY' => 'MAYO',
+            'JUN' => 'JUNIO',
+            'JUL' => 'JULIO',
+            'AGO' => 'AGOSTO',
+            'SEP' => 'SEPTIEMBRE',
+            'OCT' => 'OCTUBRE',
+            'NOV' => 'NOVIEMBRE',
+            'DIC' => 'DICIEMBRE'
         ];
 
-        // Si ya es una abreviación válida, retornarla
-        if (in_array($mesTexto, array_values($mesesMap))) {
-            return $mesTexto;
-        }
-
-        // Buscar en el mapeo de nombres completos
+        // Si es abreviación, convertir a nombre completo
         if (isset($mesesMap[$mesTexto])) {
             return $mesesMap[$mesTexto];
+        }
+
+        // Si ya es un nombre completo válido, retornarlo
+        $nombresCompletos = array_values($mesesMap);
+        if (in_array($mesTexto, $nombresCompletos)) {
+            return $mesTexto;
         }
 
         // Intentar parsear como fecha si no es texto de mes
         try {
             $carbon = Carbon::parse($fecha);
-            return strtoupper($carbon->format('M'));
+            $mesNumero = $carbon->month; // 1-12
+            return $nombresCompletos[$mesNumero - 1];
         } catch (\Exception $e) {
             return 'DESCONOCIDO';
         }
