@@ -42,6 +42,7 @@ Route::middleware('auth')->group(function () {
 
     // Rutas con {id} específicas ANTES de show genérico
     Route::get('/planos/{id}/edit', [PlanoController::class, 'edit'])->name('planos.edit');
+    Route::get('/planos/{id}/pdf', [PlanoController::class, 'verPdf'])->name('planos.ver-pdf');
     Route::get('/planos/{id}/folios-expansion', [PlanoController::class, 'getFoliosExpansion'])->name('planos.folios-expansion');
     Route::get('/planos/{id}/detalles-completos', [PlanoController::class, 'getDetallesCompletos'])->name('planos.detalles-completos');
     Route::post('/planos/{id}/reasignar', [PlanoController::class, 'reasignar'])->name('planos.reasignar');

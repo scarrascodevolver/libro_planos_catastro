@@ -8,6 +8,7 @@ use App\Models\PlanoFolio;
 use App\Models\ComunaBiobio;
 use App\Models\User;
 use App\Models\SessionControl;
+use App\Services\PdfPlanoService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Auth;
@@ -59,9 +60,11 @@ class PlanoController extends Controller
                 $acciones .= '</button>';
                 $acciones .= '<div class="dropdown-menu">';
                 $acciones .= '<a class="dropdown-item ver-detalles" href="#" data-id="'.$plano->id.'"><i class="fas fa-eye mr-2 text-info"></i>Ver Detalles</a>';
+                $acciones .= '<a class="dropdown-item" href="'.route('planos.ver-pdf', $plano->id).'" target="_blank"><i class="fas fa-file-pdf mr-2 text-danger"></i>Ver PDF</a>';
 
                 if (Auth::user()->isRegistro()) {
                     // Todos los botones requieren control de sesión
+                    $acciones .= '<div class="dropdown-divider"></div>';
                     $acciones .= '<a class="dropdown-item editar-plano" href="#" data-id="'.$plano->id.'" data-requiere-control="true"><i class="fas fa-edit mr-2 text-primary"></i>Editar Plano</a>';
                     $acciones .= '<a class="dropdown-item reasignar-plano" href="#" data-id="'.$plano->id.'" data-requiere-control="true"><i class="fas fa-exchange-alt mr-2 text-warning"></i>Reasignar N°</a>';
                     $acciones .= '<div class="dropdown-divider"></div>';
@@ -672,6 +675,43 @@ class PlanoController extends Controller
     {
         $plano = Plano::with(['folios', 'creator'])->findOrFail($id);
         return view('admin.planos.show', compact('plano'));
+    }
+
+    /**
+     * Ver PDF del plano desde carpeta de red
+     */
+    public function verPdf($id)
+    {
+        $plano = Plano::findOrFail($id);
+        $pdfService = new PdfPlanoService();
+
+        try {
+            $rutaPdf = $pdfService->buscarPdf($plano);
+
+            if (!$rutaPdf) {
+                return back()->with('error', 'PDF no encontrado para el plano ' . $this->formatNumeroPlanoCompleto($plano) . ' del año ' . $plano->ano);
+            }
+
+            // Verificar que el archivo aún existe (por si fue eliminado después de la búsqueda)
+            if (!file_exists($rutaPdf)) {
+                return back()->with('error', 'El archivo PDF ya no existe en la ubicación: ' . basename($rutaPdf));
+            }
+
+            // Abrir PDF en el navegador (inline)
+            return response()->file($rutaPdf, [
+                'Content-Type' => 'application/pdf',
+                'Content-Disposition' => 'inline; filename="' . basename($rutaPdf) . '"'
+            ]);
+
+        } catch (\Exception $e) {
+            \Log::error('ERROR AL ABRIR PDF', [
+                'plano_id' => $id,
+                'numero_plano' => $this->formatNumeroPlanoCompleto($plano),
+                'error' => $e->getMessage()
+            ]);
+
+            return back()->with('error', 'Error al abrir el PDF: ' . $e->getMessage());
+        }
     }
 
     public function edit($id)
