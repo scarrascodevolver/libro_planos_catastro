@@ -214,6 +214,13 @@
                             <p>Gestión de Usuarios</p>
                         </a>
                     </li>
+
+                    <li class="nav-item">
+                        <a href="{{ route('admin.configuracion-pdf.index') }}" class="nav-link {{ request()->routeIs('admin.configuracion-pdf.*') ? 'active' : '' }}">
+                            <i class="nav-icon fas fa-folder-open"></i>
+                            <p>Configuración PDFs</p>
+                        </a>
+                    </li>
                     @endif
                 </ul>
             </nav>

@@ -6,6 +6,7 @@ use App\Http\Controllers\Admin\PlanoCreacionController;
 use App\Http\Controllers\Admin\PlanoImportacionController;
 use App\Http\Controllers\Admin\PlanoHistoricoController;
 use App\Http\Controllers\Admin\SessionControlController;
+use App\Http\Controllers\Admin\ConfiguracionPdfController;
 
 // Autenticación
 Auth::routes();
@@ -97,5 +98,14 @@ Route::middleware('auth')->group(function () {
     Route::post('/usuarios', [App\Http\Controllers\Admin\UserController::class, 'store'])->name('admin.usuarios.store');
     Route::put('/usuarios/{id}', [App\Http\Controllers\Admin\UserController::class, 'update'])->name('admin.usuarios.update');
     Route::delete('/usuarios/{id}', [App\Http\Controllers\Admin\UserController::class, 'destroy'])->name('admin.usuarios.destroy');
+
+    // Configuración de PDFs - ConfiguracionPdfController (solo rol registro)
+    Route::get('/admin/configuracion-pdf', [ConfiguracionPdfController::class, 'index'])->name('admin.configuracion-pdf.index');
+    Route::get('/admin/configuracion-pdf/crear', [ConfiguracionPdfController::class, 'create'])->name('admin.configuracion-pdf.create');
+    Route::post('/admin/configuracion-pdf', [ConfiguracionPdfController::class, 'store'])->name('admin.configuracion-pdf.store');
+    Route::get('/admin/configuracion-pdf/{id}/editar', [ConfiguracionPdfController::class, 'edit'])->name('admin.configuracion-pdf.edit');
+    Route::put('/admin/configuracion-pdf/{id}', [ConfiguracionPdfController::class, 'update'])->name('admin.configuracion-pdf.update');
+    Route::delete('/admin/configuracion-pdf/{id}', [ConfiguracionPdfController::class, 'destroy'])->name('admin.configuracion-pdf.destroy');
+    Route::post('/admin/configuracion-pdf/verificar-ruta', [ConfiguracionPdfController::class, 'verificarRuta'])->name('admin.configuracion-pdf.verificar-ruta');
 
 });

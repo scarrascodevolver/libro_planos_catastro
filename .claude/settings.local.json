@@ -15,7 +15,12 @@
       "Bash(/mnt/c/xampp/php/php.exe:*)",
       "Bash(git stash:*)",
       "Bash(git push:*)",
-      "Bash(git branch:*)"
+      "Bash(git branch:*)",
+      "Bash(find:*)",
+      "Bash(grep:*)",
+      "Bash(git reset:*)",
+      "Bash(mysql:*)",
+      "Bash(php:*)"
     ],
     "deny": [],
     "ask": []
