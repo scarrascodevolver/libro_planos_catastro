@@ -329,8 +329,12 @@
             <div class="col-md-6">
                 <table class="table table-bordered">
                     <tr>
-                        <th>Total Folios:</th>
-                        <td id="confirm-total-folios">---</td>
+                        <th>Cantidad de Folios:</th>
+                        <td id="confirm-cantidad-folios">---</td>
+                    </tr>
+                    <tr>
+                        <th>Total Inmuebles:</th>
+                        <td id="confirm-total-inmuebles">---</td>
                     </tr>
                     <tr>
                         <th>Total Superficie:</th>
@@ -2926,6 +2930,10 @@ function mostrarConfirmacion() {
     $('#confirm-responsable').text(wizardData.folios[0].responsable || $('#responsable-manual').val());
     $('#confirm-proyecto').text(wizardData.folios[0].proyecto || $('#proyecto-manual').val());
 
+    // Contar cantidad de folios
+    const cantidadFolios = wizardData.folios.length;
+    $('#confirm-cantidad-folios').text(cantidadFolios);
+
     // Contar total de inmuebles
     let totalInmuebles = 0;
     wizardData.folios.forEach(folio => {
@@ -2936,9 +2944,9 @@ function mostrarConfirmacion() {
         }
     });
 
-    // Mostrar cantidad con etiqueta apropiada
+    // Mostrar cantidad de inmuebles con etiqueta apropiada
     const tipoInmuebleLabel = wizardData.tipoPlano.includes('R') ? 'hijuelas' : 'sitios';
-    $('#confirm-total-folios').text(totalInmuebles + ' ' + tipoInmuebleLabel);
+    $('#confirm-total-inmuebles').text(totalInmuebles + ' ' + tipoInmuebleLabel);
 
     // Mostrar superficie total en ambas unidades: "XXX m² (YY,YY ha)"
     if (totalM2 > 0) {
