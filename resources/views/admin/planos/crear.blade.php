@@ -878,6 +878,21 @@ function buscarFolioMatrixMultiple(index) {
         return;
     }
 
+    // Validar duplicados en folios ya completados del mismo plano
+    const duplicado = wizardData.foliosCompletados.find(f => f.folio === folio);
+    if (duplicado) {
+        const posicionDuplicado = wizardData.foliosCompletados.indexOf(duplicado) + 1;
+        $resultado.html(`
+            <div class="alert alert-danger">
+                <i class="fas fa-exclamation-triangle"></i>
+                <strong>Folio duplicado</strong><br>
+                Este folio ya fue agregado en el <strong>Folio #${posicionDuplicado}</strong> de este mismo plano.
+            </div>
+        `);
+        $('#btn-folio-siguiente').prop('disabled', true);
+        return;
+    }
+
     $resultado.html('<div class="text-center py-3"><i class="fas fa-spinner fa-spin fa-2x"></i><p class="mt-2">Buscando...</p></div>');
 
     $.ajax({
@@ -1661,14 +1676,33 @@ function procesarFoliosMasivos() {
     }
 
     // Dividir por saltos de línea o comas
-    const folios = texto.split(/[\n,;]+/).map(f => f.trim()).filter(f => f);
+    let folios = texto.split(/[\n,;]+/).map(f => f.trim()).filter(f => f);
+
+    // Eliminar duplicados
+    const foliosUnicos = [...new Set(folios)];
+    const duplicadosCount = folios.length - foliosUnicos.length;
+
+    // Mostrar alerta si hay duplicados
+    if (duplicadosCount > 0) {
+        Swal.fire({
+            icon: 'info',
+            title: 'Folios duplicados detectados',
+            html: `Se encontraron <strong>${duplicadosCount} folios duplicados</strong> en la lista.<br><br>
+                   Se procesarán solo <strong>${foliosUnicos.length} folios únicos</strong>.`,
+            confirmButtonText: 'Continuar',
+            confirmButtonColor: '#17a2b8'
+        });
+    }
+
+    // Usar solo folios únicos
+    folios = foliosUnicos;
 
     if (folios.length < 11 || folios.length > 150) {
-        Swal.fire('Error', 'Debe ingresar entre 11 y 150 folios', 'error');
+        Swal.fire('Error', 'Debe ingresar entre 11 y 150 folios únicos', 'error');
         return;
     }
 
-    $('#resultado-masivos').html('<p><i class="fas fa-spinner fa-spin"></i> Procesando ' + folios.length + ' folios...</p>');
+    $('#resultado-masivos').html('<p><i class="fas fa-spinner fa-spin"></i> Procesando ' + folios.length + ' folios únicos...</p>');
     $('#btn-procesar-masivos').prop('disabled', true);
 
     // Llamar al backend
@@ -1706,7 +1740,18 @@ function mostrarResultadosMasivos(response) {
     if (resumen.yaUsados > 0) {
         html += ', <span class="text-warning">' + resumen.yaUsados + ' ya usados</span>';
     }
+    if (resumen.duplicadosEnLista > 0) {
+        html += ', <span class="text-info">' + resumen.duplicadosEnLista + ' duplicados eliminados</span>';
+    }
     html += '</div>';
+
+    // Alerta de duplicados eliminados (si los hay)
+    if (resumen.duplicadosEnLista > 0) {
+        html += '<div class="alert alert-info py-2">';
+        html += '<i class="fas fa-info-circle"></i> ';
+        html += '<strong>' + resumen.duplicadosEnLista + ' folios duplicados</strong> fueron eliminados de la lista automáticamente.';
+        html += '</div>';
+    }
 
     // Alertas de no encontrados
     if (noEncontrados.length > 0) {
@@ -2517,6 +2562,28 @@ function attachListenersManualMultiple(index, esRural, tipoInmueble) {
             generarCamposMedidasManualMultiple(index, cantidad, esRural, tipoInmueble);
         }
         verificarCompletitudFolioManual(index);
+    });
+
+    // Listener para validar duplicados en folio (opcional pero no puede repetirse)
+    $(`.folio-manual-multiple[data-index="${index}"]`).on('blur', function() {
+        const folio = $(this).val().trim();
+
+        // Solo validar si ingresó un folio (es opcional)
+        if (!folio) return;
+
+        // Verificar duplicados en folios ya completados
+        const duplicado = wizardData.foliosCompletados.find(f => f.folio && f.folio === folio);
+        if (duplicado) {
+            const posicionDuplicado = wizardData.foliosCompletados.indexOf(duplicado) + 1;
+            Swal.fire({
+                icon: 'warning',
+                title: 'Folio duplicado',
+                html: `Este folio ya fue agregado en el <strong>Folio #${posicionDuplicado}</strong> de este plano.<br><br>Por favor, ingrese un folio diferente o déjelo vacío.`,
+                confirmButtonText: 'Entendido'
+            });
+            $(this).val(''); // Limpiar el campo
+            $(this).focus(); // Volver a poner foco
+        }
     });
 
     // Listener para campos requeridos

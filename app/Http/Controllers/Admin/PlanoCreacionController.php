@@ -145,11 +145,16 @@ class PlanoCreacionController extends Controller
         $foliosArray = array_map('trim', preg_split('/[\r\n,;]+/', $foliosTexto));
         $foliosArray = array_filter($foliosArray); // Remover vacíos
 
+        // Eliminar duplicados y contar cuántos había
+        $totalOriginal = count($foliosArray);
+        $foliosUnicos = array_unique($foliosArray);
+        $duplicadosCount = $totalOriginal - count($foliosUnicos);
+
         $encontrados = [];
         $noEncontrados = [];
         $yaUsados = [];
 
-        foreach ($foliosArray as $folio) {
+        foreach ($foliosUnicos as $folio) {
             $matrix = MatrixImport::buscarPorFolio($folio);
 
             if (!$matrix) {
@@ -177,14 +182,17 @@ class PlanoCreacionController extends Controller
         }
 
         return response()->json([
-            'totalProcesados' => count($foliosArray),
+            'totalProcesados' => $totalOriginal,
+            'totalUnicos' => count($foliosUnicos),
+            'duplicadosEnLista' => $duplicadosCount,
             'encontrados' => $encontrados,
             'noEncontrados' => $noEncontrados,
             'yaUsados' => $yaUsados,
             'resumen' => [
                 'encontrados' => count($encontrados),
                 'noEncontrados' => count($noEncontrados),
-                'yaUsados' => count($yaUsados)
+                'yaUsados' => count($yaUsados),
+                'duplicadosEnLista' => $duplicadosCount
             ]
         ]);
     }
@@ -236,6 +244,27 @@ class PlanoCreacionController extends Controller
                     'message' => "Folio " . ($folio['folio'] ?? '#' . ($index + 1)) . ": Debe ingresar al menos Hectáreas o M²"
                 ], 422);
             }
+        }
+
+        // Validación de folios duplicados dentro del mismo plano
+        $foliosIngresados = collect($request->folios)
+            ->pluck('folio')
+            ->filter(fn($f) => !empty($f)) // Eliminar nulos/vacíos (folios fiscales pueden no tener número)
+            ->toArray();
+
+        $foliosUnicos = array_unique($foliosIngresados);
+
+        if (count($foliosIngresados) !== count($foliosUnicos)) {
+            // Encontrar los duplicados
+            $duplicados = array_diff_key(
+                $foliosIngresados,
+                array_unique($foliosIngresados)
+            );
+
+            return response()->json([
+                'success' => false,
+                'message' => 'El plano contiene folios duplicados: ' . implode(', ', array_unique($duplicados))
+            ], 422);
         }
 
         // Validar que el usuario tenga control de sesión activo
