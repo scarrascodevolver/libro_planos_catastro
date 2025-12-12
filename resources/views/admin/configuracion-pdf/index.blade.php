@@ -162,7 +162,7 @@ $(document).ready(function() {
                 // Crear formulario y enviar DELETE
                 const form = $('<form>', {
                     'method': 'POST',
-                    'action': '{{ url("admin/configuracion-pdf") }}/' + id
+                    'action': '{{ url("/admin/configuracion-pdf") }}/' + id
                 });
 
                 form.append($('<input>', {
