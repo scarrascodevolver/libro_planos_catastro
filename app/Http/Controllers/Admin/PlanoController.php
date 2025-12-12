@@ -1531,7 +1531,12 @@ class PlanoController extends Controller
                     'mes' => $plano->mes,
                     'ano' => $plano->ano,
                     'responsable' => $plano->responsable,
-                    'proyecto' => $plano->proyecto
+                    'proyecto' => $plano->proyecto,
+                    'observaciones' => $plano->observaciones ?: '-',
+                    'providencia_archivo' => $plano->providencia_archivo ?: '-',
+                    'tubo' => $plano->tubo ?: '-',
+                    'tela' => $plano->tela ?: '-',
+                    'archivo_digital' => $plano->archivo_digital ?: '-'
                 ];
             }
         }

@@ -3062,7 +3062,12 @@
                                 'mes',
                                 'ano',
                                 'responsable',
-                                'proyecto'
+                                'proyecto',
+                                'observaciones',
+                                'providencia_archivo',
+                                'tubo',
+                                'tela',
+                                'archivo_digital'
                             ]
                         });
 
@@ -3081,7 +3086,12 @@
                             'Mes',
                             'Año',
                             'Responsable',
-                            'Proyecto'
+                            'Proyecto',
+                            'Observaciones',
+                            'Providencia Archivo',
+                            'Tubo',
+                            'Tela',
+                            'Archivo Digital'
                         ];
 
                         XLSX.utils.sheet_add_aoa(worksheet, [headers], { origin: 'A1' });
