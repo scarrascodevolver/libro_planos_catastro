@@ -474,28 +474,22 @@ class PlanoController extends Controller
                                 <td style="width: 35%;">' . ($plano->responsable ?: '-') . '</td>
                             </tr>
                             <tr>
-                                <td><strong>N° Completo:</strong></td>
-                                <td>' . $this->formatNumeroPlanoCompleto($plano) . '</td>
+                                <td><strong>Tipo:</strong></td>
+                                <td>' . ($plano->tipo_saneamiento ?: '-') . '</td>
                                 <td><strong>Proyecto:</strong></td>
                                 <td>' . ($plano->proyecto ?: '-') . '</td>
                             </tr>
                             <tr>
-                                <td><strong>Tipo:</strong></td>
-                                <td>' . ($plano->tipo_saneamiento ?: '-') . '</td>
+                                <td><strong>Comuna:</strong></td>
+                                <td>' . ($plano->comuna ?: '-') . '</td>
                                 <td><strong>Providencia:</strong></td>
                                 <td>' . ($plano->providencia ?: '-') . '</td>
                             </tr>
                             <tr>
-                                <td><strong>Comuna:</strong></td>
-                                <td>' . ($plano->comuna ?: '-') . '</td>
-                                <td><strong>Providencia Archivo:</strong></td>
-                                <td>' . ($plano->providencia_archivo ?: '-') . '</td>
-                            </tr>
-                            <tr>
                                 <td><strong>Provincia:</strong></td>
                                 <td>' . ($plano->provincia ?: '-') . '</td>
-                                <td><strong>Tubo:</strong></td>
-                                <td>' . ($plano->tubo ?: '-') . '</td>
+                                <td><strong>Providencia Archivo:</strong></td>
+                                <td>' . ($plano->providencia_archivo ?: '-') . '</td>
                             </tr>
                             <tr>
                                 <td><strong>Mes:</strong></td>
@@ -506,18 +500,20 @@ class PlanoController extends Controller
                             <tr>
                                 <td><strong>Año:</strong></td>
                                 <td>' . ($plano->ano ?: '-') . '</td>
+                                <td><strong>Tubo:</strong></td>
+                                <td>' . ($plano->tubo ?: '-') . '</td>
+                            </tr>
+                            <tr>
                                 <td><strong>Archivo Digital:</strong></td>
                                 <td>' . ($plano->archivo_digital ?: '-') . '</td>
-                            </tr>
-                            <tr>
                                 <td><strong>Total Hectáreas:</strong></td>
                                 <td>' . ($plano->total_hectareas ? number_format($plano->total_hectareas, 2) : '-') . '</td>
-                                <td><strong>Total M²:</strong></td>
-                                <td>' . number_format($plano->total_m2 ?: 0, 2, ',', '.') . '</td>
                             </tr>
                             <tr>
+                                <td><strong>Total M²:</strong></td>
+                                <td>' . number_format($plano->total_m2 ?: 0, 2, ',', '.') . '</td>
                                 <td><strong>Cantidad Folios:</strong></td>
-                                <td colspan="3">' . $plano->cantidad_folios . '</td>
+                                <td>' . $plano->cantidad_folios . '</td>
                             </tr>
                         </table>';
 
