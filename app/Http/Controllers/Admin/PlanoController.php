@@ -60,7 +60,7 @@ class PlanoController extends Controller
                 $acciones .= '</button>';
                 $acciones .= '<div class="dropdown-menu">';
                 $acciones .= '<a class="dropdown-item ver-detalles" href="#" data-id="'.$plano->id.'"><i class="fas fa-eye mr-2 text-info"></i>Ver Detalles</a>';
-                $acciones .= '<a class="dropdown-item" href="'.route('planos.ver-pdf', $plano->id).'" target="_blank"><i class="fas fa-file-pdf mr-2 text-danger"></i>Ver PDF</a>';
+                $acciones .= '<a class="dropdown-item ver-pdf-plano" href="#" data-id="'.$plano->id.'"><i class="fas fa-file-pdf mr-2 text-danger"></i>Ver PDF</a>';
 
                 if (Auth::user()->isRegistro()) {
                     // Todos los botones requieren control de sesión
@@ -675,6 +675,53 @@ class PlanoController extends Controller
     {
         $plano = Plano::with(['folios', 'creator'])->findOrFail($id);
         return view('admin.planos.show', compact('plano'));
+    }
+
+    /**
+     * Verificar si existe el PDF del plano (endpoint AJAX)
+     */
+    public function verificarPdf($id)
+    {
+        $plano = Plano::findOrFail($id);
+        $pdfService = new PdfPlanoService();
+
+        try {
+            $rutaPdf = $pdfService->buscarPdf($plano);
+
+            if (!$rutaPdf) {
+                return response()->json([
+                    'exists' => false,
+                    'message' => 'PDF no encontrado para el plano ' . $this->formatNumeroPlanoCompleto($plano) . ' del año ' . $plano->ano
+                ]);
+            }
+
+            // Verificar que el archivo aún existe
+            if (!file_exists($rutaPdf)) {
+                return response()->json([
+                    'exists' => false,
+                    'message' => 'El archivo PDF ya no existe en la ubicación: ' . basename($rutaPdf)
+                ]);
+            }
+
+            // PDF existe, devolver URL para abrirlo
+            return response()->json([
+                'exists' => true,
+                'message' => 'PDF encontrado',
+                'url' => route('planos.ver-pdf', $id)
+            ]);
+
+        } catch (\Exception $e) {
+            \Log::error('ERROR AL VERIFICAR PDF', [
+                'plano_id' => $id,
+                'numero_plano' => $this->formatNumeroPlanoCompleto($plano),
+                'error' => $e->getMessage()
+            ]);
+
+            return response()->json([
+                'exists' => false,
+                'message' => 'Error al verificar el PDF: ' . $e->getMessage()
+            ], 500);
+        }
     }
 
     /**

@@ -740,6 +740,55 @@
                 verDetallesCompletos(id);
             });
 
+            // Event listener para ver PDF con verificación AJAX
+            $('#planos-table tbody').on('click', '.ver-pdf-plano', function(e) {
+                e.preventDefault();
+                const id = $(this).data('id');
+                const $boton = $(this);
+                const originalHtml = $boton.html();
+
+                // Deshabilitar botón y mostrar loading
+                $boton.html('<i class="fas fa-spinner fa-spin mr-2"></i>Verificando...');
+                $boton.addClass('disabled');
+
+                // Verificar si existe el PDF
+                $.ajax({
+                    url: '/planos/' + id + '/pdf/verificar',
+                    method: 'GET',
+                    success: function(response) {
+                        // Restaurar botón
+                        $boton.html(originalHtml);
+                        $boton.removeClass('disabled');
+
+                        if (response.exists) {
+                            // PDF existe, abrir en nueva pestaña
+                            window.open(response.url, '_blank');
+                        } else {
+                            // PDF no existe, mostrar mensaje de error
+                            Swal.fire({
+                                icon: 'error',
+                                title: 'PDF No Encontrado',
+                                text: response.message,
+                                confirmButtonText: 'Entendido'
+                            });
+                        }
+                    },
+                    error: function(xhr) {
+                        // Restaurar botón
+                        $boton.html(originalHtml);
+                        $boton.removeClass('disabled');
+
+                        const message = xhr.responseJSON?.message || 'Error al verificar el PDF';
+                        Swal.fire({
+                            icon: 'error',
+                            title: 'Error',
+                            text: message,
+                            confirmButtonText: 'Entendido'
+                        });
+                    }
+                });
+            });
+
             // El control de paginación ahora es manejado automáticamente por DataTables
         }
 
