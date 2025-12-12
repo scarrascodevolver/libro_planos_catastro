@@ -537,6 +537,10 @@ function initWizardListeners() {
         $('.card-origen').removeClass('selected');
         $('.cantidad-radio').prop('checked', false);
         $('.origen-radio').prop('checked', false);
+        // Limpiar datos de folios al retroceder
+        wizardData.folios = [];
+        wizardData.foliosCompletados = [];
+        wizardData.cantidadFolios = null;
     });
 
     // PASO 3: Origen - Click en cards de selección
@@ -571,6 +575,9 @@ function initWizardListeners() {
         $('#card-origen').show();
         // Limpiar selección de origen
         $('.origen-radio').prop('checked', false);
+        // Limpiar datos de folios al retroceder
+        wizardData.folios = [];
+        wizardData.foliosCompletados = [];
     });
 
     // PASO 4: Configuración Manual
@@ -663,6 +670,11 @@ function mostrarFormularioFolios() {
 function volverDesdeFolios() {
     $('#card-folios').hide();
 
+    // Limpiar datos de folios al retroceder para evitar inconsistencias
+    wizardData.folios = [];
+    wizardData.foliosCompletados = [];
+    wizardData.folioActualIndex = 0;
+
     if (wizardData.origenFolios === 'manual') {
         $('#card-config-manual').show();
     } else {
@@ -725,6 +737,9 @@ function generarFormularioMatrix() {
             const cantidad = parseInt($(this).val());
             if (cantidad) {
                 wizardData.cantidadFolios = cantidad;
+                // Limpiar datos anteriores al cambiar cantidad
+                wizardData.folios = [];
+                wizardData.foliosCompletados = [];
                 generarInputsMultiples(cantidad);
             }
         });
@@ -754,9 +769,10 @@ function generarInputMatrix(index) {
 }
 
 function generarInputsMultiples(cantidad) {
-    // Inicializar tracking de folio actual
+    // Inicializar tracking de folio actual y limpiar datos anteriores
     wizardData.folioActualIndex = 0;
     wizardData.foliosCompletados = [];
+    wizardData.folios = [];
 
     // Ocultar botones principales durante el wizard
     $('#botones-folios-principales').hide();
@@ -2131,6 +2147,9 @@ function generarFormularioManual() {
             const cantidad = parseInt($(this).val());
             if (cantidad) {
                 wizardData.cantidadFolios = cantidad;
+                // Limpiar datos anteriores al cambiar cantidad
+                wizardData.folios = [];
+                wizardData.foliosCompletados = [];
                 generarFormulariosMultiplesManual(cantidad, esRural, tipoInmueble);
             }
         });
@@ -2139,6 +2158,9 @@ function generarFormularioManual() {
             const cantidad = parseInt($(this).val());
             if (cantidad >= 11 && cantidad <= 150) {
                 wizardData.cantidadFolios = cantidad;
+                // Limpiar datos anteriores al cambiar cantidad
+                wizardData.folios = [];
+                wizardData.foliosCompletados = [];
                 generarFormulariosMultiplesManual(cantidad, esRural, tipoInmueble);
             } else if (cantidad) {
                 Swal.fire('Error', 'La cantidad debe estar entre 11 y 150', 'warning');
@@ -2342,9 +2364,10 @@ function generarFormularioFolioManual(index, esRural, tipoInmueble) {
 }
 
 function generarFormulariosMultiplesManual(cantidad, esRural, tipoInmueble) {
-    // Inicializar tracking de folio actual
+    // Inicializar tracking de folio actual y limpiar datos anteriores
     wizardData.folioActualIndex = 0;
     wizardData.foliosCompletados = [];
+    wizardData.folios = [];
     wizardData.esRuralManual = esRural;
     wizardData.tipoInmuebleManual = tipoInmueble;
 
