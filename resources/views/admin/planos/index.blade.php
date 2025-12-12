@@ -1324,15 +1324,26 @@
                 var m2Formateado = '';
                 var haFormateado = '';
 
-                if (folio.m2) {
-                    var m2 = parseFloat(folio.m2);
-                    m2Formateado = !isNaN(m2) ? formatNumber(m2, 2) : '';
+                // 1. Verificar si existe hectareas directamente (datos importados)
+                if (folio.hectareas && parseFloat(folio.hectareas) > 0) {
+                    var ha = parseFloat(folio.hectareas);
+                    haFormateado = formatNumber(ha, 2);
 
-                    // Calcular hectáreas para mostrar inicialmente
-                    if (!isNaN(m2) && m2 > 0) {
-                        var ha = m2 / 10000;
-                        haFormateado = formatNumber(ha, 2);
+                    // Si no hay m2 o es 0, calcular desde hectáreas
+                    if (!folio.m2 || parseFloat(folio.m2) === 0) {
+                        var m2Calculado = ha * 10000;
+                        m2Formateado = formatNumber(m2Calculado, 2);
+                    } else {
+                        // Si hay m2, usarlo directamente
+                        m2Formateado = formatNumber(parseFloat(folio.m2), 2);
                     }
+                }
+                // 2. Si solo hay m2, calcular hectáreas
+                else if (folio.m2 && parseFloat(folio.m2) > 0) {
+                    var m2 = parseFloat(folio.m2);
+                    m2Formateado = formatNumber(m2, 2);
+                    var haCalculada = m2 / 10000;
+                    haFormateado = formatNumber(haCalculada, 2);
                 }
 
                 var html = '<tr class="folio-row">';
