@@ -2283,7 +2283,7 @@
                         }
 
                         // Activar formateo y conversión M² → Ha para este modal
-                        attachEditFolioConversionListeners(esRural);
+                        attachEditFolioConversionListeners(response.plano.es_rural);
                     })
                     .fail(function(xhr) {
                         $('#edit-folio-loading-overlay').hide();
