@@ -8,6 +8,7 @@ use App\Models\PlanoFolio;
 use App\Models\ComunaBiobio;
 use App\Models\User;
 use App\Models\SessionControl;
+use App\Models\ConfiguracionPdf;
 use App\Services\PdfPlanoService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -689,9 +690,25 @@ class PlanoController extends Controller
             $rutaPdf = $pdfService->buscarPdf($plano);
 
             if (!$rutaPdf) {
+                // Obtener folios del plano
+                $folios = $plano->folios->pluck('folio')->filter()->toArray();
+                $foliosTexto = !empty($folios) ? implode(', ', $folios) : 'sin folios';
+
+                // Obtener ruta de búsqueda configurada
+                $rutaBase = ConfiguracionPdf::getRutaPorAno($plano->ano);
+
+                // Construir mensaje detallado
+                $message = 'No se encontraron los folios: ' . $foliosTexto . ' del año ' . $plano->ano;
+
+                if ($rutaBase) {
+                    $message .= "\n\nRuta de búsqueda: " . $rutaBase;
+                } else {
+                    $message .= "\n\nNo hay configuración de ruta para el año " . $plano->ano;
+                }
+
                 return response()->json([
                     'exists' => false,
-                    'message' => 'PDF no encontrado para el plano ' . $this->formatNumeroPlanoCompleto($plano) . ' del año ' . $plano->ano
+                    'message' => $message
                 ]);
             }
 
