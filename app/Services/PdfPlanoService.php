@@ -109,10 +109,20 @@ class PdfPlanoService
     private function buscarEnMultiples($rutaBase, $folio)
     {
         // Primero intentar búsqueda con patrones específicos (más eficiente)
+        // Soportar tanto guiones (-) como comas (,) como separadores
         $patrones = [
+            // Patrones con guiones
             $rutaBase . DIRECTORY_SEPARATOR . $folio . '-*.pdf',        // Inicio: 5465-*.pdf
             $rutaBase . DIRECTORY_SEPARATOR . '*-' . $folio . '-*.pdf',  // Medio: *-5465-*.pdf
             $rutaBase . DIRECTORY_SEPARATOR . '*-' . $folio . '.pdf',    // Final: *-5465.pdf
+            // Patrones con comas
+            $rutaBase . DIRECTORY_SEPARATOR . $folio . ',*.pdf',         // Inicio: 5465,*.pdf
+            $rutaBase . DIRECTORY_SEPARATOR . '*,' . $folio . ',*.pdf',  // Medio: *,5465,*.pdf
+            $rutaBase . DIRECTORY_SEPARATOR . '*,' . $folio . '.pdf',    // Final: *,5465.pdf
+            // Patrones con coma y espacio (, )
+            $rutaBase . DIRECTORY_SEPARATOR . $folio . ', *.pdf',        // Inicio: 5465, *.pdf
+            $rutaBase . DIRECTORY_SEPARATOR . '*, ' . $folio . ', *.pdf', // Medio: *, 5465, *.pdf
+            $rutaBase . DIRECTORY_SEPARATOR . '*, ' . $folio . '.pdf',   // Final: *, 5465.pdf
         ];
 
         foreach ($patrones as $patron) {
@@ -188,6 +198,9 @@ class PdfPlanoService
         // Quitar espacios alrededor de guiones
         $nombre = preg_replace('/\s*-\s*/', '-', $nombre);
 
+        // Quitar espacios alrededor de comas
+        $nombre = preg_replace('/\s*,\s*/', ',', $nombre);
+
         // Quitar espacios al inicio y final
         $nombre = trim($nombre);
 
@@ -197,6 +210,7 @@ class PdfPlanoService
     /**
      * Verificar si un folio está presente en el nombre del archivo (coincidencia exacta)
      * Evita coincidencias parciales: buscar "5465" no debe coincidir con "54651"
+     * Soporta tanto guiones (-) como comas (,) como separadores
      *
      * @param string $nombreArchivo
      * @param string $folio
@@ -204,8 +218,9 @@ class PdfPlanoService
      */
     private function folioEstaEnNombre($nombreArchivo, $folio)
     {
-        // Separar por guiones
-        $partes = explode('-', $nombreArchivo);
+        // Separar por guiones (-) Y comas (,) usando expresión regular
+        // Esto maneja: 5465-7878 o 5465,7878 o 5465, 7878
+        $partes = preg_split('/[-,]+/', $nombreArchivo);
 
         // Verificar si el folio está en alguna de las partes (coincidencia exacta)
         foreach ($partes as $parte) {
