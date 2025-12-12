@@ -458,7 +458,7 @@ class PlanoController extends Controller
             </div>
 
             <!-- Sección FOLIOS/HIJUELAS/SITIOS -->
-            <div class="col-md-6">
+            <div class="col-12">
                 <div class="card">
                     <div class="card-header bg-success">
                         <h5 class="card-title mb-0">
@@ -503,7 +503,7 @@ class PlanoController extends Controller
                                             </span>
                                         </td>
                                         <td><strong>' . ($folio->folio ?: '-') . '</strong></td>
-                                        <td class="text-truncate" style="max-width: 200px;" title="' . htmlspecialchars($nombreCompleto) . '">' . ($nombreCompleto ?: '-') . '</td>
+                                        <td>' . ($nombreCompleto ?: '-') . '</td>
                                         <td class="text-right">' . $hectareasDisplay . '</td>
                                         <td class="text-right"><strong>' . $m2Display . '</strong></td>
                                     </tr>';
@@ -524,7 +524,7 @@ class PlanoController extends Controller
                                             </span>
                                         </td>
                                         <td><strong>' . ($folio->folio ?: '-') . '</strong></td>
-                                        <td class="text-truncate" style="max-width: 200px;" title="' . htmlspecialchars($nombreCompleto) . '">' . ($nombreCompleto ?: '-') . '</td>
+                                        <td>' . ($nombreCompleto ?: '-') . '</td>
                                         <td class="text-right">' . $hectareasDisplay . '</td>
                                         <td class="text-right"><strong>' . $m2Display . '</strong></td>
                                     </tr>';
