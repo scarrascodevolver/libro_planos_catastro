@@ -891,7 +891,7 @@
                     <i class="fas fa-columns" style="margin-right: 8px; color: #007bff;"></i>
                     Seleccionar Columnas
                 </h5>
-                <button onclick="this.closest('.super-visible-dropdown').remove()"
+                <button onclick="this.closest('.super-visible-dropdown').remove(); $(document).off('click.columnSelector keydown.columnSelector');"
                         style="background: none; border: none; font-size: 18px; color: #6c757d; cursor: pointer; padding: 0; width: 20px; height: 20px;">
                     ×
                 </button>
@@ -943,7 +943,29 @@
                 }
             });
 
-            console.log('✅ DROPDOWN SÚPER VISIBLE CREADO');
+            // Event listener para cerrar al hacer clic fuera
+            $(document).off('click.columnSelector').on('click.columnSelector', function(e) {
+                const $dropdown = $('.super-visible-dropdown');
+                const $button = $('#btn-columns');
+
+                // Si clic NO está en dropdown NI en botón → cerrar
+                if ($dropdown.length &&
+                    !$(e.target).closest('.super-visible-dropdown').length &&
+                    !$(e.target).closest('#btn-columns').length) {
+                    $dropdown.remove();
+                    $(document).off('click.columnSelector keydown.columnSelector');
+                }
+            });
+
+            // Event listener para cerrar con tecla Escape
+            $(document).off('keydown.columnSelector').on('keydown.columnSelector', function(e) {
+                if (e.key === 'Escape' || e.keyCode === 27) {
+                    $('.super-visible-dropdown').remove();
+                    $(document).off('click.columnSelector keydown.columnSelector');
+                }
+            });
+
+            console.log('✅ DROPDOWN SÚPER VISIBLE CREADO con autoClose');
         }
 
         // Función global para toggle de columnas
