@@ -753,7 +753,7 @@
 
                 // Verificar si existe el PDF
                 $.ajax({
-                    url: '/planos/' + id + '/pdf/verificar',
+                    url: "{{ url('/planos') }}/" + id + "/pdf/verificar",
                     method: 'GET',
                     success: function(response) {
                         // Restaurar botón
