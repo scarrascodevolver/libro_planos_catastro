@@ -458,7 +458,7 @@ class PlanoController extends Controller
             </div>
 
             <!-- Sección PLANO -->
-            <div class="col-md-6">
+            <div class="col-12">
                 <div class="card">
                     <div class="card-header bg-primary">
                         <h5 class="card-title mb-0">
@@ -468,72 +468,56 @@ class PlanoController extends Controller
                     <div class="card-body">
                         <table class="table table-borderless table-sm">
                             <tr>
-                                <td><strong>N° Plano:</strong></td>
-                                <td>' . ($plano->numero_plano ?: '-') . '</td>
+                                <td style="width: 15%;"><strong>N° Plano:</strong></td>
+                                <td style="width: 35%;">' . ($plano->numero_plano ?: '-') . '</td>
+                                <td style="width: 15%;"><strong>Responsable:</strong></td>
+                                <td style="width: 35%;">' . ($plano->responsable ?: '-') . '</td>
                             </tr>
                             <tr>
                                 <td><strong>N° Completo:</strong></td>
                                 <td>' . $this->formatNumeroPlanoCompleto($plano) . '</td>
-                            </tr>
-                            <tr>
-                                <td><strong>Tipo:</strong></td>
-                                <td>' . ($plano->tipo_saneamiento ?: '-') . '</td>
-                            </tr>
-                            <tr>
-                                <td><strong>Comuna:</strong></td>
-                                <td>' . ($plano->comuna ?: '-') . '</td>
-                            </tr>
-                            <tr>
-                                <td><strong>Provincia:</strong></td>
-                                <td>' . ($plano->provincia ?: '-') . '</td>
-                            </tr>
-                            <tr>
-                                <td><strong>Mes:</strong></td>
-                                <td>' . ($plano->mes ?: '-') . '</td>
-                            </tr>
-                            <tr>
-                                <td><strong>Año:</strong></td>
-                                <td>' . ($plano->ano ?: '-') . '</td>
-                            </tr>
-                            <tr>
-                                <td><strong>Responsable:</strong></td>
-                                <td>' . ($plano->responsable ?: '-') . '</td>
-                            </tr>
-                            <tr>
                                 <td><strong>Proyecto:</strong></td>
                                 <td>' . ($plano->proyecto ?: '-') . '</td>
                             </tr>
                             <tr>
+                                <td><strong>Tipo:</strong></td>
+                                <td>' . ($plano->tipo_saneamiento ?: '-') . '</td>
                                 <td><strong>Providencia:</strong></td>
                                 <td>' . ($plano->providencia ?: '-') . '</td>
                             </tr>
                             <tr>
+                                <td><strong>Comuna:</strong></td>
+                                <td>' . ($plano->comuna ?: '-') . '</td>
                                 <td><strong>Providencia Archivo:</strong></td>
                                 <td>' . ($plano->providencia_archivo ?: '-') . '</td>
                             </tr>
                             <tr>
+                                <td><strong>Provincia:</strong></td>
+                                <td>' . ($plano->provincia ?: '-') . '</td>
                                 <td><strong>Tubo:</strong></td>
                                 <td>' . ($plano->tubo ?: '-') . '</td>
                             </tr>
                             <tr>
+                                <td><strong>Mes:</strong></td>
+                                <td>' . ($plano->mes ?: '-') . '</td>
                                 <td><strong>Tela:</strong></td>
                                 <td>' . ($plano->tela ?: '-') . '</td>
                             </tr>
                             <tr>
+                                <td><strong>Año:</strong></td>
+                                <td>' . ($plano->ano ?: '-') . '</td>
                                 <td><strong>Archivo Digital:</strong></td>
                                 <td>' . ($plano->archivo_digital ?: '-') . '</td>
                             </tr>
                             <tr>
                                 <td><strong>Total Hectáreas:</strong></td>
                                 <td>' . ($plano->total_hectareas ? number_format($plano->total_hectareas, 2) : '-') . '</td>
-                            </tr>
-                            <tr>
                                 <td><strong>Total M²:</strong></td>
                                 <td>' . number_format($plano->total_m2 ?: 0, 2, ',', '.') . '</td>
                             </tr>
                             <tr>
                                 <td><strong>Cantidad Folios:</strong></td>
-                                <td>' . $plano->cantidad_folios . '</td>
+                                <td colspan="3">' . $plano->cantidad_folios . '</td>
                             </tr>
                         </table>';
 
