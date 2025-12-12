@@ -471,10 +471,10 @@ class PlanoController extends Controller
                                 <thead class="thead-light">
                                     <tr>
                                         <th class="text-center" style="width: 120px;">Tipo</th>
-                                        <th>Folio</th>
-                                        <th>Solicitante</th>
-                                        <th class="text-right">Hectáreas</th>
-                                        <th class="text-right">M²</th>
+                                        <th style="width: 100px;">Folio</th>
+                                        <th style="width: 200px;">Solicitante</th>
+                                        <th class="text-right" style="width: 120px;">Hectáreas</th>
+                                        <th class="text-right" style="width: 100px;">M²</th>
                                     </tr>
                                 </thead>
                                 <tbody>';
@@ -503,7 +503,7 @@ class PlanoController extends Controller
                                             </span>
                                         </td>
                                         <td><strong>' . ($folio->folio ?: '-') . '</strong></td>
-                                        <td>' . ($nombreCompleto ?: '-') . '</td>
+                                        <td class="text-truncate" style="max-width: 200px;" title="' . htmlspecialchars($nombreCompleto) . '">' . ($nombreCompleto ?: '-') . '</td>
                                         <td class="text-right">' . $hectareasDisplay . '</td>
                                         <td class="text-right"><strong>' . $m2Display . '</strong></td>
                                     </tr>';
@@ -524,7 +524,7 @@ class PlanoController extends Controller
                                             </span>
                                         </td>
                                         <td><strong>' . ($folio->folio ?: '-') . '</strong></td>
-                                        <td>' . ($nombreCompleto ?: '-') . '</td>
+                                        <td class="text-truncate" style="max-width: 200px;" title="' . htmlspecialchars($nombreCompleto) . '">' . ($nombreCompleto ?: '-') . '</td>
                                         <td class="text-right">' . $hectareasDisplay . '</td>
                                         <td class="text-right"><strong>' . $m2Display . '</strong></td>
                                     </tr>';
