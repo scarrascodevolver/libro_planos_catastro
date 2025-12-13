@@ -1339,21 +1339,6 @@ class PlanoController extends Controller
             ], 422);
         }
 
-        // Validación adicional: al menos uno (hectáreas o m²) debe tener valor
-        $tieneHectareas = !empty($data['hectareas']) && $data['hectareas'] > 0;
-        $tieneM2 = !empty($data['m2']) && $data['m2'] > 0;
-
-        if (!$tieneHectareas && !$tieneM2) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Validación fallida',
-                'errors' => [
-                    'hectareas' => ['Debe ingresar al menos Hectáreas o M²'],
-                    'm2' => ['Debe ingresar al menos Hectáreas o M²']
-                ]
-            ], 422);
-        }
-
         // Verificar si viene array de inmuebles (modo tabla editable)
         if ($request->has('inmuebles') && is_array($request->inmuebles)) {
             // MODO TABLA: Actualizar inmuebles desglosados
@@ -1415,6 +1400,21 @@ class PlanoController extends Controller
             }
             if (isset($data['m2']) && $data['m2'] == 0) {
                 $data['m2'] = null;
+            }
+
+            // Validación adicional: al menos uno (hectáreas o m²) debe tener valor
+            $tieneHectareas = !empty($data['hectareas']) && $data['hectareas'] > 0;
+            $tieneM2 = !empty($data['m2']) && $data['m2'] > 0;
+
+            if (!$tieneHectareas && !$tieneM2) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Validación fallida',
+                    'errors' => [
+                        'hectareas' => ['Debe ingresar al menos Hectáreas o M²'],
+                        'm2' => ['Debe ingresar al menos Hectáreas o M²']
+                    ]
+                ], 422);
             }
 
             $folio->update($data);
