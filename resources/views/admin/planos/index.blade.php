@@ -2052,6 +2052,7 @@
                     // Construir datos del folio
                     let datos = {
                         _token: $form.find('input[name="_token"]').val(),
+                        _method: 'PUT',  // Laravel method spoofing
                         folio: $('#edit_folio_numero').val(),
                         solicitante: $('#edit_folio_solicitante').val(),
                         apellido_paterno: $('#edit_folio_apellido_paterno').val(),
@@ -2114,9 +2115,15 @@
                         datos.numero_inmueble = $('#edit_folio_numero_inmueble').val() || null;
                     }
 
+                    // DEBUG: Ver qué datos se están enviando
+                    console.log('📤 DATOS A ENVIAR:', datos);
+                    console.log('🔍 Token:', datos._token);
+                    console.log('🔍 Solicitante:', datos.solicitante);
+                    console.log('🔍 Tipo Inmueble:', datos.tipo_inmueble);
+
                     $.ajax({
                         url: "{{ url('/planos/folios') }}/" + folioId,
-                        method: 'PUT',
+                        method: 'POST',  // Use POST with _method spoofing for Laravel compatibility
                         data: datos,
                         success: function(response) {
 
