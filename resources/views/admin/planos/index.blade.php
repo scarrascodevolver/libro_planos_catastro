@@ -2051,14 +2051,14 @@
 
                     // Construir datos del folio
                     let datos = {
-                        _token: $('input[name="_token"]').val(),
+                        _token: $form.find('input[name="_token"]').val(),
                         folio: $('#edit_folio_numero').val(),
                         solicitante: $('#edit_folio_solicitante').val(),
                         apellido_paterno: $('#edit_folio_apellido_paterno').val(),
                         apellido_materno: $('#edit_folio_apellido_materno').val(),
                         tipo_inmueble: $('#edit_folio_tipo_inmueble').val(),
                         matrix_folio: $('#edit_folio_matrix_folio').val(),
-                        is_from_matrix: $('#edit_folio_is_from_matrix').val()
+                        is_from_matrix: $('#edit_folio_is_from_matrix').val() === '1' ? 1 : 0
                     };
 
                     // Verificar si está en modo tabla (múltiples inmuebles) o campos simples
@@ -2069,7 +2069,7 @@
 
                         $('#edit_folio_inmuebles_tbody tr').each(function(index) {
                             const m2Valor = $(this).find('.inmueble-m2').val();
-                            const haVaor = $(this).find('.inmueble-ha').val();
+                            const haValor = $(this).find('.inmueble-ha').val();
 
                             // Validar que tenga M²
                             if (!m2Valor || m2Valor.trim() === '') {
@@ -2079,8 +2079,8 @@
 
                             inmuebles.push({
                                 numero: index + 1,
-                                m2: normalizarNumeroJS(m2Valor),
-                                hectareas: haVaor ? normalizarNumeroJS(haVaor) : null
+                                m2: m2Valor,
+                                hectareas: haValor || null
                             });
                         });
 
@@ -2109,9 +2109,9 @@
                         datos.inmuebles = inmuebles;
                     } else {
                         // MODO CAMPOS SIMPLES: Usar valores de los campos normales
-                        datos.hectareas = $('#edit_folio_hectareas').val();
-                        datos.m2 = $('#edit_folio_m2').val();
-                        datos.numero_inmueble = $('#edit_folio_numero_inmueble').val();
+                        datos.hectareas = $('#edit_folio_hectareas').val() || null;
+                        datos.m2 = $('#edit_folio_m2').val() || null;
+                        datos.numero_inmueble = $('#edit_folio_numero_inmueble').val() || null;
                     }
 
                     $.ajax({
