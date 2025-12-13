@@ -2059,7 +2059,7 @@
                         apellido_materno: $('#edit_folio_apellido_materno').val(),
                         tipo_inmueble: $('#edit_folio_tipo_inmueble').val(),
                         matrix_folio: $('#edit_folio_matrix_folio').val(),
-                        is_from_matrix: $('#edit_folio_is_from_matrix').val() === '1' ? 1 : 0
+                        is_from_matrix: $('#edit_folio_is_from_matrix').val() === '1' ? true : false  // Enviar como booleano
                     };
 
                     // Verificar si está en modo tabla (múltiples inmuebles) o campos simples
@@ -2116,10 +2116,14 @@
                     }
 
                     // DEBUG: Ver qué datos se están enviando
-                    console.log('📤 DATOS A ENVIAR:', datos);
+                    console.log('📤 DATOS COMPLETOS A ENVIAR:', JSON.stringify(datos, null, 2));
                     console.log('🔍 Token:', datos._token);
                     console.log('🔍 Solicitante:', datos.solicitante);
                     console.log('🔍 Tipo Inmueble:', datos.tipo_inmueble);
+                    console.log('🔍 is_from_matrix (type):', typeof datos.is_from_matrix, datos.is_from_matrix);
+                    if (datos.inmuebles) {
+                        console.log('🔍 Array de inmuebles:', datos.inmuebles);
+                    }
 
                     $.ajax({
                         url: "{{ url('/planos/folios') }}/" + folioId,
@@ -2147,10 +2151,13 @@
                             }
                         },
                         error: function(xhr) {
+                            console.error('❌ ERROR EN AJAX:', xhr.status, xhr.statusText);
+                            console.error('❌ RESPONSE COMPLETO:', xhr.responseJSON);
 
                             if (xhr.status === 422) {
                                 // Errores de validación del servidor
                                 const errors = xhr.responseJSON.errors;
+                                console.error('❌ ERRORES DE VALIDACIÓN:', errors);
                                 displayFolioValidationErrors(errors);
 
                                 Swal.fire({
