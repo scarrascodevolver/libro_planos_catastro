@@ -2059,7 +2059,7 @@
                         apellido_materno: $('#edit_folio_apellido_materno').val(),
                         tipo_inmueble: $('#edit_folio_tipo_inmueble').val(),
                         matrix_folio: $('#edit_folio_matrix_folio').val(),
-                        is_from_matrix: $('#edit_folio_is_from_matrix').val() === '1' ? true : false  // Enviar como booleano
+                        is_from_matrix: $('#edit_folio_is_from_matrix').val() === '1' ? 1 : 0  // Laravel boolean validation acepta 1/0
                     };
 
                     // Verificar si está en modo tabla (múltiples inmuebles) o campos simples
@@ -2078,10 +2078,14 @@
                                 return false; // break
                             }
 
+                            // Normalizar valores antes de enviar (remover formato de comas/puntos)
+                            const m2Normalizado = normalizarNumeroJS(m2Valor);
+                            const haNormalizado = haValor ? normalizarNumeroJS(haValor) : null;
+
                             inmuebles.push({
                                 numero: index + 1,
-                                m2: m2Valor,
-                                hectareas: haValor || null
+                                m2: m2Normalizado,
+                                hectareas: haNormalizado
                             });
                         });
 
@@ -2110,8 +2114,11 @@
                         datos.inmuebles = inmuebles;
                     } else {
                         // MODO CAMPOS SIMPLES: Usar valores de los campos normales
-                        datos.hectareas = $('#edit_folio_hectareas').val() || null;
-                        datos.m2 = $('#edit_folio_m2').val() || null;
+                        const hectareasVal = $('#edit_folio_hectareas').val();
+                        const m2Val = $('#edit_folio_m2').val();
+
+                        datos.hectareas = hectareasVal ? normalizarNumeroJS(hectareasVal) : null;
+                        datos.m2 = m2Val ? normalizarNumeroJS(m2Val) : null;
                         datos.numero_inmueble = $('#edit_folio_numero_inmueble').val() || null;
                     }
 
