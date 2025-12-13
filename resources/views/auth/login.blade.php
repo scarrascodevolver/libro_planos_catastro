@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="es">
+
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
@@ -161,7 +162,7 @@
             cursor: pointer;
         }
 
-        .custom-checkbox .custom-control-input:checked ~ .custom-control-label::before {
+        .custom-checkbox .custom-control-input:checked~.custom-control-label::before {
             background-color: var(--gov-azul-principal);
             border-color: var(--gov-azul-principal);
         }
@@ -222,10 +223,13 @@
         }
 
         @keyframes spin {
-            to { transform: rotate(360deg); }
+            to {
+                transform: rotate(360deg);
+            }
         }
     </style>
 </head>
+
 <body>
     <div class="login-container">
         <div class="login-card">
@@ -261,14 +265,9 @@
                                     <i class="fas fa-user"></i>
                                 </span>
                             </div>
-                            <input type="email"
-                                   class="form-control @error('email') is-invalid @enderror"
-                                   id="email"
-                                   name="email"
-                                   value="{{ old('email') }}"
-                                   placeholder="usuario@biobio.cl"
-                                   required
-                                   autofocus>
+                            <input type="email" class="form-control @error('email') is-invalid @enderror"
+                                id="email" name="email" value="{{ old('email') }}"
+                                placeholder="usuario@biobio.cl" required autofocus>
                         </div>
                     </div>
 
@@ -284,12 +283,8 @@
                                     <i class="fas fa-key"></i>
                                 </span>
                             </div>
-                            <input type="password"
-                                   class="form-control @error('password') is-invalid @enderror"
-                                   id="password"
-                                   name="password"
-                                   placeholder="••••••••"
-                                   required>
+                            <input type="password" class="form-control @error('password') is-invalid @enderror"
+                                id="password" name="password" placeholder="••••••••" required>
                             <div class="input-group-append">
                                 <button class="btn btn-toggle-password" type="button" id="toggle-password">
                                     <i class="fas fa-eye"></i>
@@ -301,11 +296,8 @@
                     <!-- Remember Me -->
                     <div class="form-group">
                         <div class="custom-control custom-checkbox">
-                            <input type="checkbox"
-                                   class="custom-control-input"
-                                   id="remember"
-                                   name="remember"
-                                   {{ old('remember') ? 'checked' : '' }}>
+                            <input type="checkbox" class="custom-control-input" id="remember" name="remember"
+                                {{ old('remember') ? 'checked' : '' }}>
                             <label class="custom-control-label" for="remember">
                                 Mantener sesión iniciada
                             </label>
@@ -321,12 +313,7 @@
             </div>
 
             <!-- Footer -->
-            <div class="login-footer">
-                <i class="fas fa-shield-alt mr-1"></i>
-                Sistema Seguro - Acceso Autorizado
-                <br>
-                <small class="mt-1 d-block">© {{ date('Y') }} Gobierno Regional del Biobío</small>
-            </div>
+
         </div>
     </div>
 
@@ -359,4 +346,5 @@
         });
     </script>
 </body>
+
 </html>
