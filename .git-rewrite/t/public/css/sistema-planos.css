@@ -1,0 +1,265 @@
+/**
+ * SISTEMA DE COLORES LIBRO DE PLANOS DIGITAL
+ * Región del Biobío - Paleta Consistente AdminLTE 3
+ */
+
+:root {
+    /* COLORES PRIMARIOS */
+    --primary-color: #074680;
+    --primary-dark: #053054;
+    --primary-light: #0a5299;
+    --primary-hover: rgba(7, 70, 128, 0.1);
+    
+    /* COLORES COMPLEMENTARIOS */
+    --secondary-color: #007bff;
+    --accent-color: #e3f2fd;
+    
+    /* ESTADOS DEL SISTEMA */
+    --success-color: #28a745;
+    --danger-color: #dc3545;
+    --warning-color: #ffc107;
+    --info-color: #17a2b8;
+    
+    /* COLORES DE FONDO */
+    --bg-main: #f4f6f9;
+    --bg-card: #ffffff;
+    --bg-sidebar: #053054;
+    --bg-hover: rgba(0, 123, 255, 0.1);
+    
+    /* BORDES Y LÍNEAS */
+    --border-color: #dee2e6;
+    --border-light: rgba(0, 0, 0, 0.125);
+    
+    /* TEXTO */
+    --text-primary: #074680;
+    --text-secondary: #6c757d;
+    --text-white: #ffffff;
+    --text-muted: rgba(255, 255, 255, 0.7);
+}
+
+/* ================================
+   BOTONES - SISTEMA UNIFICADO
+   ================================ */
+
+.btn-primary {
+    background-color: var(--primary-color) !important;
+    border-color: var(--primary-color) !important;
+    color: var(--text-white) !important;
+}
+
+.btn-primary:hover,
+.btn-primary:focus,
+.btn-primary:active {
+    background-color: var(--primary-dark) !important;
+    border-color: var(--primary-dark) !important;
+    color: var(--text-white) !important;
+}
+
+.btn-info {
+    background-color: var(--primary-color) !important;
+    border-color: var(--primary-color) !important;
+    color: var(--text-white) !important;
+}
+
+.btn-info:hover,
+.btn-info:focus,
+.btn-info:active {
+    background-color: var(--primary-dark) !important;
+    border-color: var(--primary-dark) !important;
+    color: var(--text-white) !important;
+}
+
+/* ================================
+   LOGIN PAGE COLORS
+   ================================ */
+
+.login-box .card {
+    border-top: 3px solid var(--primary-color) !important;
+}
+
+.login-box .card-header {
+    background-color: var(--primary-color) !important;
+    color: var(--text-white) !important;
+    text-align: center;
+}
+
+.login-box .card-header h1 {
+    color: var(--text-white) !important;
+    margin: 0;
+    font-size: 1.5rem;
+}
+
+.login-logo a {
+    color: var(--primary-color) !important;
+    font-size: 2.1rem;
+    font-weight: 300;
+}
+
+.login-box-msg {
+    color: var(--text-secondary) !important;
+    text-align: center;
+    margin-bottom: 20px;
+}
+
+/* ================================
+   CARDS Y COMPONENTES
+   ================================ */
+
+.card-primary > .card-header {
+    background-color: var(--primary-color) !important;
+    border-color: var(--primary-color) !important;
+    color: var(--text-white) !important;
+}
+
+.card-info > .card-header {
+    background-color: var(--primary-color) !important;
+    border-color: var(--primary-color) !important;
+    color: var(--text-white) !important;
+}
+
+.card-navy > .card-header {
+    background-color: var(--primary-color) !important;
+    border-color: var(--primary-color) !important;
+    color: var(--text-white) !important;
+}
+
+/* ================================
+   INFO BOXES
+   ================================ */
+
+.info-box.bg-primary {
+    background-color: var(--primary-color) !important;
+    color: var(--text-white) !important;
+}
+
+.info-box.bg-info {
+    background-color: var(--info-color) !important;
+    color: var(--text-white) !important;
+}
+
+.info-box.bg-success {
+    background-color: var(--success-color) !important;
+    color: var(--text-white) !important;
+}
+
+.info-box.bg-warning {
+    background-color: var(--primary-light) !important;
+    color: var(--text-white) !important;
+}
+
+/* ================================
+   SIDEBAR - CONTRASTE MEJORADO
+   ================================ */
+
+.main-sidebar {
+    background-color: var(--bg-sidebar) !important;
+}
+
+/* Enlaces del sidebar - texto blanco para mejor contraste */
+.main-sidebar .nav-link {
+    color: rgba(255, 255, 255, 0.9) !important;
+}
+
+.main-sidebar .nav-link:hover {
+    background-color: rgba(255, 255, 255, 0.1) !important;
+    color: var(--text-white) !important;
+}
+
+.main-sidebar .nav-link.active {
+    background-color: var(--primary-color) !important;
+    color: var(--text-white) !important;
+}
+
+/* Texto del usuario en el sidebar */
+.main-sidebar .user-panel .info a {
+    color: var(--text-white) !important;
+}
+
+/* Brand link mejorado */
+.brand-link {
+    border-bottom: 1px solid var(--primary-dark) !important;
+    color: var(--text-white) !important;
+    padding: 0.8125rem 1rem !important;
+    display: flex !important;
+    align-items: center !important;
+}
+
+.brand-link .brand-text {
+    font-size: 1rem !important;
+    line-height: 1.2 !important;
+    margin-left: 0.5rem !important;
+}
+
+.brand-link .brand-text small {
+    font-size: 0.75rem !important;
+    opacity: 0.8 !important;
+    display: block !important;
+    margin-top: -2px !important;
+}
+
+/* ================================
+   TEXTO Y ENLACES
+   ================================ */
+
+.content-header h1 {
+    color: var(--primary-color) !important;
+    font-weight: bold;
+}
+
+.text-primary {
+    color: var(--primary-color) !important;
+}
+
+.text-info {
+    color: var(--primary-color) !important;
+}
+
+a.text-primary:hover {
+    color: var(--primary-dark) !important;
+}
+
+/* ================================
+   FORMS Y INPUTS
+   ================================ */
+
+.form-control:focus {
+    border-color: var(--primary-light) !important;
+    box-shadow: 0 0 0 0.2rem rgba(7, 70, 128, 0.25) !important;
+}
+
+/* ================================
+   BADGES Y ESTADOS
+   ================================ */
+
+.badge-primary {
+    background-color: var(--primary-color) !important;
+    color: var(--text-white) !important;
+}
+
+.badge-info {
+    background-color: var(--primary-color) !important;
+    color: var(--text-white) !important;
+}
+
+.badge-success {
+    background-color: var(--success-color) !important;
+    color: var(--text-white) !important;
+}
+
+.badge-danger {
+    background-color: var(--danger-color) !important;
+    color: var(--text-white) !important;
+}
+
+.badge-warning {
+    background-color: var(--warning-color) !important;
+    color: #212529 !important;
+}
+
+/* ================================
+   PROGRESS BARS
+   ================================ */
+
+.progress-bar {
+    background-color: var(--primary-color) !important;
+}

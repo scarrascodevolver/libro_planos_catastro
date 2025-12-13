@@ -1,0 +1,12 @@
+FIX: Agregar librerías faltantes DataTables Buttons
+
+- buttons.colVis.min.js para control de columnas
+- jszip.min.js para exportar Excel
+- pdfmake para exportar PDF
+- vfs_fonts.js para soporte de fuentes PDF
+
+Resuelve error: Cannot extend unknown button type: colvis
+
+🤖 Generated with [Claude Code](https://claude.com/claude-code)
+
+Co-Authored-By: Claude <noreply@anthropic.com>
