@@ -360,6 +360,10 @@ class PlanoController extends Controller
 
     private function generarHtmlDetallesCompletos($plano)
     {
+        // Determinar si es rural o urbano para el nombre de la columna
+        $esRural = in_array($plano->tipo_saneamiento, ['SR', 'CR']);
+        $nombreColumna = $esRural ? 'Hijuelas' : 'Sitios';
+
         $html = '
         <div class="row">
             <!-- Sección FOLIOS/HIJUELAS/SITIOS -->
@@ -375,7 +379,7 @@ class PlanoController extends Controller
                             <table class="table table-sm table-hover mb-0">
                                 <thead class="thead-light">
                                     <tr>
-                                        <th class="text-center" style="width: 120px;">Tipo</th>
+                                        <th class="text-center" style="width: 120px;">' . $nombreColumna . '</th>
                                         <th style="width: 100px;">Folio</th>
                                         <th style="width: 200px;">Solicitante</th>
                                         <th class="text-right" style="width: 120px;">Hectáreas</th>
@@ -776,7 +780,7 @@ class PlanoController extends Controller
             ], 403);
         }
 
-        $plano = Plano::with('folios')->findOrFail($id);
+        $plano = Plano::with('folios.inmuebles')->findOrFail($id);
         $comunas = ComunaBiobio::getParaSelect();
 
         // Agregar campos calculados
@@ -1255,7 +1259,7 @@ class PlanoController extends Controller
             ], 403);
         }
 
-        $folio = PlanoFolio::with('plano')->findOrFail($folioId);
+        $folio = PlanoFolio::with('plano', 'inmuebles')->findOrFail($folioId);
 
         // Determinar si es rural o urbano
         $esRural = in_array($folio->plano->tipo_saneamiento, ['SR', 'CR']);

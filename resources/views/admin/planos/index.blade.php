@@ -2256,6 +2256,74 @@
                         $('#edit_folio_matrix_folio').val(response.folio.matrix_folio || '');
                         $('#edit_folio_is_from_matrix').val(response.folio.is_from_matrix ? '1' : '0');
 
+                        // Actualizar label dinámico según tipo
+                        const tipoInmueble = response.folio.tipo_inmueble;
+                        const labelTexto = tipoInmueble === 'HIJUELA' ? 'Número de Hijuela' : 'Número de Sitio';
+                        $('#edit_folio_numero_inmueble_label').text(labelTexto);
+
+                        // Actualizar título de tabla de inmuebles
+                        const tituloInmuebles = tipoInmueble === 'HIJUELA' ? 'Hijuelas de este Folio' : 'Sitios de este Folio';
+                        $('#edit_folio_inmuebles_title').text(tituloInmuebles);
+
+                        // Verificar si tiene inmuebles desglosados
+                        const inmuebles = response.folio.inmuebles || [];
+
+                        if (inmuebles.length > 0) {
+                            // CASO: Folio con múltiples inmuebles desglosados
+                            // Ocultar campos simples
+                            $('#edit_folio_numero_inmueble_container').addClass('d-none');
+                            $('#edit_folio_hectareas_container').addClass('d-none');
+                            $('#edit_folio_m2_container').addClass('d-none');
+
+                            // Mostrar sección de tabla de inmuebles
+                            $('#edit_folio_inmuebles_section').removeClass('d-none');
+                            $('#edit_folio_inmuebles_count').text(inmuebles.length);
+
+                            // Llenar tabla de inmuebles
+                            let tbody = '';
+                            let totalHa = 0;
+                            let totalM2 = 0;
+
+                            inmuebles.forEach(function(inmueble) {
+                                const ha = parseFloat(inmueble.hectareas || 0);
+                                const m2 = parseFloat(inmueble.m2 || 0);
+                                totalHa += ha;
+                                totalM2 += m2;
+
+                                const haDisplay = ha > 0 ? formatNumber(ha, 2) + ' ha' : '-';
+                                const m2Display = formatNumber(m2, 2) + ' m²';
+
+                                tbody += `
+                                    <tr>
+                                        <td class="text-center">
+                                            <span class="badge badge-${tipoInmueble === 'HIJUELA' ? 'info' : 'warning'}">
+                                                ${tipoInmueble} #${inmueble.numero_inmueble}
+                                            </span>
+                                        </td>
+                                        <td class="text-right">${haDisplay}</td>
+                                        <td class="text-right"><strong>${m2Display}</strong></td>
+                                    </tr>
+                                `;
+                            });
+
+                            $('#edit_folio_inmuebles_tbody').html(tbody);
+
+                            // Actualizar totales
+                            const totalHaDisplay = totalHa > 0 ? formatNumber(totalHa, 2) + ' ha' : '-';
+                            const totalM2Display = formatNumber(totalM2, 2) + ' m²';
+                            $('#edit_folio_total_hectareas').text(totalHaDisplay);
+                            $('#edit_folio_total_m2').html('<strong>' + totalM2Display + '</strong>');
+                        } else {
+                            // CASO: Folio con un solo inmueble (sin desglose)
+                            // Mostrar campos simples
+                            $('#edit_folio_numero_inmueble_container').removeClass('d-none');
+                            $('#edit_folio_hectareas_container').removeClass('d-none');
+                            $('#edit_folio_m2_container').removeClass('d-none');
+
+                            // Ocultar tabla de inmuebles
+                            $('#edit_folio_inmuebles_section').addClass('d-none');
+                        }
+
                         // Validación unificada: ambos campos opcionales (al menos uno requerido en backend)
                         // Remover atributo 'required' de HTML5 para evitar validación del navegador
                         $('#edit_folio_m2').removeAttr('required');

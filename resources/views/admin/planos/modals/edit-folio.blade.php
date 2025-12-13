@@ -40,7 +40,7 @@
                         <!-- Tipo Inmueble -->
                         <div class="col-md-6">
                             <div class="form-group">
-                                <label for="edit_folio_tipo_inmueble">Tipo Inmueble <span class="text-danger">*</span></label>
+                                <label for="edit_folio_tipo_inmueble">Tipo <span class="text-danger">*</span></label>
                                 <select class="form-control" id="edit_folio_tipo_inmueble" name="tipo_inmueble" required>
                                     <option value="">Seleccionar tipo...</option>
                                     <option value="HIJUELA">HIJUELA</option>
@@ -81,17 +81,17 @@
                     </div>
 
                     <div class="row">
-                        <!-- Número Inmueble -->
-                        <div class="col-md-4">
+                        <!-- Número Inmueble (solo para folio con 1 inmueble) -->
+                        <div class="col-md-4" id="edit_folio_numero_inmueble_container">
                             <div class="form-group">
-                                <label for="edit_folio_numero_inmueble">Número Inmueble</label>
+                                <label for="edit_folio_numero_inmueble" id="edit_folio_numero_inmueble_label">Número Inmueble</label>
                                 <input type="number" class="form-control" id="edit_folio_numero_inmueble" name="numero_inmueble" min="1" placeholder="Número">
                                 <small class="form-text text-muted">Identificador numérico</small>
                             </div>
                         </div>
 
                         <!-- Hectáreas (solo para HIJUELA) -->
-                        <div class="col-md-4">
+                        <div class="col-md-4" id="edit_folio_hectareas_container">
                             <div class="form-group">
                                 <label for="edit_folio_hectareas">Hectáreas</label>
                                 <input type="text" class="form-control" id="edit_folio_hectareas" name="hectareas" placeholder="0,00" inputmode="decimal" onkeypress="return validarNumeroDecimalHectareas(event)">
@@ -100,7 +100,7 @@
                         </div>
 
                         <!-- M² -->
-                        <div class="col-md-4">
+                        <div class="col-md-4" id="edit_folio_m2_container">
                             <div class="form-group">
                                 <label for="edit_folio_m2">M² <span class="text-danger" id="edit_folio_m2_required">*</span></label>
                                 <input type="text" class="form-control" id="edit_folio_m2" name="m2" placeholder="0,00" inputmode="decimal" onkeypress="return validarNumeroDecimal(event)">
@@ -108,6 +108,44 @@
                                 <small class="form-text text-info d-none" id="edit_folio_rural_hint">
                                     <i class="fas fa-info-circle"></i> Para rurales: Complete hectáreas o m² (al menos uno)
                                 </small>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Tabla de Inmuebles (solo para folios con múltiples sitios/hijuelas) -->
+                    <div class="row d-none" id="edit_folio_inmuebles_section">
+                        <div class="col-12">
+                            <div class="card">
+                                <div class="card-header bg-light">
+                                    <h6 class="mb-0">
+                                        <i class="fas fa-list"></i>
+                                        <span id="edit_folio_inmuebles_title">Sitios/Hijuelas de este Folio</span>
+                                        <span class="badge badge-info ml-2" id="edit_folio_inmuebles_count">0</span>
+                                    </h6>
+                                </div>
+                                <div class="card-body p-0">
+                                    <div class="table-responsive">
+                                        <table class="table table-sm table-hover mb-0">
+                                            <thead class="thead-light">
+                                                <tr>
+                                                    <th class="text-center" style="width: 80px;">#</th>
+                                                    <th class="text-right" style="width: 150px;">Hectáreas</th>
+                                                    <th class="text-right" style="width: 150px;">M²</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody id="edit_folio_inmuebles_tbody">
+                                                <!-- Se llenará dinámicamente con JavaScript -->
+                                            </tbody>
+                                            <tfoot class="bg-light">
+                                                <tr>
+                                                    <th class="text-right">TOTAL:</th>
+                                                    <th class="text-right" id="edit_folio_total_hectareas">-</th>
+                                                    <th class="text-right" id="edit_folio_total_m2">-</th>
+                                                </tr>
+                                            </tfoot>
+                                        </table>
+                                    </div>
+                                </div>
                             </div>
                         </div>
                     </div>
