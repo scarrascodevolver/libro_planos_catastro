@@ -360,6 +360,10 @@ class PlanoController extends Controller
 
     private function generarHtmlDetallesCompletos($plano)
     {
+        // Determinar si es rural o urbano para el nombre de la columna
+        $esRural = in_array($plano->tipo_saneamiento, ['SR', 'CR']);
+        $nombreColumna = $esRural ? 'Hijuelas' : 'Sitios';
+
         $html = '
         <div class="row">
             <!-- Sección FOLIOS/HIJUELAS/SITIOS -->
@@ -375,7 +379,7 @@ class PlanoController extends Controller
                             <table class="table table-sm table-hover mb-0">
                                 <thead class="thead-light">
                                     <tr>
-                                        <th class="text-center" style="width: 120px;">Tipo</th>
+                                        <th class="text-center" style="width: 120px;">' . $nombreColumna . '</th>
                                         <th style="width: 100px;">Folio</th>
                                         <th style="width: 200px;">Solicitante</th>
                                         <th class="text-right" style="width: 120px;">Hectáreas</th>
@@ -776,7 +780,7 @@ class PlanoController extends Controller
             ], 403);
         }
 
-        $plano = Plano::with('folios')->findOrFail($id);
+        $plano = Plano::with('folios.inmuebles')->findOrFail($id);
         $comunas = ComunaBiobio::getParaSelect();
 
         // Agregar campos calculados
@@ -1255,7 +1259,7 @@ class PlanoController extends Controller
             ], 403);
         }
 
-        $folio = PlanoFolio::with('plano')->findOrFail($folioId);
+        $folio = PlanoFolio::with('plano', 'inmuebles')->findOrFail($folioId);
 
         // Determinar si es rural o urbano
         $esRural = in_array($folio->plano->tipo_saneamiento, ['SR', 'CR']);
@@ -1335,30 +1339,89 @@ class PlanoController extends Controller
             ], 422);
         }
 
-        // Validación adicional: al menos uno (hectáreas o m²) debe tener valor
-        $tieneHectareas = !empty($data['hectareas']) && $data['hectareas'] > 0;
-        $tieneM2 = !empty($data['m2']) && $data['m2'] > 0;
+        // Verificar si viene array de inmuebles (modo tabla editable)
+        if ($request->has('inmuebles') && is_array($request->inmuebles)) {
+            // MODO TABLA: Actualizar inmuebles desglosados
 
-        if (!$tieneHectareas && !$tieneM2) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Validación fallida',
-                'errors' => [
-                    'hectareas' => ['Debe ingresar al menos Hectáreas o M²'],
-                    'm2' => ['Debe ingresar al menos Hectáreas o M²']
-                ]
-            ], 422);
-        }
+            // Validar que haya al menos un inmueble
+            if (count($request->inmuebles) === 0) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Debe tener al menos un sitio/hijuela',
+                    'errors' => ['inmuebles' => ['Debe tener al menos un sitio/hijuela']]
+                ], 422);
+            }
 
-        // Convertir 0 a null para campos vacíos
-        if (isset($data['hectareas']) && $data['hectareas'] == 0) {
-            $data['hectareas'] = null;
-        }
-        if (isset($data['m2']) && $data['m2'] == 0) {
-            $data['m2'] = null;
-        }
+            // Actualizar datos básicos del folio (sin hectáreas y m², porque vienen de los inmuebles)
+            $folio->update([
+                'folio' => $data['folio'] ?? null,
+                'solicitante' => $data['solicitante'],
+                'apellido_paterno' => $data['apellido_paterno'] ?? null,
+                'apellido_materno' => $data['apellido_materno'] ?? null,
+                'tipo_inmueble' => $data['tipo_inmueble'],
+                'matrix_folio' => $data['matrix_folio'] ?? null,
+                'is_from_matrix' => $data['is_from_matrix'],
+                // No actualizamos hectareas, m2 ni numero_inmueble en el folio padre
+            ]);
 
-        $folio->update($data);
+            // Eliminar inmuebles actuales
+            \App\Models\PlanoFolioInmueble::where('plano_folio_id', $folioId)->delete();
+
+            // Crear nuevos inmuebles
+            $totalHectareas = 0;
+            $totalM2 = 0;
+
+            foreach ($request->inmuebles as $inmuebleData) {
+                \App\Models\PlanoFolioInmueble::create([
+                    'plano_folio_id' => $folioId,
+                    'numero_inmueble' => $inmuebleData['numero'],
+                    'tipo_inmueble' => $data['tipo_inmueble'],
+                    'hectareas' => $inmuebleData['hectareas'] ?? null,
+                    'm2' => $inmuebleData['m2']
+                ]);
+
+                // Acumular totales
+                $totalHectareas += $inmuebleData['hectareas'] ?? 0;
+                $totalM2 += $inmuebleData['m2'] ?? 0;
+            }
+
+            // Actualizar totales en el folio padre (para compatibilidad con reportes)
+            $folio->update([
+                'hectareas' => $totalHectareas > 0 ? $totalHectareas : null,
+                'm2' => $totalM2
+            ]);
+
+        } else {
+            // MODO CAMPOS SIMPLES: Actualizar folio directamente (sin desglose)
+
+            // Convertir 0 a null para campos vacíos
+            if (isset($data['hectareas']) && $data['hectareas'] == 0) {
+                $data['hectareas'] = null;
+            }
+            if (isset($data['m2']) && $data['m2'] == 0) {
+                $data['m2'] = null;
+            }
+
+            // Validación adicional: al menos uno (hectáreas o m²) debe tener valor
+            $tieneHectareas = !empty($data['hectareas']) && $data['hectareas'] > 0;
+            $tieneM2 = !empty($data['m2']) && $data['m2'] > 0;
+
+            if (!$tieneHectareas && !$tieneM2) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Validación fallida',
+                    'errors' => [
+                        'hectareas' => ['Debe ingresar al menos Hectáreas o M²'],
+                        'm2' => ['Debe ingresar al menos Hectáreas o M²']
+                    ]
+                ], 422);
+            }
+
+            $folio->update($data);
+
+            // Si tenía inmuebles desglosados antes, eliminarlos (cambió de tabla a campos simples)
+            \App\Models\PlanoFolioInmueble::where('plano_folio_id', $folioId)->delete();
+        }
 
         // Recalcular totales del plano padre
         $this->recalcularTotalesPlano($folio->plano_id);
