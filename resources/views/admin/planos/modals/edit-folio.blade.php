@@ -112,38 +112,57 @@
                         </div>
                     </div>
 
+                    <!-- Botón Agregar Sitio/Hijuela (solo visible cuando hay campos simples) -->
+                    <div class="row mt-2" id="edit_folio_agregar_sitio_btn_container">
+                        <div class="col-12">
+                            <button type="button" class="btn btn-success btn-sm" onclick="agregarSegundoInmueble()">
+                                <i class="fas fa-plus-circle"></i> <span id="edit_folio_agregar_sitio_text">Agregar Sitio</span>
+                            </button>
+                            <small class="text-muted ml-2">Al agregar más de un sitio, se mostrará una tabla editable</small>
+                        </div>
+                    </div>
+
                     <!-- Tabla de Inmuebles (solo para folios con múltiples sitios/hijuelas) -->
                     <div class="row d-none" id="edit_folio_inmuebles_section">
                         <div class="col-12">
                             <div class="card">
-                                <div class="card-header bg-light">
+                                <div class="card-header bg-light py-2 d-flex justify-content-between align-items-center">
                                     <h6 class="mb-0">
                                         <i class="fas fa-list"></i>
-                                        <span id="edit_folio_inmuebles_title">Sitios/Hijuelas de este Folio</span>
+                                        <span id="edit_folio_inmuebles_title">Sitios de este Folio</span>
                                         <span class="badge badge-info ml-2" id="edit_folio_inmuebles_count">0</span>
                                     </h6>
+                                    <button type="button" class="btn btn-success btn-sm" onclick="agregarInmuebleEditFolio()">
+                                        <i class="fas fa-plus"></i> Agregar Sitio
+                                    </button>
                                 </div>
                                 <div class="card-body p-0">
                                     <div class="table-responsive">
-                                        <table class="table table-sm table-hover mb-0">
+                                        <table class="table table-sm table-bordered mb-0" id="tabla-inmuebles-edit-folio">
                                             <thead class="thead-light">
                                                 <tr>
-                                                    <th class="text-center" style="width: 80px;">#</th>
-                                                    <th class="text-right" style="width: 150px;">Hectáreas</th>
-                                                    <th class="text-right" style="width: 150px;">M²</th>
+                                                    <th width="100" class="text-center">#</th>
+                                                    <th width="150">Hectáreas <small class="text-muted">(auto)</small></th>
+                                                    <th width="150">M²</th>
+                                                    <th width="40"></th>
                                                 </tr>
                                             </thead>
                                             <tbody id="edit_folio_inmuebles_tbody">
                                                 <!-- Se llenará dinámicamente con JavaScript -->
                                             </tbody>
-                                            <tfoot class="bg-light">
-                                                <tr>
-                                                    <th class="text-right">TOTAL:</th>
-                                                    <th class="text-right" id="edit_folio_total_hectareas">-</th>
-                                                    <th class="text-right" id="edit_folio_total_m2">-</th>
-                                                </tr>
-                                            </tfoot>
                                         </table>
+                                    </div>
+                                    <div class="bg-light p-2 border-top">
+                                        <div class="row text-center small">
+                                            <div class="col-6">
+                                                <span class="text-muted">Total Hectáreas:</span>
+                                                <strong id="edit_folio_total_hectareas">0</strong>
+                                            </div>
+                                            <div class="col-6">
+                                                <span class="text-muted">Total M²:</span>
+                                                <strong id="edit_folio_total_m2">0</strong>
+                                            </div>
+                                        </div>
                                     </div>
                                 </div>
                             </div>

@@ -1354,15 +1354,74 @@ class PlanoController extends Controller
             ], 422);
         }
 
-        // Convertir 0 a null para campos vacíos
-        if (isset($data['hectareas']) && $data['hectareas'] == 0) {
-            $data['hectareas'] = null;
-        }
-        if (isset($data['m2']) && $data['m2'] == 0) {
-            $data['m2'] = null;
-        }
+        // Verificar si viene array de inmuebles (modo tabla editable)
+        if ($request->has('inmuebles') && is_array($request->inmuebles)) {
+            // MODO TABLA: Actualizar inmuebles desglosados
 
-        $folio->update($data);
+            // Validar que haya al menos un inmueble
+            if (count($request->inmuebles) === 0) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Debe tener al menos un sitio/hijuela',
+                    'errors' => ['inmuebles' => ['Debe tener al menos un sitio/hijuela']]
+                ], 422);
+            }
+
+            // Actualizar datos básicos del folio (sin hectáreas y m², porque vienen de los inmuebles)
+            $folio->update([
+                'folio' => $data['folio'] ?? null,
+                'solicitante' => $data['solicitante'],
+                'apellido_paterno' => $data['apellido_paterno'] ?? null,
+                'apellido_materno' => $data['apellido_materno'] ?? null,
+                'tipo_inmueble' => $data['tipo_inmueble'],
+                'matrix_folio' => $data['matrix_folio'] ?? null,
+                'is_from_matrix' => $data['is_from_matrix'],
+                // No actualizamos hectareas, m2 ni numero_inmueble en el folio padre
+            ]);
+
+            // Eliminar inmuebles actuales
+            \App\Models\PlanoFolioInmueble::where('plano_folio_id', $folioId)->delete();
+
+            // Crear nuevos inmuebles
+            $totalHectareas = 0;
+            $totalM2 = 0;
+
+            foreach ($request->inmuebles as $inmuebleData) {
+                \App\Models\PlanoFolioInmueble::create([
+                    'plano_folio_id' => $folioId,
+                    'numero_inmueble' => $inmuebleData['numero'],
+                    'tipo_inmueble' => $data['tipo_inmueble'],
+                    'hectareas' => $inmuebleData['hectareas'] ?? null,
+                    'm2' => $inmuebleData['m2']
+                ]);
+
+                // Acumular totales
+                $totalHectareas += $inmuebleData['hectareas'] ?? 0;
+                $totalM2 += $inmuebleData['m2'] ?? 0;
+            }
+
+            // Actualizar totales en el folio padre (para compatibilidad con reportes)
+            $folio->update([
+                'hectareas' => $totalHectareas > 0 ? $totalHectareas : null,
+                'm2' => $totalM2
+            ]);
+
+        } else {
+            // MODO CAMPOS SIMPLES: Actualizar folio directamente (sin desglose)
+
+            // Convertir 0 a null para campos vacíos
+            if (isset($data['hectareas']) && $data['hectareas'] == 0) {
+                $data['hectareas'] = null;
+            }
+            if (isset($data['m2']) && $data['m2'] == 0) {
+                $data['m2'] = null;
+            }
+
+            $folio->update($data);
+
+            // Si tenía inmuebles desglosados antes, eliminarlos (cambió de tabla a campos simples)
+            \App\Models\PlanoFolioInmueble::where('plano_folio_id', $folioId)->delete();
+        }
 
         // Recalcular totales del plano padre
         $this->recalcularTotalesPlano($folio->plano_id);
