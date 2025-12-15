@@ -980,6 +980,10 @@
                     // Buscar la fila por el data-id que asignamos
                     const row = $(`tr[data-id="${id}"]`);
 
+                    // Eliminar filas hijas existentes para evitar duplicación
+                    // (esto ocurre cuando drawCallback re-expande filas después de redibujado)
+                    row.nextUntil(':not(.child-row)').remove();
+
                     // Insertar filas hijas
                     $(response.html).insertAfter(row);
 
@@ -1011,11 +1015,8 @@
                 const $row = $(this);
 
                 // Obtener cantidad de folios desde el HTML directamente
-                @if (Auth::user()->isRegistro())
-                    const foliosText = $row.find('td:nth-child(3)').text(); // Columna Folios para rol registro
-                @else
-                    const foliosText = $row.find('td:nth-child(2)').text(); // Columna Folios para rol consulta
-                @endif
+                // La columna Folios es la misma (td:nth-child(3)) para ambos roles
+                const foliosText = $row.find('td:nth-child(3)').text();
                 const hasMultipleFolios = foliosText.includes('+') || foliosText.includes(',');
 
                 if (hasMultipleFolios) {
